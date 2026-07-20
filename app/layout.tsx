@@ -1,4 +1,3 @@
-import NextTopLoader from 'nextjs-toploader';
 import type { Metadata } from 'next';
 import { Cairo, Amiri } from 'next/font/google';
 import './globals.css';
@@ -100,11 +99,6 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
         >
           تخطى إلى المحتوى الرئيسي
         </a>
-        <NextTopLoader 
-          color="#1F3D2E"
-          showSpinner={false}
-          height={3}
-        />
         <main id="main-content" className="min-h-screen">
           {children}
         </main>

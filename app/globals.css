@@ -1,5 +1,8 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@source "../components";
+@source "../lib";
+@source "../app";
 @import "tw-animate-css";
 
 @theme {
