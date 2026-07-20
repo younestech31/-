@@ -46,26 +46,32 @@ export function useInheritanceWorker() {
   const getWorker = () => {
     if (typeof Worker === 'undefined') return null;
     if (!workerRef.current) {
-      workerRef.current = new Worker(new URL('../../workers/inheritance.worker.ts', import.meta.url));
-      workerRef.current.onmessage = (e: MessageEvent) => {
-        const { id, data, error } = e.data;
-        const resolve = pendingResolvers.current.get(id);
-        if (resolve) {
-          pendingResolvers.current.delete(id);
-          if (error) {
-            console.error('Worker error:', error);
+      try {
+        workerRef.current = new Worker(new URL('../../workers/inheritance.worker.ts', import.meta.url));
+        workerRef.current.onmessage = (e: MessageEvent) => {
+          const { id, data, error } = e.data;
+          const resolve = pendingResolvers.current.get(id);
+          if (resolve) {
+            pendingResolvers.current.delete(id);
+            if (error) {
+              console.error('Worker error:', error);
+              setIsWorkerCalculating(false);
+              return;
+            }
+            resolve(hydrateStageResults(data));
             setIsWorkerCalculating(false);
-            return;
           }
-          resolve(hydrateStageResults(data));
+        };
+        workerRef.current.onerror = (e) => {
+          console.error('Worker thread error:', e);
           setIsWorkerCalculating(false);
-        }
-      };
-      workerRef.current.onerror = (e) => {
-        console.error('Worker thread error:', e);
-        setIsWorkerCalculating(false);
-        // Could reject pending resolvers here based on id
-      };
+          // Could reject pending resolvers here based on id
+        };
+      } catch (err) {
+        console.warn('Failed to instantiate Web Worker, falling back to main-thread execution:', err);
+        workerRef.current = null;
+        return null;
+      }
     }
     return workerRef.current;
   };
