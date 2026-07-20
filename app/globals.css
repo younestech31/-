@@ -1,0 +1,178 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "tw-animate-css";
+
+@theme {
+  --color-brand-green: #1F3D2E;
+  --color-brand-brass: #B8894A;
+  --color-brand-gold: #D9A85E;
+  --color-brand-parchment: #EFE8D8;
+  --color-brand-ink: #12201A;
+  --color-brand-mint: #C9D3C4;
+}
+
+/* Custom Font */
+@font-face {
+  font-family: "Cairo Fallback";
+  src: local("Arial"), local("Helvetica"), local("sans-serif");
+  size-adjust: 105%;
+}
+
+.font-cairo {
+  font-family: var(--font-cairo), "Cairo Fallback", sans-serif;
+  line-height: 1.8;
+}
+
+.font-amiri {
+  font-family: var(--font-amiri), serif;
+}
+
+.font-body-ar {
+  font-family: var(--font-cairo), sans-serif;
+}
+
+/* Smooth Scrolling */
+html, body {
+  scroll-behavior: smooth;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EFE8D8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1F3D2E;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #B8894A;
+}
+
+/* Details/Summary Arrow Fix */
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Selection Color */
+::selection {
+  background-color: #1F3D2E;
+  color: #EFE8D8;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+/* Focus Styles */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #1F3D2E;
+  outline-offset: 2px;
+}
+
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Phone Number Input Direction */
+input[type="tel"] {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Background Patterns */
+.bg-pattern-plus {
+  background-image: url("data:image/svg+xml,%3Csvg width='24' height='24' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 10v4M10 12h4' stroke='rgba(31,61,46,0.05)' stroke-width='1' fill='none'/%3E%3C/svg%3E");
+}
+
+.bg-pattern-dots {
+  background-image: radial-gradient(circle at 2px 2px, #1F3D2E 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+/* Language conditional typography */
+[lang="fr"] body {
+  font-family: var(--font-cairo), sans-serif;
+}
+[lang="ar"] body {
+  font-family: var(--font-cairo), sans-serif;
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .wa-btn {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Header Active Styles (Smooth Transition) */
+#main-header.header-active {
+  background-color: white !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+#main-header.header-active .link-text {
+  color: #12201A !important;
+}
+#main-header.header-active .link-text:hover {
+  color: #B8894A !important;
+}
+#main-header.header-active .brand-text {
+  color: #1F3D2E !important;
+}
+#main-header.header-active .notary-subtext {
+  color: #B8894A !important;
+}
+#main-header.header-active .menu-btn {
+  color: #12201A !important;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+

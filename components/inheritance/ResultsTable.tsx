@@ -1,0 +1,568 @@
+'use client';
+
+import { Info } from 'lucide-react';
+import Fraction from 'fraction.js';
+import dynamic from 'next/dynamic';
+import { CalculationResult } from '@/lib/inheritance-calculator';
+import { INHERITANCE_BARS } from '@/data/inheritance-bars';
+import { } from '@/data/heirs';
+import { MunasakhatStage } from './InheritanceCalculator';
+import { StageValidationResult } from '@/lib/inheritance/munasakhat-resolver';
+
+const FamilyTree = dynamic(() => import('./FamilyTree/FamilyTree'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full flex items-center justify-center bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-8 h-8 border-4 border-[#0a5d38] border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-[#64748b]">جاري تحميل مخطط شجرة العائلة...</p>
+      </div>
+    </div>
+  ),
+});
+
+export interface StageResult {
+  stage: MunasakhatStage;
+  results: CalculationResult[];
+  netEstate: number;
+  noHeirsRedistribution?: {
+    policy: 'treasury';
+    amount: number;
+    messageAr: string;
+    redistributeTo?: CalculationResult[];
+  } | null;
+}
+
+interface ResultsTableProps {
+  isEstatePanelOpen: boolean;
+  viewMode: 'table' | 'tree';
+  setViewMode: (m: 'table' | 'tree') => void;
+  currentStageIndex: number;
+  setCurrentStageIndex: (i: number) => void;
+  munasakhatStages: MunasakhatStage[];
+  currentStage: MunasakhatStage;
+  currentNetEstate: number;
+  results: CalculationResult[];
+  problemBase: number | null;
+  allStagesResults: StageResult[];
+  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number) => void;
+  removeStage: (index: number) => void;
+  setSelectedHeirExplanation: (r: CalculationResult | null) => void;
+  updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
+  /** نتيجة مراجعة المرحلة الحالية (ورثة مستبعدون مُفعَّلون) */
+  currentStageValidation: StageValidationResult | null;
+  /** سياسة توزيع الحصة عند غياب الورثة في المسألة الثانوية */
+  noHeirsRedistribution: StageResult['noHeirsRedistribution'];
+  isCalculating: boolean;
+  handleCopyFullSummary?: () => void;
+  estate: number;
+  className?: string;
+}
+
+export default function ResultsTable({
+  isEstatePanelOpen,
+  viewMode,
+  setViewMode,
+  currentStageIndex,
+  setCurrentStageIndex,
+  munasakhatStages,
+  currentStage,
+  currentNetEstate,
+  results,
+  problemBase,
+  allStagesResults,
+  addMunasakhatStage,
+  removeStage,
+  setSelectedHeirExplanation,
+  updateImpediment,
+  currentStageValidation: _currentStageValidation,
+  noHeirsRedistribution: _noHeirsRedistribution,
+  isCalculating,
+  handleCopyFullSummary,
+  estate,
+  className,
+}: ResultsTableProps) {
+  const isPureSharesMode = estate === 0;
+
+  return (
+    <div
+      data-panel="results"
+      className={`bg-white rounded-lg border border-[#e2e8f0] flex flex-col overflow-hidden transition-all duration-300 min-h-0 lg:h-full ${
+        isEstatePanelOpen ? 'lg:col-start-3 lg:row-start-1' : 'lg:col-start-2 lg:row-start-2'
+      } ${isCalculating ? 'opacity-50 pointer-events-none' : ''} ${className || ''}`}
+    >
+      {/* ── Panel header ─────────────────────────────────────────────── */}
+      <div className="px-4 py-3 border-b border-[#e2e8f0] bg-[#fdfdfd] flex items-center justify-between shrink-0">
+        {/* Stage tabs / selector */}
+        <div className={`flex items-center gap-2 overflow-x-auto no-scrollbar py-1 no-print`}>
+          {munasakhatStages.length <= 3 ? (
+            munasakhatStages.map((stage, idx) => (
+              <div key={`${stage.id}-${idx}`} className="flex items-center shrink-0">
+                <button
+                  onClick={() => setCurrentStageIndex(idx)}
+                  className={`px-3 py-1 text-xs rounded-full border transition-all ${
+                    currentStageIndex === idx
+                      ? 'bg-[#0a5d38] text-white border-[#0a5d38]'
+                      : 'bg-white text-[#64748b] border-[#e2e8f0] hover:border-[#0a5d38]'
+                  }`}
+                >
+                  {idx === 0 ? 'المسألة الأصلية' : `وفاة: ${stage.deceasedName}`}
+                </button>
+                {idx > 0 && (
+                  <button
+                    onClick={e => { e.stopPropagation(); removeStage(idx); }}
+                    className="ms-1 text-[#ef4444] hover:bg-[#fee2e2] rounded-full p-0.5"
+                    title="حذف هذه المرحلة"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+                {idx < munasakhatStages.length - 1 && (
+                  <span className="mx-1 text-[#cbd5e1]">←</span>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="flex items-center gap-2">
+              <select
+                value={currentStageIndex}
+                onChange={e => setCurrentStageIndex(Number(e.target.value))}
+                className="p-1.5 text-xs bg-white border border-[#e2e8f0] rounded-md focus:ring-1 focus:ring-[#0a5d38] outline-none"
+              >
+                {munasakhatStages.map((stage, idx) => (
+                  <option key={`${stage.id}-${idx}`} value={idx}>
+                    {idx === 0 ? 'المسألة الأصلية' : `${idx}. وفاة: ${stage.deceasedName}`}
+                  </option>
+                ))}
+              </select>
+              {currentStageIndex > 0 && (
+                <button
+                  onClick={() => removeStage(currentStageIndex)}
+                  className="px-2 py-1 text-[10px] text-white bg-red-500 hover:bg-red-600 rounded transition-colors"
+                >
+                  حذف المرحلة الحالية
+                </button>
+              )}
+              <span className="text-[10px] text-[#94a3b8]">({munasakhatStages.length} مراحل)</span>
+            </div>
+          )}
+        </div>
+
+
+        {/* View mode toggle */}
+        <div className={`flex bg-[#f1f5f9] rounded-md p-0.5 shrink-0 ms-2 no-print`}>
+          {allStagesResults.length > 1 ? (
+            <button
+              onClick={handleCopyFullSummary}
+              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#0a5d38] font-bold hover:bg-[#0a5d38]/10 flex items-center gap-1`}
+              title="نسخ الملخص الكامل لجميع مراحل المناسخات"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>نسخ الملخص</span>
+            </button>
+          ) : (
+            <button
+              onClick={async () => {
+                const lines = [
+                  `نتائج التقسيم - ${currentStageIndex === 0 ? 'المسألة الأصلية' : `وفاة: ${currentStage.deceasedName}`}`
+                ];
+                if (problemBase) lines.push(`أصل المسألة: ${problemBase}`);
+                lines.push('--------------------------------------------------');
+                results.forEach(r => {
+                  const presence = currentStage.heirPresence[r.heirId];
+                  const getPct = (frac: Fraction) => {
+                    const v = frac.valueOf() * 100;
+                    return v % 1 === 0 ? `${v}%` : `${v.toFixed(2)}%`;
+                  };
+                  if (r.count > 1) {
+                    for (let i=0; i<r.count; i++) {
+                      const customName = presence?.customNames?.[i];
+                      const baseName = `${r.nameAr} ${i + 1}`;
+                      const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
+                      const individualAmt = r.amount / r.count;
+                      const indShareFrac = r.shareFraction.div(r.count);
+                      const pctStr = r.isBlocked ? '0%' : getPct(indShareFrac);
+                      if (isPureSharesMode) {
+                        lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - النسبة: ${pctStr}`);
+                      } else {
+                        lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${individualAmt.toLocaleString('en-US')} دج (${pctStr})`);
+                      }
+                    }
+                  } else {
+                    const pctStr = r.isBlocked ? '0%' : getPct(r.shareFraction);
+                    if (isPureSharesMode) {
+                      lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - النسبة: ${pctStr}`);
+                    } else {
+                      lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${r.amount.toLocaleString('en-US')} دج (${pctStr})`);
+                    }
+                  }
+                });
+                try {
+                  await navigator.clipboard.writeText(lines.join('\n'));
+                  alert('تم نسخ النتائج كنص بنجاح');
+                } catch {
+                  alert('فشل نسخ النتائج');
+                }
+              }}
+              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#64748b] hover:text-[#1a1a1a] flex items-center gap-1`}
+              title="نسخ كنص للطباعة القانونية"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span className="hidden sm:inline">نسخ النص</span>
+            </button>
+          )}
+          <div className="w-px h-4 bg-[#cbd5e1] self-center mx-1"></div>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`px-3 py-1 text-xs rounded-sm transition-colors ${
+              viewMode === 'table' ? 'bg-white shadow-sm text-[#0a5d38] font-bold' : 'text-[#64748b] hover:text-[#1a1a1a]'
+            }`}
+          >
+            جدول
+          </button>
+          <button
+            onClick={() => setViewMode('tree')}
+            className={`px-3 py-1 text-xs rounded-sm transition-colors ${
+              viewMode === 'tree' ? 'bg-white shadow-sm text-[#0a5d38] font-bold' : 'text-[#64748b] hover:text-[#1a1a1a]'
+            }`}
+          >
+            شجرة
+          </button>
+        </div>
+      </div>
+
+      {/* ── Panel body ───────────────────────────────────────────────── */}
+      <div
+        id="results-printable-area"
+        className={`p-4 flex-grow min-h-0 print:overflow-visible print:h-auto print:block ${
+          viewMode === 'tree' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'
+        }`}
+      >
+        {currentStageIndex > 0 && currentNetEstate === 0 && !isPureSharesMode && (
+          <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-800 text-xs rounded">
+            <p><strong>تنبيه:</strong> صافي التركة لهذه المرحلة هو صفر. لن يتم حساب أي أنصبة.</p>
+          </div>
+        )}
+
+        {results.length > 0 ? (
+          viewMode === 'table' ? (
+            <TableView
+              results={results}
+              problemBase={problemBase}
+              currentStage={currentStage}
+              addMunasakhatStage={addMunasakhatStage}
+              setSelectedHeirExplanation={setSelectedHeirExplanation}
+              updateImpediment={updateImpediment}
+              isPureSharesMode={isPureSharesMode}
+            />
+          ) : (
+            <div className="w-full flex-grow h-full min-h-[400px] lg:h-full lg:min-h-0">
+              <FamilyTree allStages={allStagesResults} />
+            </div>
+          )
+        ) : (
+          <div className="text-center text-sm text-[#64748b] mt-10">
+            الرجاء تحديد الورثة من القائمة لعرض نتائج الحصص والسهام.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Inner: Table view
+// ─────────────────────────────────────────────────────────────────────────────
+interface TableViewProps {
+  results: CalculationResult[];
+  problemBase: number | null;
+  currentStage: MunasakhatStage;
+  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number) => void;
+  setSelectedHeirExplanation: (r: CalculationResult | null) => void;
+  updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
+  isPureSharesMode: boolean;
+}
+
+function TableView({
+  results,
+  problemBase,
+  currentStage,
+  addMunasakhatStage,
+  setSelectedHeirExplanation,
+  updateImpediment,
+  isPureSharesMode,
+}: TableViewProps) {
+  // Get problem base from the first non-bequest, non-blocked result
+  const firstValidForBase = results.find(
+    r => !r.isBlocked && r.heirId !== 'mandatory_bequest' && r.heirId !== 'voluntary_bequest'
+  );
+  const problemBaseToDisplay = firstValidForBase?.problemBase ?? problemBase;
+
+  // Calculation type badge
+  const calcType = results[0]?.calculationType;
+
+  // Wife plurality notice
+  const wifeResult = results.find(r => r.heirId === 'wife' && !r.isBlocked && r.count > 1);
+
+  // Validity check
+  const inheritableHeirs = results.filter(
+    r => !r.isBlocked && r.heirId !== 'voluntary_bequest' && r.heirId !== 'mandatory_bequest',
+  );
+  const totalSharesFraction = inheritableHeirs.reduce(
+    (sum, r) => sum.add(r.shareFraction),
+    new Fraction(0),
+  );
+  const isInheritanceEmpty = inheritableHeirs.length === 0;
+  const isComplete         = totalSharesFraction.equals(1);
+
+  return (
+    <>
+      {/* Calc type badge */}
+      {calcType && (
+        <div
+          className={`mb-4 p-3 rounded-md flex items-center justify-center gap-3 border shadow-sm ${
+            calcType === 'awl'  ? 'bg-orange-50 border-orange-200 text-orange-800' :
+            calcType === 'radd' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+                                  'bg-green-50 border-green-200 text-green-800'
+          }`}
+        >
+          <div
+            className={`w-3 h-3 rounded-full animate-pulse ${
+              calcType === 'awl'  ? 'bg-orange-500' :
+              calcType === 'radd' ? 'bg-blue-500'   : 'bg-green-500'
+            }`}
+          />
+          <span className="font-bold text-sm">
+            {calcType === 'awl'  ? 'عول (م.166): تم زيادة أصل المسألة لاستيعاب جميع الفروض' :
+             calcType === 'radd' ? 'رد (م.167): تم توزيع الفائض على أصحاب الفروض نسبياً' :
+                                   'مسألة عادية: مجموع الفروض يوافق أصل المسألة'}
+          </span>
+        </div>
+      )}
+
+      {/* Problem base & validity */}
+      {problemBaseToDisplay && problemBaseToDisplay > 0 && (
+        <div className="mb-4 space-y-2">
+          <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-md flex items-center justify-between">
+            <span className="font-bold text-[#0a5d38] text-sm">أصل المسألة:</span>
+            <span className="font-mono text-lg font-bold bg-[#e2e8f0] px-3 py-1 rounded text-[#1e293b]">
+              {problemBaseToDisplay}
+            </span>
+          </div>
+          <div
+            className={`p-3 rounded-md flex items-center justify-between ${
+              !isInheritanceEmpty && !isComplete
+                ? 'bg-red-50 border border-red-200'
+                : 'bg-green-50 border border-green-200'
+            }`}
+          >
+            <span className={`font-bold text-sm ${!isInheritanceEmpty && !isComplete ? 'text-red-800' : 'text-green-800'}`}>
+              {isInheritanceEmpty
+                ? 'لا يوجد ورثة مستحقون للإرث'
+                : isComplete
+                ? 'المسألة صحيحة (مجموع السهام = أصل المسألة)'
+                : 'المسألة تحتاج تدقيق (مجموع السهام لا يساوي 1)'}
+            </span>
+            <div
+              className={`w-3 h-3 rounded-full ${!isInheritanceEmpty && !isComplete ? 'bg-red-500' : 'bg-green-500'}`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Wife plurality notice */}
+      {wifeResult && (
+        <div className="mb-4 p-2.5 bg-blue-50/50 border-r-4 border-blue-400 text-blue-800 text-[11px] rounded-l flex items-center gap-2">
+          <Info size={14} className="shrink-0" />
+          <p>
+            <strong>تنبيه:</strong> نظراً لوجود أكثر من زوجة ({wifeResult.count})، فإنهن يشتركن في نصيب
+            الزوجة ({wifeResult.share}) ويقسم بينهن بالتساوي عملاً بالمادة 146.
+          </p>
+        </div>
+      )}
+
+      {/* Problem base summary line above the table */}
+      {problemBaseToDisplay && problemBaseToDisplay > 1 && (
+        <div className="text-xs text-[#0a5d38] font-semibold mb-2">
+          أصل المسألة: {problemBaseToDisplay} سهماً
+          {calcType === 'awl' && ' (مسألة عائلة)'}
+          {calcType === 'radd' && ' (مسألة ناقصة)'}
+        </div>
+      )}
+
+      {/* Results table wrapper for horizontal scroll */}
+      <div className="w-full overflow-x-auto relative no-scrollbar border border-[#e2e8f0] rounded-xl">
+        <table className="w-full border-collapse text-[13px] min-w-[500px]">
+          <thead>
+            <tr>
+              <th className="sticky right-0 bg-[#fdfdfd] z-10 text-right p-2.5 border-b-2 border-[#e2e8f0] text-[#64748b] font-semibold min-w-[130px] shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)]">الوارث</th>
+              <th className="text-right p-2.5 border-b-2 border-[#e2e8f0] text-[#64748b] font-semibold">النصيب</th>
+              {problemBaseToDisplay !== null && problemBaseToDisplay > 0 ? (
+                <th className="px-3 py-2 text-center text-xs font-medium text-[#64748b]">
+                  السهام
+                </th>
+              ) : null}
+              <th className="text-right p-2.5 border-b-2 border-[#e2e8f0] text-[#64748b] font-semibold">
+                {isPureSharesMode ? 'النسبة مئوية' : 'المبلغ المستحق'}
+              </th>
+              <th className="text-center p-2.5 border-b-2 border-[#e2e8f0] text-[#64748b] font-semibold no-print">إجراء</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.flatMap((r, idx) => {
+              const presence = currentStage.heirPresence[r.heirId];
+              const rows: React.ReactNode[] = [];
+  
+              for (let i = 0; i < r.count; i++) {
+                const customName     = presence?.customNames?.[i];
+                const baseName       = r.count > 1 ? `${r.nameAr} ${i + 1}` : r.nameAr;
+                const displayName    = customName ? `${customName} (${r.nameAr})` : baseName;
+                
+                const individualResult = r.individuals?.[i];
+                const individualAmt  = individualResult ? individualResult.amount : (r.amount / r.count);
+                const indIsBlocked   = individualResult ? individualResult.isBlocked : r.isBlocked;
+                const indShare       = individualResult ? individualResult.share : r.share;
+  
+                const isIndImpeded   = presence?.impededIndexes?.[i] ?? false;
+                const indReasonId    = presence?.impedimentReasonIds?.[i];
+  
+                const indShareFrac   = individualResult ? individualResult.shareFraction : (r.shareFraction.compare(0) === 0 ? new Fraction(0) : r.shareFraction.div(r.count));
+                const percentVal     = indShareFrac.valueOf() * 100;
+                const percentStr     = percentVal > 0 ? (percentVal % 1 === 0 ? `${percentVal}%` : `${percentVal.toFixed(2)}%`) : '0%';
+  
+                const isInvoluntaryKiller =
+                  indIsBlocked &&
+                  (individualResult?.reason?.includes('القاتل خطأ') || indReasonId === 'involuntary_killer');
+  
+                rows.push(
+                  <tr key={`${idx}-${i}`} className="hover:bg-[#f8fafc] group">
+                    {/* Name + reason (sticky column) */}
+                    <td className="sticky right-0 bg-white group-hover:bg-[#f8fafc] p-2.5 border-b border-[#e2e8f0] min-w-[130px] z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)] transition-colors">
+                      <div className={indIsBlocked ? 'text-[#64748b] line-through opacity-70' : ''}>
+                        {displayName}
+                      </div>
+                      {i === 0 && (
+                        <div className="text-[10px] text-[#64748b] mt-0.5">{r.reason}</div>
+                      )}
+                      {i === 0 && r.count > 1 && !isPureSharesMode && (
+                        <div className="text-[10px] text-[#0a5d38] mt-0.5 font-bold">
+                          نصيب كل واحدة غير محرومة: {individualAmt.toLocaleString('en-US')}
+                        </div>
+                      )}
+                    </td>
+
+                  {/* Share fraction (clickable → explanation modal) */}
+                  <td
+                    className="p-2.5 border-b border-[#e2e8f0] cursor-help"
+                    dir="ltr"
+                    onClick={() => setSelectedHeirExplanation(r)}
+                  >
+                    {isInvoluntaryKiller ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200">
+                        يرث المال دون الدية — م.137
+                      </span>
+                    ) : indIsBlocked ? (
+                      indShare === 'محروم' || isIndImpeded ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-red-50 text-red-700 border border-red-200">
+                          محروم
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-gray-200">
+                          محجوب
+                        </span>
+                      )
+                    ) : (
+                      <span
+                        className="px-1.5 py-0.5 rounded font-mono font-bold text-[11px] bg-[#f1f5f9] text-[#0a5d38]"
+                      >
+                        {indShare}
+                      </span>
+                    )}
+                  </td>
+
+                  {/* Shares column */}
+                  {problemBaseToDisplay !== null && problemBaseToDisplay > 0 ? (
+                    <td className="px-3 py-2 text-center text-sm font-mono">
+                      {indIsBlocked || r.shares === 0 ? '—' : (individualResult ? individualResult.shares : r.shares)}
+                    </td>
+                  ) : null}
+
+                  {/* Amount / Percentage */}
+                  <td className="p-2.5 border-b border-[#e2e8f0] font-mono font-medium">
+                    {indIsBlocked ? '-' : (isPureSharesMode ? percentStr : `${individualAmt.toLocaleString('en-US')} دج (${percentStr})`)}
+                  </td>
+
+                  {/* Actions */}
+                  <td className="p-2.5 border-b border-[#e2e8f0] text-center no-print">
+                    {r.heirId !== 'treasury' &&
+                      r.heirId !== 'mandatory_bequest' &&
+                      r.heirId !== 'voluntary_bequest' && (
+                      <div className="flex flex-col gap-1 items-center">
+                        {!indIsBlocked && (
+                          <button
+                            onClick={() => addMunasakhatStage(displayName, individualAmt, r.heirId, i)}
+                            className="text-[10px] bg-[#0a5d38]/10 text-[#0a5d38] px-2 py-1 rounded hover:bg-[#0a5d38] hover:text-white transition-colors"
+                            title="إضافة مناسخة (وفاة هذا الوارث)"
+                            aria-label={`مناسخة: وفاة ${displayName}`}
+                          >
+                            وفاة
+                          </button>
+                        )}
+
+                        {presence && (
+                          <div className="flex flex-col items-center">
+                            <label
+                              className="flex items-center gap-1 text-[10px] cursor-pointer"
+                              title="موانع الإرث (القتل، الردة، إلخ)"
+                            >
+                              <input
+                                type="checkbox"
+                                aria-label={`حرمان الوارث: ${displayName}`}
+                                checked={isIndImpeded}
+                                onChange={() =>
+                                  updateImpediment(r.heirId, i, !isIndImpeded, indReasonId)
+                                }
+                              />
+                              محروم
+                            </label>
+
+                            {isIndImpeded && (
+                              <select
+                                value={indReasonId ?? ''}
+                                onChange={e =>
+                                  updateImpediment(r.heirId, i, true, e.target.value)
+                                }
+                                className="text-[9px] mt-1 p-0.5 border border-[#e2e8f0] rounded outline-none w-24 bg-white"
+                              >
+                                <option value="">سبب الحرمان...</option>
+                                {INHERITANCE_BARS.map(bar => (
+                                  <option key={bar.id} value={bar.id}>{bar.nameAr}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                </tr>,
+              );
+            }
+            return rows;
+          })}
+        </tbody>
+      </table>
+    </div>
+
+      {/* Munasakhat note */}
+      <div className="mt-4 p-3 bg-[#f0f9ff] rounded border border-[#bae6fd] no-print">
+        <p className="text-[11px] text-[#0369a1] leading-relaxed">
+          <strong>تنبيه المناسخات:</strong> عند الضغط على &quot;وفاة&quot;، يتم فتح مرحلة جديدة لتقسيم نصيب الوارث
+          المتوفى على ورثته الخاصين. يمكنك التنقل بين المراحل من الشريط العلوي.
+        </p>
+      </div>
+    </>
+  );
+}

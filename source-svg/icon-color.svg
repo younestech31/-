@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- مواريث — signature mark: the letter "م" (meem) redrawn as a balance scale.
+       Loop = meem's head / the watchful eye of a fair division.
+       Tail  = meem's stroke / the scale's central pillar.
+       Beam + pans = the two equal shares. -->
+
+  <!-- loop (meem head) -->
+  <circle cx="50" cy="27" r="14" fill="none" stroke="#1F3D2E" stroke-width="8"/>
+  <circle cx="50" cy="27" r="3.1" fill="#B8894A"/>
+
+  <!-- tail / central pillar -->
+  <line x1="50" y1="41" x2="50" y2="59" stroke="#1F3D2E" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- beam -->
+  <line x1="17" y1="59" x2="83" y2="59" stroke="#1F3D2E" stroke-width="6.5" stroke-linecap="round"/>
+
+  <!-- chains -->
+  <line x1="17" y1="59" x2="17" y2="73" stroke="#B8894A" stroke-width="4" stroke-linecap="round"/>
+  <line x1="83" y1="59" x2="83" y2="73" stroke="#B8894A" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- pans (equal, balanced) -->
+  <path d="M 6 73 A 11 11 0 0 0 28 73" fill="none" stroke="#B8894A" stroke-width="5" stroke-linecap="round"/>
+  <path d="M 72 73 A 11 11 0 0 0 94 73" fill="none" stroke="#B8894A" stroke-width="5" stroke-linecap="round"/>
+</svg>

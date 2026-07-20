@@ -1,0 +1,8 @@
+{
+  "name": "مواريث",
+  "description": "منصة رقمية متقدمة لحساب الفرائض وتصفية التركات وفقاً لقانون الأسرة الجزائري.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

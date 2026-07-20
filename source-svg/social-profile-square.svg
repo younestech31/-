@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="1080" height="1080">
+  <defs>
+    <radialGradient id="pg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#2B5240"/>
+      <stop offset="100%" stop-color="#16281E"/>
+    </radialGradient>
+  </defs>
+  <rect width="1080" height="1080" fill="url(#pg)"/>
+  <g transform="translate(340,260) scale(4.0)">
+    <circle cx="50" cy="27" r="14" fill="none" stroke="#EFE8D8" stroke-width="8"/>
+    <circle cx="50" cy="27" r="3.1" fill="#D9A85E"/>
+    <line x1="50" y1="41" x2="50" y2="59" stroke="#EFE8D8" stroke-width="8" stroke-linecap="round"/>
+    <line x1="17" y1="59" x2="83" y2="59" stroke="#EFE8D8" stroke-width="6.5" stroke-linecap="round"/>
+    <line x1="17" y1="59" x2="17" y2="73" stroke="#D9A85E" stroke-width="4" stroke-linecap="round"/>
+    <line x1="83" y1="59" x2="83" y2="73" stroke="#D9A85E" stroke-width="4" stroke-linecap="round"/>
+    <path d="M 6 73 A 11 11 0 0 0 28 73" fill="none" stroke="#D9A85E" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 72 73 A 11 11 0 0 0 94 73" fill="none" stroke="#D9A85E" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <text x="540" y="800" text-anchor="middle"
+        font-family="Amiri" font-weight="700" font-size="150"
+        fill="#EFE8D8" direction="rtl">مواريث</text>
+</svg>
