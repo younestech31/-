@@ -160,7 +160,7 @@ export default function InheritanceCalculator() {
             <div className="text-right flex items-center gap-3">
               {/* Official balance scale icon (icon-white.svg) */}
               <Image
-                src="/source-svg/icon-white.svg"
+                src="/logo/icon-white.svg"
                 alt="شعار مواريث"
                 width={40}
                 height={40}

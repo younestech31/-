@@ -1,23 +1,30 @@
 import type { Metadata } from 'next';
-import { Cairo, Amiri } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { SITE_URL } from '@/lib/config';
 import type { Viewport } from 'next';
 
-const cairo = Cairo({ 
-  subsets: ['arabic'], 
+const cairo = localFont({
+  src: '../public/fonts/Cairo-VariableFont_wght.ttf',
   variable: '--font-cairo',
-  adjustFontFallback: false,
-  preload: true,
   display: 'swap',
 });
 
-const amiri = Amiri({
-  subsets: ['arabic'],
-  weight: ['400', '700'],
+const amiri = localFont({
+  src: [
+    {
+      path: '../public/fonts/Amiri-Regular.ttf',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/Amiri-Bold.ttf',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
   variable: '--font-amiri',
   display: 'swap',
-  preload: true,
 });
 
 export const viewport: Viewport = {
@@ -56,6 +63,7 @@ export const metadata: Metadata = {
     ],
     shortcut: '/icons/favicon.ico',
   },
+  manifest: '/site.webmanifest',
   openGraph: {
     title: 'مواريث — حاسبة المواريث الشرعية',
     description: 'احسب أنصبة الورثة الشرعية بدقة وسهولة وفق أحكام الفرائض وقانون الأسرة الجزائري.',
@@ -81,16 +89,104 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
+  const jsonLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      'name': 'مواريث — حاسبة المواريث الشرعية',
+      'description': 'احسب أنصبة الورثة الشرعية بدقة وسهولة وفق أحكام الفرائض وقانون الأسرة الجزائري مع دعم المناسخات وتصفية التركات.',
+      'url': SITE_URL,
+      'applicationCategory': 'BusinessApplication',
+      'operatingSystem': 'All',
+      'browserRequirements': 'Requires JavaScript. Requires HTML5.',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      'name': 'منصة مواريث الرقمية',
+      'url': SITE_URL,
+      'logo': `${SITE_URL}/logo/logo-horizontal-color.svg`,
+      'contactPoint': {
+        '@type': 'ContactPoint',
+        'telephone': '+213 562 29 69 81',
+        'contactType': 'customer service',
+        'availableLanguage': ['Arabic', 'French'],
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      'mainEntity': [
+        {
+          '@type': 'Question',
+          'name': 'ما هو الأساس القانوني لحساب المواريث في الجزائر؟',
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': 'يتم حساب المواريث في الجزائر وفقاً للمواد من 126 إلى 183 من قانون الأسرة الجزائري (الأمر رقم 84-11)، والمستمدة من أحكام الشريعة الإسلامية والفقه المالكي.'
+          }
+        },
+        {
+          '@type': 'Question',
+          'name': 'ما هي الوصية الواجبة في قانون الأسرة الجزائري؟',
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': 'تنص المادة 169 وما بعدها من قانون الأسرة الجزائري على الوصية الواجبة لصالح الأحفاد من الابن أو البنت الذين توفوا قبل مورثهم، بشرط ألا يتجاوز ذلك ثلث التركة.'
+          }
+        },
+        {
+          '@type': 'Question',
+          'name': 'ما المقصود بالمناسخات في التركات؟',
+          'acceptedAnswer': {
+            '@type': 'Answer',
+            'text': 'المناسخات هي وفاة وارث أو أكثر قبل قسمة التركة الأولى، مما يستوجب دمج وتصحيح عدة مسائل ميت متتابع لتوزيع الأنصبة على الورثة الأحياء النهائيين.'
+          }
+        }
+      ]
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      'name': 'كيفية حساب الميراث الشرعي باستخدام منصة مواريث',
+      'description': 'دليل مبسط لاستخدام حاسبة المواريث الرقمية لحساب الفرائض وتقسيم التركات.',
+      'step': [
+        {
+          '@type': 'HowToStep',
+          'name': 'تحديد بيانات المتوفى والتركة',
+          'text': 'ابدأ بإدخال جنس المتوفى واسمه، وتحديد قيمة التركة الإجمالية بالعملة المحلية مع إدخال مصاريف التجهيز والديون والوصايا لتصفيتها أولاً.',
+          'url': `${SITE_URL}/#step1`
+        },
+        {
+          '@type': 'HowToStep',
+          'name': 'إضافة الورثة والأقارب',
+          'text': 'حدد فروع وأصول وحواشي المتوفى (مثل الأولاد، الوالدين، الإخوة، الزوج أو الزوجة) مع إمكانية تحديد ما إذا كان أي منهم متوفى سابقاً لتفعيل حساب المناسخات أو الوصية الواجبة.',
+          'url': `${SITE_URL}/#step2`
+        },
+        {
+          '@type': 'HowToStep',
+          'name': 'التحليل والحساب الشرعي',
+          'text': 'يقوم النظام بحساب المسألة تلقائياً وإجراء عمليات العول أو الرد والوصية الواجبة وعرض جدول الورثة والأنصبة الإرثية بالأسهم والنسبة المئوية والكسور والمبالغ المالية بالتفصيل.',
+          'url': `${SITE_URL}/#step3`
+        }
+      ]
+    }
+  ];
+
   return (
     <html lang="ar" dir="rtl" className={`${cairo.variable} ${amiri.variable}`} suppressHydrationWarning>
       <head>
         {/* PWA Manifest */}
-        <link rel="manifest" href="/icons/site.webmanifest" />
+        <link rel="manifest" href="/site.webmanifest" />
 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="msapplication-TileColor" content="#1F3D2E" />
         <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />
+
+        {/* JSON-LD Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body className="font-cairo" suppressHydrationWarning>
         <a 

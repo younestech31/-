@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 120" width="460" height="120">
-  <text x="230" y="88" text-anchor="middle"
-        font-family="Amiri" font-weight="700" font-size="86"
-        fill="#1F3D2E" direction="rtl">مواريث</text>
-  <!-- underline flourish echoing the balance beam -->
-  <line x1="80" y1="102" x2="380" y2="102" stroke="#B8894A" stroke-width="3" stroke-linecap="round"/>
-</svg>
