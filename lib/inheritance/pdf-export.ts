@@ -154,8 +154,17 @@ async function fetchArrayBufferAsBase64(url: string): Promise<string> {
     throw new Error(`Failed to fetch resource at ${targetUrl} (status ${response.status})`);
   }
   const buffer = await response.arrayBuffer();
-  let binary = '';
   const bytes = new Uint8Array(buffer);
+  if (bytes.length > 0) {
+    let headerStr = '';
+    for (let i = 0; i < Math.min(20, bytes.length); i++) {
+      headerStr += String.fromCharCode(bytes[i]);
+    }
+    if (headerStr.includes('<!DOCTYPE') || headerStr.includes('<html') || headerStr.includes('Not Found')) {
+      throw new Error(`Fetched resource at ${targetUrl} returned HTML/text instead of binary font or image.`);
+    }
+  }
+  let binary = '';
   const len = bytes.byteLength;
   for (let i = 0; i < len; i++) {
     binary += String.fromCharCode(bytes[i]);
@@ -713,17 +722,21 @@ export async function exportToPDF(
     format: 'a4',
   });
 
-  // 4. Register fonts in jsPDF
-  if (cachedRegularFontBase64) {
-    pdf.addFileToVFS('Amiri-Regular.ttf', cachedRegularFontBase64);
-    pdf.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+  // 4. Register fonts in jsPDF with robust error handling
+  try {
+    if (cachedRegularFontBase64) {
+      pdf.addFileToVFS('Amiri-Regular.ttf', cachedRegularFontBase64);
+      pdf.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+    }
+    if (cachedBoldFontBase64) {
+      pdf.addFileToVFS('Amiri-Bold.ttf', cachedBoldFontBase64);
+      pdf.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
+    }
+    pdf.setFont('Amiri', 'normal');
+  } catch (fontErr) {
+    console.warn('Font registration warning:', fontErr);
+    pdf.setFont('helvetica', 'normal');
   }
-  if (cachedBoldFontBase64) {
-    pdf.addFileToVFS('Amiri-Bold.ttf', cachedBoldFontBase64);
-    pdf.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
-  }
-
-  pdf.setFont('Amiri', 'normal');
 
   // 5. Render each stage as a clean vector page
   for (let idx = 0; idx < allStagesResults.length; idx++) {
