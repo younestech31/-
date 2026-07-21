@@ -15,6 +15,7 @@
     "@xyflow/react": "^12.11.0",
     "arabic-persian-reshaper": "^1.0.1",
     "autoprefixer": "^10.4.21",
+    "bidi-js": "^1.0.3",
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",
     "docx": "^9.0.3",

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { StageResult } from '@/components/inheritance/ResultsTable';
 import { OfficeSettings } from '@/lib/inheritance/document-branding';
+import { exportToPDF } from '@/lib/inheritance/pdf-export';
 
 interface PDFExportParams {
   estate: number;
@@ -28,7 +29,6 @@ export function usePdfExport() {
     try {
       // Highly reliable, instant, offline-capable client-side canvas-to-PDF engine
       // to avoid serverless timeouts, Chromium launch issues, and proxy errors on Cloud Run.
-      const { exportToPDF } = await import('@/lib/inheritance/pdf-export');
       await exportToPDF(allStagesResults, params, officeSettings);
       return true;
     } catch (err) {
