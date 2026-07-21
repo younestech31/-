@@ -133,43 +133,60 @@ let cachedBoldFontBase64: string | null = null;
 let cachedLogoDataUrl: string | null = null;
 
 async function fetchArrayBufferAsBase64(url: string): Promise<string> {
-  if (typeof window === 'undefined' && url.startsWith('/')) {
+  const candidates: string[] = [url];
+  if (url.includes('amiri-regular.ttf')) {
+    candidates.push('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/amiri/Amiri-Regular.ttf');
+    candidates.push('https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf');
+  } else if (url.includes('amiri-bold.ttf')) {
+    candidates.push('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/amiri/Amiri-Bold.ttf');
+    candidates.push('https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Bold.ttf');
+  }
+
+  let lastError: any = null;
+  for (const candidate of candidates) {
     try {
-      const fs = await import('fs');
-      const path = await import('path');
-      const localPath = path.join(process.cwd(), 'public', url);
-      if (fs.existsSync(localPath)) {
-        const buffer = fs.readFileSync(localPath);
-        return buffer.toString('base64');
+      if (typeof window === 'undefined' && candidate.startsWith('/')) {
+        try {
+          const fs = await import('fs');
+          const path = await import('path');
+          const localPath = path.join(process.cwd(), 'public', candidate);
+          if (fs.existsSync(localPath)) {
+            const buffer = fs.readFileSync(localPath);
+            if (buffer.length > 100) return buffer.toString('base64');
+          }
+        } catch {
+          // Fallback to fetch
+        }
       }
-    } catch {
-      // Fallback to fetch
+      const targetUrl = typeof window !== 'undefined' && candidate.startsWith('/')
+        ? `${window.location.origin}${candidate}`
+        : candidate;
+      const response = await fetch(targetUrl);
+      if (!response.ok) {
+        continue;
+      }
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      if (bytes.length > 0) {
+        let headerStr = '';
+        for (let i = 0; i < Math.min(20, bytes.length); i++) {
+          headerStr += String.fromCharCode(bytes[i]);
+        }
+        if (headerStr.includes('<!DOCTYPE') || headerStr.includes('<html') || headerStr.includes('Not Found')) {
+          continue;
+        }
+      }
+      let binary = '';
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    } catch (err) {
+      lastError = err;
     }
   }
-  const targetUrl = typeof window !== 'undefined' && url.startsWith('/')
-    ? `${window.location.origin}${url}`
-    : url;
-  const response = await fetch(targetUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch resource at ${targetUrl} (status ${response.status})`);
-  }
-  const buffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  if (bytes.length > 0) {
-    let headerStr = '';
-    for (let i = 0; i < Math.min(20, bytes.length); i++) {
-      headerStr += String.fromCharCode(bytes[i]);
-    }
-    if (headerStr.includes('<!DOCTYPE') || headerStr.includes('<html') || headerStr.includes('Not Found')) {
-      throw new Error(`Fetched resource at ${targetUrl} returned HTML/text instead of binary font or image.`);
-    }
-  }
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
+  throw lastError || new Error(`Failed to fetch resource at ${url}`);
 }
 
 /**
