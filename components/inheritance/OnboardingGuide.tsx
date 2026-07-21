@@ -157,6 +157,7 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
 
   const isMobile = useIsMobile();
   const prevSpotlightRef = useRef<Element | null>(null);
+  const desktopCardRef = useRef<HTMLDivElement>(null);
 
   const closeGuide = useCallback(() => {
     localStorage.setItem('mirath_guide_seen', 'true');
@@ -303,7 +304,11 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
         const screenWidth = window.innerWidth;
         const screenHeight = window.innerHeight;
         const cardWidth = 448; // max-w-md
-        const cardHeight = 460; // safe estimation of desktop card height with buttons
+        
+        // Measure real card height dynamically
+        const cardElement = desktopCardRef.current;
+        const actualCardHeight = cardElement ? cardElement.offsetHeight : 480;
+        
         let left = 0;
 
         // If highlighted panel is in the right half of the screen
@@ -316,9 +321,9 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
         // Clamp left to make sure it's always fully visible within the viewport
         left = Math.max(16, Math.min(screenWidth - cardWidth - 16, left));
 
-        // Clamp top to keep inside vertical viewport bounds safely (min 80px, max viewport minus estimated card height)
+        // Clamp top to keep inside vertical viewport bounds safely (min 80px, max viewport minus actual card height)
         let top = r.top + 20;
-        top = Math.max(80, Math.min(screenHeight - cardHeight - 20, top));
+        top = Math.max(80, Math.min(screenHeight - actualCardHeight - 20, top));
 
         setCardStyle({
           position: 'fixed',
@@ -565,15 +570,16 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
             ) : (
               /* DESKTOP CARD LAYOUT (Floating Modal) */
               <motion.div
+                ref={desktopCardRef}
                 initial={{ opacity: 0, y: 15, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 15, scale: 0.98 }}
                 transition={{ duration: 0.3 }}
                 style={cardStyle}
-                className={`fixed z-[60] bg-white rounded-2xl shadow-2xl p-6 pointer-events-auto flex flex-col max-h-[90vh] ${
+                className={`fixed z-[60] bg-white rounded-2xl shadow-2xl p-6 pointer-events-auto flex flex-col max-h-[85vh] ${
                   rect 
-                    ? '' 
-                    : 'bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md'
+                    ? 'w-[448px]' 
+                    : 'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg'
                 }`}
               >
                 {/* Gold Progress Bar */}
@@ -584,115 +590,110 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
                   />
                 </div>
 
-                {/* Card Container */}
-                <div className="flex flex-col overflow-y-auto mt-4 select-text" dir="rtl">
+                {/* Header Row */}
+                <div className="flex items-center justify-between mt-4 mb-3 shrink-0" dir="rtl">
+                  <span className="text-[11px] font-bold text-[#c5a059] uppercase tracking-wide bg-[#c5a059]/10 px-2.5 py-1 rounded-md">
+                    الخطوة {currentStep + 1} من {TOTAL_STEPS}
+                  </span>
                   
-                  {/* Header Row */}
-                  <div className="flex items-center justify-between mb-4 shrink-0">
-                    <span className="text-[11px] font-bold text-[#c5a059] uppercase tracking-wide bg-[#c5a059]/10 px-2.5 py-1 rounded-md">
-                      الخطوة {currentStep + 1} من {TOTAL_STEPS}
-                    </span>
-                    
-                    <button 
-                      onClick={handleSkip}
-                      className="text-[#64748b] hover:text-[#ef4444] transition-colors p-1 rounded-full hover:bg-slate-100 cursor-pointer"
-                      title="تخطي الدليل"
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
+                  <button 
+                    onClick={handleSkip}
+                    className="text-[#64748b] hover:text-[#ef4444] transition-colors p-1 rounded-full hover:bg-slate-100 cursor-pointer"
+                    title="تخطي الدليل"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
 
-                  {/* Content Area */}
-                  <div className="flex-grow">
-                    {currentStep === 0 && (
-                      <div className="flex justify-center mb-5 mt-1">
-                        <Image
-                          src="/logo/logo-stacked-color.svg"
-                          alt="مواريث"
-                          width={140}
-                          height={140}
-                          className="h-28 w-auto object-contain select-none pointer-events-none"
-                          referrerPolicy="no-referrer"
-                        />
-                      </div>
-                    )}
-
-                    <h3 className="text-lg font-bold text-[#0a5d38] mb-3 leading-snug">
-                      {steps[currentStep].title}
-                    </h3>
-
-                    <div className="space-y-1 mb-4 text-[#334155]">
-                      {renderBodyText(steps[currentStep].body)}
+                {/* Scrollable Content Area */}
+                <div className="flex-grow overflow-y-auto pr-1 select-text space-y-4 min-h-0" dir="rtl">
+                  {currentStep === 0 && (
+                    <div className="flex justify-center mb-4 mt-1">
+                      <Image
+                        src="/logo/logo-stacked-color.svg"
+                        alt="مواريث"
+                        width={140}
+                        height={140}
+                        className="h-28 w-auto object-contain select-none pointer-events-none"
+                        referrerPolicy="no-referrer"
+                      />
                     </div>
+                  )}
 
-                    {/* Badge Area for Step 1 */}
-                    {steps[currentStep].showBadges && (
-                      <div className="flex flex-wrap justify-center gap-2 mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        {step1Badges.map((badge, idx) => (
-                          <div key={idx} className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-lg border border-slate-200/60 shadow-xs shrink-0">
-                            {badge.icon}
-                            <span className="text-xs font-semibold text-slate-700">{badge.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  <h3 className="text-lg font-bold text-[#0a5d38] mb-2 leading-snug">
+                    {steps[currentStep].title}
+                  </h3>
 
-                    {/* Warning Box */}
-                    {steps[currentStep].warning && (
-                      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 p-3 rounded-xl mt-3">
-                        <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-                        <p className="text-xs text-amber-800 leading-relaxed font-semibold">
-                          {steps[currentStep].warning}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Tip Box */}
-                    {steps[currentStep].tip && (
-                      <div className="flex items-start gap-2 bg-[#f1fcf7] border border-[#d1f5e5] p-3 rounded-xl mt-3">
-                        <Lightbulb size={16} className="text-[#0a5d38] shrink-0 mt-0.5" />
-                        <p className="text-xs text-[#0a5d38] leading-relaxed font-medium">
-                          {steps[currentStep].tip}
-                        </p>
-                      </div>
-                    )}
+                  <div className="space-y-1 text-[#334155]">
+                    {renderBodyText(steps[currentStep].body)}
                   </div>
 
-                  {/* Navigation Controls Footer */}
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-6 shrink-0">
-                    {/* Skip Link Left Side */}
-                    <button 
-                      onClick={handleSkip}
-                      className="text-xs text-[#64748b] hover:text-[#0b0f19] font-bold p-1 cursor-pointer hover:underline"
-                    >
-                      تخطّي الدليل
-                    </button>
+                  {/* Badge Area for Step 1 */}
+                  {steps[currentStep].showBadges && (
+                    <div className="flex flex-wrap justify-center gap-2 mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      {step1Badges.map((badge, idx) => (
+                        <div key={idx} className="flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-lg border border-slate-200/60 shadow-xs shrink-0">
+                          {badge.icon}
+                          <span className="text-xs font-semibold text-slate-700">{badge.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                    <div className="flex items-center gap-2">
-                      {/* Previous Button */}
-                      {currentStep > 0 && (
-                        <button
-                          onClick={handlePrev}
-                          className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-[#e2e8f0] rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer select-none"
-                        >
-                          السابق →
-                        </button>
-                      )}
+                  {/* Warning Box */}
+                  {steps[currentStep].warning && (
+                    <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 p-3 rounded-xl mt-3">
+                      <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-800 leading-relaxed font-semibold">
+                        {steps[currentStep].warning}
+                      </p>
+                    </div>
+                  )}
 
-                      {/* Next Button */}
+                  {/* Tip Box */}
+                  {steps[currentStep].tip && (
+                    <div className="flex items-start gap-2 bg-[#f1fcf7] border border-[#d1f5e5] p-3 rounded-xl mt-3">
+                      <Lightbulb size={16} className="text-[#0a5d38] shrink-0 mt-0.5" />
+                      <p className="text-xs text-[#0a5d38] leading-relaxed font-medium">
+                        {steps[currentStep].tip}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Navigation Controls Footer */}
+                <div className="flex items-center justify-between border-t border-slate-100 pt-4 mt-4 shrink-0" dir="rtl">
+                  {/* Skip Link Left Side */}
+                  <button 
+                    onClick={handleSkip}
+                    className="text-xs text-[#64748b] hover:text-[#0b0f19] font-bold p-1 cursor-pointer hover:underline"
+                  >
+                    تخطّي الدليل
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {/* Previous Button */}
+                    {currentStep > 0 && (
                       <button
-                        onClick={handleNext}
-                        className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0a5d38] rounded-xl hover:bg-[#07472a] shadow-md shadow-emerald-900/10 transition-all cursor-pointer select-none active:scale-95"
+                        onClick={handlePrev}
+                        className="flex items-center gap-1 px-3 py-2 text-xs font-bold text-slate-700 bg-white border border-[#e2e8f0] rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer select-none"
                       >
-                        {currentStep === TOTAL_STEPS - 1 ? (
-                          <span>ابدأ الآن ←</span>
-                        ) : (
-                          <span>التالي ←</span>
-                        )}
+                        السابق →
                       </button>
-                    </div>
-                  </div>
+                    )}
 
+                    {/* Next Button */}
+                    <button
+                      onClick={handleNext}
+                      className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-[#0a5d38] rounded-xl hover:bg-[#07472a] shadow-md shadow-emerald-900/10 transition-all cursor-pointer select-none active:scale-95"
+                    >
+                      {currentStep === TOTAL_STEPS - 1 ? (
+                        <span>ابدأ الآن ←</span>
+                      ) : (
+                        <span>التالي ←</span>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
