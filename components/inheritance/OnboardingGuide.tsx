@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import Image from 'next/image';
 import { 
   Lock, 
   Scale, 
@@ -488,6 +489,19 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
 
                 {/* Content Area */}
                 <div className="flex-grow overflow-y-auto select-text">
+                  {currentStep === 0 && (
+                    <div className="flex justify-center mb-5 mt-1">
+                      <Image
+                        src="/logo/logo-stacked-color.svg"
+                        alt="مواريث"
+                        width={130}
+                        height={130}
+                        className="h-24 w-auto object-contain select-none pointer-events-none"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                  )}
+
                   <h3 className="text-lg font-bold text-[#0a5d38] mb-3 leading-snug">
                     {steps[currentStep].title}
                   </h3>
@@ -590,6 +604,19 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
 
                   {/* Content Area */}
                   <div className="flex-grow">
+                    {currentStep === 0 && (
+                      <div className="flex justify-center mb-5 mt-1">
+                        <Image
+                          src="/logo/logo-stacked-color.svg"
+                          alt="مواريث"
+                          width={140}
+                          height={140}
+                          className="h-28 w-auto object-contain select-none pointer-events-none"
+                          referrerPolicy="no-referrer"
+                        />
+                      </div>
+                    )}
+
                     <h3 className="text-lg font-bold text-[#0a5d38] mb-3 leading-snug">
                       {steps[currentStep].title}
                     </h3>

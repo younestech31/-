@@ -3,6 +3,7 @@
 import { Info } from 'lucide-react';
 import Fraction from 'fraction.js';
 import dynamic from 'next/dynamic';
+import Image from 'next/image';
 import { CalculationResult } from '@/lib/inheritance-calculator';
 import { INHERITANCE_BARS } from '@/data/inheritance-bars';
 import { } from '@/data/heirs';
@@ -263,8 +264,41 @@ export default function ResultsTable({
             </div>
           )
         ) : (
-          <div className="text-center text-sm text-[#64748b] mt-10">
-            الرجاء تحديد الورثة من القائمة لعرض نتائج الحصص والسهام.
+          <div className="flex flex-col items-center justify-center text-center p-6 md:p-10 max-w-md mx-auto my-auto min-h-[350px]">
+            {/* Elegant Logo Accent */}
+            <div className="mb-6 p-4 rounded-full bg-slate-50 border border-slate-100 shadow-sm animate-pulse">
+              <Image
+                src="/logo/logo-stacked-color.svg"
+                alt="مواريث"
+                width={120}
+                height={120}
+                className="w-20 h-20 md:w-24 md:h-24 object-contain select-none pointer-events-none"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            
+            {/* Elegant Typography */}
+            <h3 className="text-base md:text-lg font-bold text-[#0a5d38] font-amiri mb-2">
+              بوابة تقسيم التركات وتوزيع الأنصبة
+            </h3>
+            
+            <p className="text-xs md:text-sm text-[#475569] leading-relaxed mb-6 font-cairo">
+              المنصة بانتظار إدخال الورثة. يرجى البدء باختيار الأقارب والورثة الشرعيين من لوحة <strong className="text-[#0a5d38]">«الورثة»</strong> في المنتصف ليقوم النظام باحتساب وحل المسألة تلقائياً.
+            </p>
+
+            {/* Micro instructions / tips */}
+            <div className="w-full bg-amber-50/50 border border-amber-100 rounded-xl p-3 text-right space-y-1.5 shadow-sm">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                <span>توجيهات سريعة:</span>
+              </div>
+              <p className="text-[11px] text-[#475569] leading-relaxed font-medium">
+                • تأكد أولاً من تحديد جنس المتوفى (ذكر / أنثى) في لوحة التركة لضمان دقة قواعد الحجب والميراث.
+              </p>
+              <p className="text-[11px] text-[#475569] leading-relaxed font-medium">
+                • يمكنك النقر على أيقونة الاستفهام <strong className="text-[#0a5d38]">«؟»</strong> أسفل الشاشة لعرض الدليل الاسترشادي المتكامل.
+              </p>
+            </div>
           </div>
         )}
       </div>

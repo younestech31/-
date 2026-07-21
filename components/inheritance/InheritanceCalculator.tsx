@@ -158,21 +158,19 @@ export default function InheritanceCalculator() {
               <Home size={14} className="md:size-[16px]" />
             </Link>
             <div className="text-right flex items-center gap-3">
-              {/* Official balance scale icon (icon-white.svg) */}
-              <Image
-                src="/logo/icon-white.svg"
-                alt="شعار مواريث"
-                width={40}
-                height={40}
-                className="w-8 h-8 md:w-10 md:h-10 shrink-0 select-none pointer-events-none"
-                referrerPolicy="no-referrer"
-              />
-              <div>
-                <h1 className="text-base md:text-2xl font-bold flex items-center gap-2 justify-center md:justify-start">
-                  <span className="font-amiri text-lg md:text-3xl text-white">مواريث</span>
-                  <span className="bg-[#B8894A] text-white text-[9px] md:text-[10px] px-2 py-0.5 rounded font-bold tracking-wide shrink-0">حاسبة شرعية</span>
-                </h1>
-                <p className="text-[9px] md:text-xs text-brand-mint opacity-90 mt-0.5 font-medium font-cairo">
+              <div className="flex flex-col items-center md:items-start text-center md:text-right">
+                <div className="flex items-center gap-2.5">
+                  <Image
+                    src="/logo/logo-horizontal-white.svg"
+                    alt="مواريث"
+                    width={130}
+                    height={38}
+                    className="h-8 md:h-11 w-auto object-contain select-none pointer-events-none"
+                    referrerPolicy="no-referrer"
+                  />
+                  <span className="bg-[#B8894A] text-white text-[9px] md:text-[10px] px-2 py-0.5 rounded font-bold tracking-wide shrink-0 self-center">حاسبة شرعية</span>
+                </div>
+                <p className="text-[9px] md:text-xs text-[#B6E0D1] opacity-90 mt-1 font-medium font-cairo">
                   {isFr ? 'Code de la Famille Algérien' : 'منصة رقمية مساعدة لتصفية التركات وقسمة المواريث'}
                 </p>
               </div>
