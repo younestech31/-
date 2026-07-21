@@ -132,8 +132,29 @@ let cachedRegularFontBase64: string | null = null;
 let cachedBoldFontBase64: string | null = null;
 let cachedLogoDataUrl: string | null = null;
 
+function isValidFont(base64Str: string): boolean {
+  if (!base64Str || base64Str.length < 1000) return false;
+  try {
+    const tempPdf = new jsPDF({
+      orientation: 'p',
+      unit: 'mm',
+      format: 'a4',
+    });
+    tempPdf.addFileToVFS('temp-test.ttf', base64Str);
+    tempPdf.addFont('temp-test.ttf', 'TempTest', 'normal');
+    tempPdf.setFont('TempTest', 'normal');
+    const width = tempPdf.getTextWidth('اختبار');
+    return typeof width === 'number' && width > 0;
+  } catch (err) {
+    console.warn('Font validation check failed:', err);
+    return false;
+  }
+}
+
 async function fetchArrayBufferAsBase64(url: string): Promise<string> {
   const candidates: string[] = [url];
+  const isFont = url.toLowerCase().endsWith('.ttf');
+
   if (url.includes('amiri-regular.ttf')) {
     candidates.push('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/amiri/Amiri-Regular.ttf');
     candidates.push('https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf');
@@ -145,6 +166,7 @@ async function fetchArrayBufferAsBase64(url: string): Promise<string> {
   let lastError: any = null;
   for (const candidate of candidates) {
     try {
+      let base64Result = '';
       if (typeof window === 'undefined' && candidate.startsWith('/')) {
         try {
           const fs = await import('fs');
@@ -152,41 +174,56 @@ async function fetchArrayBufferAsBase64(url: string): Promise<string> {
           const localPath = path.join(process.cwd(), 'public', candidate);
           if (fs.existsSync(localPath)) {
             const buffer = fs.readFileSync(localPath);
-            if (buffer.length > 100) return buffer.toString('base64');
+            if (buffer.length > 100) {
+              base64Result = buffer.toString('base64');
+            }
           }
         } catch {
           // Fallback to fetch
         }
       }
-      const targetUrl = typeof window !== 'undefined' && candidate.startsWith('/')
-        ? `${window.location.origin}${candidate}`
-        : candidate;
-      const response = await fetch(targetUrl);
-      if (!response.ok) {
-        continue;
-      }
-      const buffer = await response.arrayBuffer();
-      const bytes = new Uint8Array(buffer);
-      if (bytes.length > 0) {
-        let headerStr = '';
-        for (let i = 0; i < Math.min(20, bytes.length); i++) {
-          headerStr += String.fromCharCode(bytes[i]);
-        }
-        if (headerStr.includes('<!DOCTYPE') || headerStr.includes('<html') || headerStr.includes('Not Found')) {
+
+      if (!base64Result) {
+        const targetUrl = typeof window !== 'undefined' && candidate.startsWith('/')
+          ? `${window.location.origin}${candidate}`
+          : candidate;
+        const response = await fetch(targetUrl);
+        if (!response.ok) {
           continue;
         }
+        const buffer = await response.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        if (bytes.length > 0) {
+          let headerStr = '';
+          for (let i = 0; i < Math.min(20, bytes.length); i++) {
+            headerStr += String.fromCharCode(bytes[i]);
+          }
+          if (headerStr.includes('<!DOCTYPE') || headerStr.includes('<html') || headerStr.includes('Not Found')) {
+            continue;
+          }
+        }
+        let binary = '';
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        base64Result = btoa(binary);
       }
-      let binary = '';
-      const len = bytes.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
+
+      if (base64Result) {
+        if (isFont) {
+          if (!isValidFont(base64Result)) {
+            console.warn(`Font candidate validation failed for ${candidate}, trying next candidate...`);
+            continue;
+          }
+        }
+        return base64Result;
       }
-      return btoa(binary);
     } catch (err) {
       lastError = err;
     }
   }
-  throw lastError || new Error(`Failed to fetch resource at ${url}`);
+  throw lastError || new Error(`Failed to fetch and validate resource at ${url}`);
 }
 
 /**
