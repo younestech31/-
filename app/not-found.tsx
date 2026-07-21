@@ -1,14 +1,4 @@
-import { Metadata } from 'next';
 import Link from 'next/link';
-
-export const metadata: Metadata = {
-  title: 'الصفحة غير موجودة | مكتب الأستاذ لعطب محمد - موثق',
-  description: 'الصفحة غير موجودة — مكتب الأستاذ لعطب محمد، موثق في وهران. يمكنك العودة للرئيسية أو التواصل معنا للاستفسار عن الإجراءات التوثيقية.',
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
 
 const text = {
   ar: {

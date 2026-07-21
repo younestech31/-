@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, Save, FolderOpen, FilePlus, BookOpen, FileText, Table, FileSignature, FileDown, Home, Settings } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useInheritanceState } from '@/lib/hooks/useInheritanceState';
 import { HEIRS } from '@/data/heirs';
@@ -158,10 +159,13 @@ export default function InheritanceCalculator() {
             </Link>
             <div className="text-right flex items-center gap-3">
               {/* Official balance scale icon (icon-white.svg) */}
-              <img
+              <Image
                 src="/source-svg/icon-white.svg"
                 alt="شعار مواريث"
+                width={40}
+                height={40}
                 className="w-8 h-8 md:w-10 md:h-10 shrink-0 select-none pointer-events-none"
+                referrerPolicy="no-referrer"
               />
               <div>
                 <h1 className="text-base md:text-2xl font-bold flex items-center gap-2 justify-center md:justify-start">
