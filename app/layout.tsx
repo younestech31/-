@@ -5,7 +5,18 @@ import { SITE_URL } from '@/lib/config';
 import type { Viewport } from 'next';
 
 const cairo = localFont({
-  src: '../public/fonts/Cairo-VariableFont_wght.ttf',
+  src: [
+    {
+      path: '../public/fonts/cairo-regular.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../public/fonts/cairo-bold.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
   variable: '--font-cairo',
   display: 'swap',
 });
@@ -13,12 +24,12 @@ const cairo = localFont({
 const amiri = localFont({
   src: [
     {
-      path: '../public/fonts/Amiri-Regular.ttf',
+      path: '../public/fonts/amiri-regular.woff2',
       weight: '400',
       style: 'normal',
     },
     {
-      path: '../public/fonts/Amiri-Bold.ttf',
+      path: '../public/fonts/amiri-bold.woff2',
       weight: '700',
       style: 'normal',
     },
