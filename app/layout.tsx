@@ -59,6 +59,9 @@ export const metadata: Metadata = {
   creator: 'منصة مواريث الرقمية',
   publisher: 'منصة مواريث الرقمية',
   category: 'legal services',
+  alternates: {
+    canonical: './',
+  },
   robots: {
     index: true,
     follow: true,

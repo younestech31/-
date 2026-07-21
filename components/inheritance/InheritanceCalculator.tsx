@@ -167,6 +167,7 @@ export default function InheritanceCalculator() {
                     height={38}
                     className="h-8 md:h-11 w-auto object-contain select-none pointer-events-none"
                     referrerPolicy="no-referrer"
+                    priority
                   />
                   <span className="bg-[#B8894A] text-white text-[9px] md:text-[10px] px-2 py-0.5 rounded font-bold tracking-wide shrink-0 self-center">حاسبة شرعية</span>
                 </div>

@@ -1,30 +1,9 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-
-function LoadingSkeleton() {
-  return (
-    <div className="min-h-screen bg-slate-50" dir="rtl">
-      <div className="h-14 bg-[#1F3D2E] w-full" />
-      <div className="p-4 space-y-4">
-        <div className="h-32 bg-slate-200 rounded animate-pulse" />
-        <div className="h-32 bg-slate-200 rounded animate-pulse" />
-        <div className="h-32 bg-slate-200 rounded animate-pulse" />
-      </div>
-      <div className="text-center text-slate-500 mt-4 text-base font-medium">جاري التحميل...</div>
-    </div>
-  );
-}
-
-const InheritanceCalculator = dynamic(
-  () => import('@/components/inheritance/InheritanceCalculator'),
-  { ssr: false, loading: () => <LoadingSkeleton /> }
-);
+import InheritanceCalculator from '@/components/inheritance/InheritanceCalculator';
 
 export default function Home() {
   return (
     <>
-      {/* Dynamic Client App Wrapper */}
+      {/* Client App Component rendered with full SSR */}
       <InheritanceCalculator />
 
       {/* SEO & Search Engine Indexing Fallback (No-JS / Server Crawlers) */}
@@ -54,3 +33,4 @@ export default function Home() {
     </>
   );
 }
+

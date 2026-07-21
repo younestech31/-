@@ -12,7 +12,6 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  serverExternalPackages: ['exceljs', 'jspdf', 'docx'],
   async headers() {
     return [
       {

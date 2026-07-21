@@ -4,17 +4,17 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
 
-  // Remove trailing slashes (except root)
+  // Remove trailing slashes (except root) while preserving query string
   if (url.pathname !== '/' && url.pathname.endsWith('/')) {
-    url.pathname = url.pathname.slice(0, -1);
-    return NextResponse.redirect(url, { status: 301 });
+    const targetUrl = new URL(url.pathname.slice(0, -1) + url.search, request.url);
+    return NextResponse.redirect(targetUrl, { status: 301 });
   }
 
-  // Enforce lowercase URLs (prevents duplicate content)
+  // Enforce lowercase URLs while preserving query string
   const lowercasePath = url.pathname.toLowerCase();
   if (url.pathname !== lowercasePath) {
-    url.pathname = lowercasePath;
-    return NextResponse.redirect(url, { status: 301 });
+    const targetUrl = new URL(lowercasePath + url.search, request.url);
+    return NextResponse.redirect(targetUrl, { status: 301 });
   }
 
   const requestHeaders = new Headers(request.headers);

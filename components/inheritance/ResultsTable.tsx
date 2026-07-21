@@ -237,6 +237,10 @@ export default function ResultsTable({
       {/* ── Panel body ───────────────────────────────────────────────── */}
       <div
         id="results-printable-area"
+        role="region"
+        aria-live="polite"
+        aria-atomic="true"
+        aria-label="نتائج حساب الميراث والأنصبة الشرعية"
         className={`p-4 flex-grow min-h-0 print:overflow-visible print:h-auto print:block ${
           viewMode === 'tree' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'
         }`}
