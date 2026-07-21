@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { jsPDF } from 'jspdf';
 import { StageResult } from '@/components/inheritance/ResultsTable';
 import Fraction from 'fraction.js';
 import { ArabicShaper } from 'arabic-persian-reshaper';
@@ -678,8 +679,6 @@ export async function exportToPDF(
   },
   officeSettings?: OfficeSettings
 ): Promise<void> {
-  const { jsPDF } = await import('jspdf');
-
   const rootStage = allStagesResults[0];
   const deceasedGender = params.deceasedGender;
   const rootDeceasedName = rootStage?.stage.deceasedName?.trim() || deceasedPronoun(deceasedGender);
