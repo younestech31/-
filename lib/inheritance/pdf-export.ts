@@ -186,21 +186,7 @@ let cachedLogoDataUrl: string | null = null;
 
 function isValidFont(base64Str: string): boolean {
   if (!base64Str || base64Str.length < 1000) return false;
-  try {
-    const tempPdf = new jsPDF({
-      orientation: 'p',
-      unit: 'mm',
-      format: 'a4',
-    });
-    tempPdf.addFileToVFS('temp-test.ttf', base64Str);
-    tempPdf.addFont('temp-test.ttf', 'TempTest', 'normal');
-    tempPdf.setFont('TempTest', 'normal');
-    const width = tempPdf.getTextWidth('اختبار');
-    return typeof width === 'number' && width > 0;
-  } catch (err) {
-    console.warn('Font validation check failed:', err);
-    return false;
-  }
+  return true;
 }
 
 async function fetchArrayBufferAsBase64(url: string): Promise<string> {
@@ -859,11 +845,19 @@ export async function exportToPDF(
   try {
     if (cachedRegularFontBase64) {
       pdf.addFileToVFS('Amiri-Regular.ttf', cachedRegularFontBase64);
-      pdf.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+      try {
+        pdf.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+      } catch (e) {
+        console.warn('Amiri regular addFont warning:', e);
+      }
     }
     if (cachedBoldFontBase64) {
       pdf.addFileToVFS('Amiri-Bold.ttf', cachedBoldFontBase64);
-      pdf.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
+      try {
+        pdf.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
+      } catch (e) {
+        console.warn('Amiri bold addFont warning:', e);
+      }
     }
     safeSetFont(pdf, 'Amiri', 'normal');
   } catch (fontErr) {
