@@ -148,14 +148,14 @@ export default function InheritanceCalculator() {
       {/* Sticky Top Bar and Mobile Navigation Wrapper */}
       <div className="sticky top-0 z-30 flex flex-col shrink-0 no-print shadow-sm md:shadow-none bg-[#f8f9fa]">
         {/* Header */}
-        <div className="bg-[#1F3D2E] text-white px-3 md:px-8 py-2 md:py-4 flex flex-col md:flex-row justify-between items-center border-b-4 border-[#B8894A] shrink-0 gap-2.5 md:gap-4 text-center md:text-right">
+        <div className="bg-[#1F3D2E] text-white px-3 md:px-8 py-2 md:py-2.5 flex flex-col md:flex-row justify-between items-center border-b-4 border-[#B8894A] shrink-0 gap-2.5 md:gap-4 text-center md:text-right">
           <div className="flex flex-row items-center gap-3 w-full md:w-auto justify-between md:justify-start">
             <Link
               href={homeUrl}
-              className="flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-lg p-1.5 md:p-2.5 text-xs font-bold transition-all shadow-sm border border-white/5"
+              className="flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-lg p-1.5 md:p-2 text-xs font-bold transition-all shadow-sm border border-white/5"
               title={homeLabel}
             >
-              <Home size={14} className="md:size-[16px]" />
+              <Home size={14} className="md:size-[15px]" />
             </Link>
             <div className="text-right flex items-center gap-3">
               <div className="flex flex-col items-center md:items-start text-center md:text-right">
@@ -165,7 +165,7 @@ export default function InheritanceCalculator() {
                     alt="مواريث"
                     width={130}
                     height={38}
-                    className="h-8 md:h-11 w-auto object-contain select-none pointer-events-none"
+                    className="h-8 md:h-9 w-auto object-contain select-none pointer-events-none"
                     referrerPolicy="no-referrer"
                     priority
                   />
@@ -177,13 +177,13 @@ export default function InheritanceCalculator() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 w-full md:w-auto">
-            <div className="flex flex-col md:flex-row flex-wrap items-center gap-2 md:gap-3 justify-center md:justify-end w-full md:w-auto">
+          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 w-full md:w-auto">
+            <div className="flex flex-col md:flex-row flex-wrap items-center gap-2 md:gap-2.5 justify-center md:justify-end w-full md:w-auto">
               {/* مجموعة إدارة المسألة: wraps cleanly, equal width flex-1 buttons */}
-              <div className="flex flex-wrap items-center gap-2 md:gap-1.5 justify-center bg-white/[0.04] p-1.5 md:p-1.5 rounded-lg md:rounded-xl border border-white/10 shadow-inner w-full md:w-auto">
+              <div className="flex flex-wrap items-center gap-1.5 md:gap-1 justify-center bg-white/[0.04] p-1.5 md:p-1 rounded-lg md:rounded-xl border border-white/10 shadow-inner w-full md:w-auto">
                 <button 
                   onClick={() => setIsConfirmResetOpen(true)} 
-                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm border border-white/5" 
+                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm border border-white/5" 
                   title="بدء مسألة جديدة"
                 >
                   <FilePlus size={13} />
@@ -193,7 +193,7 @@ export default function InheritanceCalculator() {
                 {activeCaseId && (
                   <button 
                     onClick={updateSavedCase} 
-                    className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-[#B8894A] hover:bg-[#A3783E] text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-bold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-md border border-[#B8894A]/30" 
+                    className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-[#B8894A] hover:bg-[#A3783E] text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-bold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-md border border-[#B8894A]/30" 
                     title="تحديث نفس المسألة المحفوظة"
                   >
                     <Save size={13} />
@@ -203,7 +203,7 @@ export default function InheritanceCalculator() {
                 
                 <button 
                   onClick={() => { setSaveName(activeCaseId ? `${saveName} - نسخة` : ''); setIsSaveModalOpen(true); }} 
-                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm border border-white/5"
+                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm border border-white/5"
                   title="حفظ المسألة الحالية"
                 >
                   <FolderOpen size={13} className="rotate-90" />
@@ -212,7 +212,7 @@ export default function InheritanceCalculator() {
                 
                 <button 
                   onClick={() => setIsSavedCasesModalOpen(true)} 
-                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm border border-white/5"
+                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm border border-white/5"
                   title="عرض الحالات المحفوظة"
                 >
                   <FolderOpen size={13} />
@@ -221,7 +221,7 @@ export default function InheritanceCalculator() {
                 
                 <button 
                   onClick={() => setIsClassicCasesModalOpen(true)} 
-                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm border border-white/5"
+                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-white/10 hover:bg-white/20 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm border border-white/5"
                   title="عرض أمثلة من الميراث"
                 >
                   <BookOpen size={13} />
@@ -230,7 +230,7 @@ export default function InheritanceCalculator() {
 
                 <button 
                   onClick={() => setIsOfficeSettingsOpen(true)} 
-                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm border border-[#B8894A]/30"
+                  className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm border border-[#B8894A]/30"
                   title="تعديل ترويسة وبيانات مكتب التوثيق للمستندات المصدرة"
                 >
                   <Settings size={13} className="text-[#D9A85E]" />
@@ -239,11 +239,11 @@ export default function InheritanceCalculator() {
               </div>
 
               {/* مجموعة التقارير والتصدير: Horizontal scrolling strip on mobile */}
-              <div className="flex items-center gap-2 justify-start md:justify-center overflow-x-auto no-scrollbar whitespace-nowrap bg-white/[0.04] p-1.5 md:p-1.5 rounded-lg md:rounded-xl border border-white/10 shadow-inner w-full md:w-auto max-w-full shrink-0">
+              <div className="flex items-center gap-2 justify-start md:justify-center overflow-x-auto no-scrollbar whitespace-nowrap bg-white/[0.04] p-1.5 md:p-1 rounded-lg md:rounded-xl border border-white/10 shadow-inner w-full md:w-auto max-w-full shrink-0">
                 <button 
                   onClick={handleLegalSummary} 
                   disabled={isCalculatorEmpty}
-                  className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title="تنزيل ملخص نصي قانوني"
                 >
                   <FileText size={13} />
@@ -253,7 +253,7 @@ export default function InheritanceCalculator() {
                 <button 
                   onClick={exportToExcelApplet} 
                   disabled={isExportingExcel || isCalculatorEmpty}
-                  className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير النتائج كملف Excel (XLSX)"}
                 >
                   {isExportingExcel ? (
@@ -267,7 +267,7 @@ export default function InheritanceCalculator() {
                 <button 
                   onClick={exportToWordApplet} 
                   disabled={isExportingWord || isCalculatorEmpty}
-                  className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير وثيقة رسمية Word (DOCX)"}
                 >
                   {isExportingWord ? (
@@ -281,7 +281,7 @@ export default function InheritanceCalculator() {
                 <button 
                   onClick={exportToPDFApplet} 
                   disabled={isExportingPDF || isCalculatorEmpty}
-                  className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-2 text-[10px] md:text-xs font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-9 shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير وثيقة رسمية PDF"}
                 >
                   {isExportingPDF ? (
