@@ -7,7 +7,6 @@ import {
   COLOR_PALETTE,
   EXPORT_OFFICE_INFO,
   formatDocumentCurrency,
-  EXPORT_TABLE_COLUMNS,
   EXPORT_FILENAME,
   OfficeSettings,
   DEFAULT_OFFICE_SETTINGS
@@ -159,6 +158,25 @@ function drawVectorCell(
     pdf.text(rtlText, tx, startY, { align });
     startY += lineHeightMm;
   });
+}
+
+function getRowHeight(
+  pdf: any,
+  cells: { text: string; width: number; fontSize?: number }[],
+  baseH: number = 7.5,
+  paddingMm: number = 1.5
+): number {
+  let maxH = baseH;
+  cells.forEach(c => {
+    const fontSize = c.fontSize || 8;
+    safeSetFont(pdf, 'Amiri', 'bold');
+    pdf.setFontSize(fontSize);
+    const lines = wrapArabicText(pdf, c.text, c.width - (paddingMm * 2));
+    const lineHeightMm = (fontSize * 0.3527) * 1.25;
+    const textH = lines.length * lineHeightMm + paddingMm * 2;
+    if (textH > maxH) maxH = textH;
+  });
+  return maxH;
 }
 
 // Memory font cache so font fetch occurs only once per session
@@ -401,29 +419,29 @@ function renderStageVectorPDF(
 
   currentY += 18;
 
-  // 2. Legal Disclaimer Box (Stage 0 Page 1)
-  if (stageIdx === 0) {
-    pdf.setFillColor(...hexToRgb(COLOR_PALETTE.redLight));
-    pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.red));
-    pdf.setLineWidth(0.3);
-    pdf.roundedRect(15, currentY, 180, 16, 2, 2, 'FD');
+  // 2. Legal Disclaimer Box (Stage 0 Page 1) - Rendered ONLY in Preview Mode when office.isOfficialMode is false
+  if (stageIdx === 0 && !office.isOfficialMode) {
+    pdf.setFillColor(...hexToRgb(COLOR_PALETTE.slateLight));
+    pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.border));
+    pdf.setLineWidth(0.2);
+    pdf.roundedRect(15, currentY, 180, 14, 2, 2, 'FD');
 
     safeSetFont(pdf, 'Amiri', 'bold');
-    pdf.setFontSize(8.5);
-    pdf.setTextColor(...hexToRgb(COLOR_PALETTE.red));
-    pdf.text(fixArabicRtl(EXPORT_OFFICE_INFO.disclaimerTitleAr), 192, currentY + 4.5, { align: 'right' });
+    pdf.setFontSize(8);
+    pdf.setTextColor(...hexToRgb(COLOR_PALETTE.mutedText));
+    pdf.text(fixArabicRtl(EXPORT_OFFICE_INFO.disclaimerTitleAr), 192, currentY + 4, { align: 'right' });
 
     safeSetFont(pdf, 'Amiri', 'normal');
-    pdf.setFontSize(7.5);
-    pdf.setTextColor(...hexToRgb('#7F1D1D'));
+    pdf.setFontSize(7);
+    pdf.setTextColor(...hexToRgb(COLOR_PALETTE.mutedText));
     const discLines = wrapArabicText(pdf, EXPORT_OFFICE_INFO.disclaimerTextAr, 174);
-    let dY = currentY + 8.5;
+    let dY = currentY + 7.5;
     discLines.forEach((l) => {
       pdf.text(fixArabicRtl(l), 192, dY, { align: 'right' });
-      dY += 3.5;
+      dY += 3.2;
     });
 
-    currentY += 19;
+    currentY += 17;
   }
 
   // 3. Deceased Name Banner
@@ -475,11 +493,11 @@ function renderStageVectorPDF(
       const sumX = [15, 51, 87, 123, 159];
       const sumHeaders = ['صافي التركة الموزعة', 'الوصايا الشرعية', 'تكاليف تجهيز الجنازة', 'الديون والتبعات الوفائية', 'التركة الإجمالية'];
       const sumVals = [
-        formatCurrency(stageResult.netEstate ?? 0),
-        formatCurrency(globalBequest),
-        formatCurrency(globalFuneralCosts),
-        formatCurrency(globalDebts),
-        formatCurrency(globalEstate),
+        formatDocumentCurrency(stageResult.netEstate ?? 0),
+        formatDocumentCurrency(globalBequest),
+        formatDocumentCurrency(globalFuneralCosts),
+        formatDocumentCurrency(globalDebts),
+        formatDocumentCurrency(globalEstate),
       ];
 
       for (let c = 0; c < 5; c++) {
@@ -529,7 +547,7 @@ function renderStageVectorPDF(
   pdf.text(fixArabicRtl(`أصل المسألة التصحيحي الشرعي: ${stageProblemBase ?? '-'}`), 192, currentY + 4.8, { align: 'right' });
 
   if (stageIdx > 0 && !isPureMode) {
-    pdf.text(fixArabicRtl(`حصة التصفية للمناسخة: ${formatCurrency(stageResult.netEstate)}`), 18, currentY + 4.8, { align: 'left' });
+    pdf.text(fixArabicRtl(`حصة التصفية للمناسخة: ${formatDocumentCurrency(stageResult.netEstate)}`), 18, currentY + 4.8, { align: 'left' });
   }
 
   currentY += 9;
@@ -554,32 +572,33 @@ function renderStageVectorPDF(
     currentY += 8.5;
   }
 
-  // 8. Main Distribution Vector Table
-  // Columns (Total width: 180mm from X=15 to X=195)
-  // Col 0: Legal Art (20mm)
-  // Col 1: Amount/Pct (45mm)
-  // Col 2: Shares (20mm)
-  // Col 3: Share Fraction (20mm)
-  // Col 4: Reason (45mm)
-  // Col 5: Name (30mm)
-  const colW = [20, 45, 20, 20, 45, 30];
-  const colX = [15, 35, 80, 100, 120, 165];
+  // 8. Main Enterprise Distribution Vector Table (7 Columns, Total width: 180mm from X=15 to X=195)
+  // Col 0 (X=153, W=42mm): اسم الوارث
+  // Col 1 (X=125, W=28mm): صفة الوارث / القرابة
+  // Col 2 (X=85, W=40mm) : سبب الإرث / الفرض
+  // Col 3 (X=72, W=13mm) : السهام
+  // Col 4 (X=55, W=17mm) : النسبة (%)
+  // Col 5 (X=28, W=27mm) : المبلغ المستحق (دج)
+  // Col 6 (X=15, W=13mm) : المادة
+  const colW = [13, 27, 17, 13, 40, 28, 42];
+  const colX = [15, 28, 55, 72, 85, 125, 153];
 
   const tableHeaders = [
-    EXPORT_TABLE_COLUMNS[5].label,
-    isPureMode ? EXPORT_TABLE_COLUMNS[4].labelPure : EXPORT_TABLE_COLUMNS[4].label,
-    EXPORT_TABLE_COLUMNS[3].label,
-    EXPORT_TABLE_COLUMNS[2].label,
-    EXPORT_TABLE_COLUMNS[1].label,
-    EXPORT_TABLE_COLUMNS[0].label,
+    'المادة',
+    isPureMode ? 'النسبة (%)' : 'المبلغ (دج)',
+    'النسبة (%)',
+    'السهام',
+    'سبب الإرث / الفرض',
+    'صفة الوارث',
+    'اسم الوارث',
   ];
 
   const headerH = 7.5;
-  for (let c = 0; c < 6; c++) {
+  for (let c = 0; c < 7; c++) {
     drawVectorCell(pdf, tableHeaders[c], colX[c], currentY, colW[c], headerH, {
       fillColor: COLOR_PALETTE.green,
       textColor: COLOR_PALETTE.white,
-      fontSize: 8.5,
+      fontSize: 8,
       fontStyle: 'bold',
     });
   }
@@ -590,24 +609,32 @@ function renderStageVectorPDF(
   const bequests = results.filter((r) => !r.isBlocked && (r.heirId === 'voluntary_bequest' || r.heirId === 'mandatory_bequest'));
   const inheritors = results.filter((r) => r.heirId !== 'voluntary_bequest' && r.heirId !== 'mandatory_bequest');
 
-  const rowH = 7;
-
   // Render Bequests rows
   bequests.forEach((b) => {
-    const typeLabel = b.heirId === 'mandatory_bequest' ? 'تنزيل (وصية واجبة)' : 'وصية اختيارية';
+    const typeLabel = b.heirId === 'mandatory_bequest' ? 'تنزيل' : 'وصية';
     const bPct = b.shareFraction.valueOf() * 100;
     const bPctStr = bPct > 0 ? (bPct % 1 === 0 ? `${bPct}%` : `${bPct.toFixed(2)}%`) : '0%';
-    const valStr = isPureMode ? bPctStr : `${formatCurrency(b.amount)} (${bPctStr})`;
+    const amtStr = isPureMode ? bPctStr : formatDocumentCurrency(b.amount);
     const artText = b.article ? `م ${b.article}` : 'م 169';
 
-    const rowData = [artText, valStr, '-', b.share, typeLabel, b.nameAr];
-    for (let c = 0; c < 6; c++) {
-      drawVectorCell(pdf, rowData[c], colX[c], currentY, colW[c], rowH, {
+    const rowCells = [
+      { text: artText, width: colW[0] },
+      { text: amtStr, width: colW[1] },
+      { text: bPctStr, width: colW[2] },
+      { text: '-', width: colW[3] },
+      { text: b.share, width: colW[4] },
+      { text: typeLabel, width: colW[5] },
+      { text: b.nameAr, width: colW[6] },
+    ];
+
+    const rowH = getRowHeight(pdf, rowCells, 7.5);
+    for (let c = 0; c < 7; c++) {
+      drawVectorCell(pdf, rowCells[c].text, colX[c], currentY, colW[c], rowH, {
         fillColor: COLOR_PALETTE.bequestRow,
         textColor: '#000000',
         fontSize: 8,
         fontStyle: 'bold',
-        align: c === 4 || c === 5 ? 'right' : 'center',
+        align: c >= 4 ? 'right' : 'center',
       });
     }
     currentY += rowH;
@@ -625,30 +652,40 @@ function renderStageVectorPDF(
       if (isBlocked) continue;
 
       const customName = customNames?.[i];
-      const baseName = r.count > 1 ? `${r.nameAr} (${i + 1})` : r.nameAr;
-      const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
+      const heirName = customName || r.nameAr;
+      const heirRole = r.nameAr; // Relationship title
 
       const individualAmt = indResult ? indResult.amount : r.amount / r.count;
-      const indShare = indResult ? indResult.share : r.share;
-      const indSharesText = indResult ? String(indResult.shares) : String(r.shares > 0 ? r.shares / r.count : 0);
+      const _indShare = indResult ? indResult.share : r.share;
+      const indSharesText = indResult ? String(indResult.shares) : String(r.shares > 0 ? Math.round(r.shares / r.count) : 0);
 
       const indShareFrac = indResult && indResult.shareFraction ? indResult.shareFraction : r.shareFraction.compare(0) === 0 ? new Fraction(0) : r.shareFraction.div(r.count);
       const indPct = indShareFrac.valueOf() * 100;
       const indPctStr = indPct > 0 ? (indPct % 1 === 0 ? `${indPct}%` : `${indPct.toFixed(2)}%`) : '0%';
-      const valStr = isPureMode ? indPctStr : `${formatCurrency(individualAmt)} (${indPctStr})`;
+      const amtStr = isPureMode ? indPctStr : formatDocumentCurrency(individualAmt);
       const reason = indResult ? indResult.reason : r.reason;
       const artText = r.article ? `م ${r.article}` : '-';
 
       const rowBg = rowIndex % 2 === 0 ? COLOR_PALETTE.white : COLOR_PALETTE.mint;
 
-      const rowData = [artText, valStr, indSharesText, indShare, reason, displayName];
-      for (let c = 0; c < 6; c++) {
-        drawVectorCell(pdf, rowData[c], colX[c], currentY, colW[c], rowH, {
+      const rowCells = [
+        { text: artText, width: colW[0] },
+        { text: amtStr, width: colW[1] },
+        { text: indPctStr, width: colW[2] },
+        { text: indSharesText, width: colW[3] },
+        { text: reason, width: colW[4] },
+        { text: heirRole, width: colW[5] },
+        { text: heirName, width: colW[6] },
+      ];
+
+      const rowH = getRowHeight(pdf, rowCells, 7.5);
+      for (let c = 0; c < 7; c++) {
+        drawVectorCell(pdf, rowCells[c].text, colX[c], currentY, colW[c], rowH, {
           fillColor: rowBg,
           textColor: '#000000',
           fontSize: 8,
           fontStyle: 'bold',
-          align: c === 4 || c === 5 ? 'right' : 'center',
+          align: c >= 4 ? 'right' : 'center',
         });
       }
       currentY += rowH;
@@ -657,23 +694,20 @@ function renderStageVectorPDF(
   });
 
   // Totals Row
-  drawVectorCell(pdf, '-', colX[0], currentY, colW[0], headerH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white });
-  drawVectorCell(pdf, isPureMode ? '100%' : `${formatCurrency(stageResult.netEstate)} (100%)`, colX[1], currentY, colW[1], headerH, {
-    fillColor: COLOR_PALETTE.green,
-    textColor: COLOR_PALETTE.white,
-    fontSize: 8.5,
-    fontStyle: 'bold',
-  });
-  drawVectorCell(pdf, String(stageProblemBase ?? '-'), colX[2], currentY, colW[2], headerH, {
-    fillColor: COLOR_PALETTE.green,
-    textColor: COLOR_PALETTE.white,
-    fontSize: 8.5,
-    fontStyle: 'bold',
-  });
-  drawVectorCell(pdf, '-', colX[3], currentY, colW[3], headerH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white });
+  const totalCells = [
+    { text: '-', width: colW[0] },
+    { text: isPureMode ? '100%' : formatDocumentCurrency(stageResult.netEstate), width: colW[1] },
+    { text: '100%', width: colW[2] },
+    { text: String(stageProblemBase ?? '-'), width: colW[3] },
+    { text: 'المجموع الكلي للسهام والحصص الشرعية', width: colW[4] + colW[5] + colW[6] },
+  ];
+  const totalRowH = 7.5;
 
-  const mergedW = colW[4] + colW[5];
-  drawVectorCell(pdf, 'المجموع الكلي للحصص والسهام المصححة للمسألة', colX[4], currentY, mergedW, headerH, {
+  drawVectorCell(pdf, totalCells[0].text, colX[0], currentY, colW[0], totalRowH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white });
+  drawVectorCell(pdf, totalCells[1].text, colX[1], currentY, colW[1], totalRowH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white, fontSize: 8, fontStyle: 'bold' });
+  drawVectorCell(pdf, totalCells[2].text, colX[2], currentY, colW[2], totalRowH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white, fontSize: 8, fontStyle: 'bold' });
+  drawVectorCell(pdf, totalCells[3].text, colX[3], currentY, colW[3], totalRowH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white, fontSize: 8, fontStyle: 'bold' });
+  drawVectorCell(pdf, totalCells[4].text, colX[4], currentY, colW[4] + colW[5] + colW[6], totalRowH, {
     fillColor: COLOR_PALETTE.green,
     textColor: COLOR_PALETTE.white,
     fontSize: 8.5,
@@ -681,7 +715,7 @@ function renderStageVectorPDF(
     align: 'right',
   });
 
-  currentY += headerH + 6;
+  currentY += totalRowH + 6;
 
   // 9. Treasury Section (if applicable)
   if (stageResult.noHeirsRedistribution && stageResult.noHeirsRedistribution.policy === 'treasury') {

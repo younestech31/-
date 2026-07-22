@@ -9,6 +9,7 @@ import { INHERITANCE_BARS } from '@/data/inheritance-bars';
 import { } from '@/data/heirs';
 import { MunasakhatStage } from './InheritanceCalculator';
 import { StageValidationResult } from '@/lib/inheritance/munasakhat-resolver';
+import { formatDocumentCurrency } from '@/lib/inheritance/document-branding';
 
 const FamilyTree = dynamic(() => import('./FamilyTree/FamilyTree'), {
   ssr: false,
@@ -568,7 +569,7 @@ function TableView({
 
                   {/* Amount / Percentage */}
                   <td className="p-2.5 border-b border-[#e2e8f0] font-mono font-medium">
-                    {indIsBlocked ? '-' : (isPureSharesMode ? percentStr : `${individualAmt.toLocaleString('en-US')} دج (${percentStr})`)}
+                    {indIsBlocked ? '-' : (isPureSharesMode ? percentStr : `${formatDocumentCurrency(individualAmt)} (${percentStr})`)}
                   </td>
 
                   {/* Actions */}

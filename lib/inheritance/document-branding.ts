@@ -50,6 +50,7 @@ export interface OfficeSettings {
   addressAr: string;
   phone: string;
   email: string;
+  isOfficialMode?: boolean; // Official Notary Certified Export Mode (إصدار محرر رسمي للتوثيق)
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
@@ -59,6 +60,7 @@ export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
   addressAr: 'حي العقيد لطفي، وهران',
   phone: '+213 562 29 69 81',
   email: 'maitrelattabmohamed@gmail.com',
+  isOfficialMode: true,
 };
 
 // Unified Arabic font family for all documents
@@ -83,9 +85,18 @@ export const EXPORT_OFFICE_INFO = {
   footerPageLabelAr: (page: number, total: number) => `الأستاذ الموثق لعطب محمد بوهران | صفحة ${page} من ${total}`,
 } as const;
 
-// Canonical currency formatter (ar-DZ, 0 decimals, " دج" suffix)
-export function formatDocumentCurrency(n: number): string {
-  return n.toLocaleString('ar-DZ', { style: 'decimal', minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' دج';
+// Canonical currency formatter (e.g. "2.430.556,00 دج" or "2.430.556 دج")
+export function formatDocumentCurrency(n: number, includeDecimals: boolean = true): string {
+  if (n === null || n === undefined || isNaN(n)) return '0,00 دج';
+  
+  if (!includeDecimals) {
+    const intStr = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return `${intStr} دج`;
+  }
+  
+  const parts = n.toFixed(2).split('.');
+  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `${integerPart},${parts[1]} دج`;
 }
 
 // Standard Excel Custom Number Format for Currency

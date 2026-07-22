@@ -46,8 +46,18 @@ export interface CalculationResult {
   individuals?: IndividualResult[]; // Individual results for each of the count heirs
 }
 
-const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-const lcm = (a: number, b: number): number => Math.abs((a / gcd(a, b)) * b);
+const gcd = (a: number, b: number): number => {
+  const numA = Number(a);
+  const numB = Number(b);
+  return numB === 0 ? numA : gcd(numB, numA % numB);
+};
+
+const lcm = (a: number, b: number): number => {
+  const numA = Number(a);
+  const numB = Number(b);
+  if (numA === 0 || numB === 0) return 0;
+  return Math.abs(Math.round((numA / gcd(numA, numB)) * numB));
+};
 
 export function calculateInheritance(
   heirs: HeirPresence[],
@@ -153,7 +163,7 @@ export function calculateInheritance(
         const indAmt = activeCount > 0 ? activeRes.amount / activeCount : 0;
         const indShareFrac = activeCount > 0 ? activeRes.shareFraction.div(activeCount) : new Fraction(0);
         const indSharesStr = activeCount > 1 ? indShareFrac.toFraction(true) : activeRes.share;
-        const indSharesCount = activeCount > 0 ? activeRes.shares / activeCount : 0;
+        const indSharesCount = activeCount > 0 ? Math.round(activeRes.shares / activeCount) : 0;
 
         individuals.push({
           isBlocked: false,
@@ -958,9 +968,9 @@ export function calculateInheritanceInternal(
     .reduce((acc, r) => lcm(acc, Number(r.shareFraction.d)), 1);
   
   // حفظ القاعدة الأصلية قبل العول لاستخدامها في تصحيح المسألة (tasHih)
-  const originalBase = traditionalBase;
+  const _originalBase = traditionalBase;
   // حفظ الكسور الأصلية قبل تعديلها في العول لاستخدامها في تصحيح المسألة
-  const originalFractions = new Map<string, Fraction>(inheritanceResults.map(r => [r.heirId, new Fraction(r.shareFraction)]));
+  const _originalFractions = new Map<string, Fraction>(inheritanceResults.map(r => [r.heirId, new Fraction(r.shareFraction)]));
   
   const totalShares = inheritanceResults.reduce((sum, r) => sum.add(r.isBlocked ? new Fraction(0) : r.shareFraction), new Fraction(0));
   
@@ -977,7 +987,7 @@ export function calculateInheritanceInternal(
     }, new Fraction(0));
     
     // تأكيد أن القيمة عدد صحيح قبل التقريب
-    traditionalBase = Number(Number(awlBaseNumerator.d) === 1 ? awlBaseNumerator.n : Math.round(awlBaseNumerator.valueOf()));
+    traditionalBase = Number(Number(awlBaseNumerator.d) === 1 ? Number(awlBaseNumerator.n) : Math.round(awlBaseNumerator.valueOf()));
 
     inheritanceResults.forEach(r => {
       if (!r.isBlocked) {
@@ -1089,24 +1099,21 @@ export function calculateInheritanceInternal(
 
   distributeAmounts(results, netEstate);
 
-  // Final post-processing and Tas-hih (Correction)
+  // Final post-processing and Tas-hih (Correction for groups)
   const activeHeirs = results.filter(r => !r.isBlocked && r.shareFraction.compare(0) !== 0);
-  
-  // 2. Adjust for Tas-hih (Correction for groups)
-  let tasHihFactor = 1;
+
+  // 2. Adjust for Tas-hih: Base must be a multiple of the denominator of every active individual's share fraction
+  let finalBase = traditionalBase > 0 ? traditionalBase : 1;
   activeHeirs.forEach(r => {
-    if (r.count > 1) {
-      // ✅ الإصلاح: نستخدم الكسر الأصلي قبل العول مضروباً في القاعدة الأصلية للحصول على عدد الأسهم الصحيح والمنطقي للتصحيح
-      const originalFrac = originalFractions.get(r.heirId) || r.shareFraction;
-      const groupSharesTotal = Math.round(originalFrac.mul(originalBase).valueOf());
-      const groupGCD = gcd(groupSharesTotal, r.count);
-      const correction = r.count / groupGCD;
-      tasHihFactor = lcm(tasHihFactor, correction);
+    const activeCount = r.count || 1;
+    const indFrac = r.shareFraction.div(activeCount);
+    // indFrac.d is the denominator in lowest terms from fraction.js
+    const denom = Number(indFrac.d);
+    if (denom > 0) {
+      finalBase = lcm(finalBase, denom);
     }
   });
 
-  const finalBase = traditionalBase * tasHihFactor;
-  
   results.forEach(r => {
     r.problemBase = finalBase;
     r.shares = Math.round(r.shareFraction.mul(finalBase).valueOf());

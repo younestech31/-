@@ -23,6 +23,7 @@ export default function OfficeSettingsModal({
   const [addressAr, setAddressAr] = useState(settings.addressAr);
   const [phone, setPhone] = useState(settings.phone);
   const [email, setEmail] = useState(settings.email);
+  const [isOfficialMode, setIsOfficialMode] = useState(settings.isOfficialMode ?? true);
 
   // Sync state with props when modal opens or settings change
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function OfficeSettingsModal({
       setAddressAr(settings.addressAr);
       setPhone(settings.phone);
       setEmail(settings.email);
+      setIsOfficialMode(settings.isOfficialMode ?? true);
     }
   }, [isOpen, settings]);
 
@@ -45,7 +47,8 @@ export default function OfficeSettingsModal({
       titleAr: titleAr.trim(),
       addressAr: addressAr.trim(),
       phone: phone.trim(),
-      email: email.trim()
+      email: email.trim(),
+      isOfficialMode
     });
     onClose();
   };
@@ -157,6 +160,24 @@ export default function OfficeSettingsModal({
               </div>
             </div>
 
+            {/* Official Mode Toggle */}
+            <div className="mt-2 p-3 bg-slate-50 border border-[#cbd5e1] rounded-lg">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="block text-xs font-bold text-[#1e293b]">إصدار محرر رسمي معتمد (للموثقين والخبراء)</span>
+                  <span className="block text-[11px] text-[#64748b] mt-0.5">
+                    عند التفعيل: إخفاء صندوق إخلاء المسؤولية وإبراز بيانات مكتب التوثيق في الترويسة والتذييل
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isOfficialMode}
+                  onChange={e => setIsOfficialMode(e.target.checked)}
+                  className="w-4 h-4 text-[#0a5d38] border-gray-300 rounded focus:ring-[#0a5d38] cursor-pointer"
+                />
+              </label>
+            </div>
+
           </div>
 
           {/* Mawarith Brand Reminder */}
@@ -165,7 +186,7 @@ export default function OfficeSettingsModal({
             <div>
               <h4 className="text-xs font-bold text-[#0a5d38] mb-0.5">منصة مواريث الرقمية</h4>
               <p className="text-[10.5px] text-emerald-800 leading-relaxed">
-                تقديراً للجهود، سيتم تضمين علامة التوثيق الرقمية وبوابة <strong>«مواريث» (mawarith.dz)</strong> بشكل رسمي في تذييل المستندات المصدرة لحفظ موثوقية الحسابات.
+                تقديراً للجهود، سيتم تضمين تذييل منصة <strong>«مواريث» (mawarith.dz)</strong> في المستندات المصدرة للحفاظ على مرجعية الحسابات.
               </p>
             </div>
           </div>
