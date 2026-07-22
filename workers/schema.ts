@@ -6,11 +6,11 @@ export const HeirPresenceItemSchema = z.object({
   isPresent: z.boolean().default(false),
   hasMandatoryBequest: z.boolean().optional(),
   isImpeded: z.boolean().optional(),
-  impedimentReasonId: z.string().optional(),
+  impedimentReasonId: z.string().nullish().optional(),
   impededIndexes: z.array(z.boolean()).optional(),
-  impedimentReasonIds: z.array(z.string().nullable()).optional(),
+  impedimentReasonIds: z.array(z.string().nullish()).optional(),
   customNames: z.array(z.string()).optional(),
-}).strip();
+}).passthrough();
 
 export const MunasakhatStageSchema = z.object({
   id: z.string().optional(),
@@ -19,14 +19,14 @@ export const MunasakhatStageSchema = z.object({
   deceasedSonsCount: z.number().int().nonnegative().default(0),
   deceasedDaughtersCount: z.number().int().nonnegative().default(0),
   heirPresence: z.record(z.string(), HeirPresenceItemSchema),
-  parentHeirId: z.string().nullable().optional(),
-  parentStageId: z.string().nullable().optional(),
-  parentHeirIndex: z.number().int().optional(),
-  deceasedName: z.string().optional(),
-  debts: z.number().nonnegative().optional(),
-  funeralCosts: z.number().nonnegative().optional(),
-  bequest: z.number().nonnegative().optional(),
-}).strip();
+  parentHeirId: z.string().nullish().optional(),
+  parentStageId: z.string().nullish().optional(),
+  parentHeirIndex: z.number().int().nullish().optional(),
+  deceasedName: z.string().nullish().optional(),
+  debts: z.number().nonnegative().nullish().optional(),
+  funeralCosts: z.number().nonnegative().nullish().optional(),
+  bequest: z.number().nonnegative().nullish().optional(),
+}).passthrough();
 
 export const WorkerInputSchema = z.object({
   id: z.number().int().nonnegative(),
@@ -48,3 +48,4 @@ export const WorkerOutputSchema = z.object({
     noHeirsRedistribution: z.any().nullable().optional()
   }))
 });
+

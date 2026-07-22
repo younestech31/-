@@ -25,6 +25,26 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
 
+export function safeSetFont(pdf: any, fontName: string, style: string = 'normal'): void {
+  try {
+    pdf.setFont(fontName, style);
+    pdf.getTextWidth('a');
+  } catch (err) {
+    console.warn(`Font ${fontName} (${style}) is not fully registered. Falling back to normal style...`, err);
+    try {
+      pdf.setFont(fontName, 'normal');
+      pdf.getTextWidth('a');
+    } catch (err2) {
+      console.warn(`Fallback to ${fontName} normal failed. Using helvetica normal...`, err2);
+      try {
+        pdf.setFont('helvetica', 'normal');
+      } catch {
+        // No-op absolute fallback
+      }
+    }
+  }
+}
+
 /**
  * Prepares Arabic text for native jsPDF vector rendering:
  * Reshapes characters using ArabicShaper to connect letters correctly in logical order.
@@ -49,7 +69,21 @@ function wrapArabicText(pdf: any, text: string, maxWidthMm: number): string[] {
   for (let i = 0; i < words.length; i++) {
     const testLine = currentLine ? currentLine + ' ' + words[i] : words[i];
     const testLineRtl = fixArabicRtl(testLine);
-    const width = pdf.getTextWidth(testLineRtl);
+    
+    let width = 0;
+    try {
+      width = pdf.getTextWidth(testLineRtl);
+    } catch (err) {
+      console.warn('pdf.getTextWidth crashed in wrapArabicText, falling back to safe font and measuring...', err);
+      try {
+        pdf.setFont('helvetica', 'normal');
+        width = pdf.getTextWidth(testLineRtl);
+      } catch {
+        // Ultimate rough character width estimation if all fails
+        width = testLineRtl.length * 2.2;
+      }
+    }
+
     if (width > maxWidthMm && i > 0) {
       lines.push(currentLine);
       currentLine = words[i];
@@ -104,7 +138,7 @@ function drawVectorCell(
     pdf.rect(x, y, w, h, 'S');
   }
 
-  pdf.setFont('Amiri', fontStyle);
+  safeSetFont(pdf, 'Amiri', fontStyle);
   pdf.setFontSize(fontSize);
   pdf.setTextColor(...hexToRgb(textColor));
 
@@ -202,12 +236,23 @@ async function fetchArrayBufferAsBase64(url: string): Promise<string> {
             continue;
           }
         }
-        let binary = '';
-        const len = bytes.byteLength;
-        for (let i = 0; i < len; i++) {
-          binary += String.fromCharCode(bytes[i]);
+
+        if (typeof window !== 'undefined') {
+          // Browser environment: Use ultra-reliable FileReader for base64 conversion
+          base64Result = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+              const result = reader.result as string;
+              const base64 = result.split(',')[1];
+              resolve(base64);
+            };
+            reader.onerror = () => reject(new Error('FileReader base64 conversion failed'));
+            reader.readAsDataURL(new Blob([buffer]));
+          });
+        } else {
+          // Node environment: Use Buffer
+          base64Result = Buffer.from(buffer).toString('base64');
         }
-        base64Result = btoa(binary);
       }
 
       if (base64Result) {
@@ -257,7 +302,7 @@ function drawPageDecorations(
   }
 
   // 3. Official Court/Notary Header (Right-Aligned)
-  pdf.setFont('Amiri', 'bold');
+  safeSetFont(pdf, 'Amiri', 'bold');
   pdf.setFontSize(14);
   pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
   pdf.text(fixArabicRtl('الجمهورية الجزائرية الديمقراطية الشعبية'), 190, 17, { align: 'right' });
@@ -269,7 +314,7 @@ function drawPageDecorations(
   pdf.setTextColor(...hexToRgb(COLOR_PALETTE.green));
   pdf.text(fixArabicRtl(`${office.officialDesignationAr} - ${office.notaryNameAr}`), 190, 27, { align: 'right' });
 
-  pdf.setFont('Amiri', 'normal');
+  safeSetFont(pdf, 'Amiri', 'normal');
   pdf.setFontSize(9);
   pdf.setTextColor(...hexToRgb(COLOR_PALETTE.mutedText));
   pdf.text(fixArabicRtl(`${office.addressAr} - ${office.titleAr}`), 190, 32, { align: 'right' });
@@ -286,7 +331,7 @@ function drawPageDecorations(
   pdf.setLineWidth(0.3);
   pdf.rect(15, footerY, 180, 10, 'FD');
 
-  pdf.setFont('Amiri', 'bold');
+  safeSetFont(pdf, 'Amiri', 'bold');
   pdf.setFontSize(8);
   pdf.setTextColor(...hexToRgb('#000000'));
   
@@ -335,19 +380,19 @@ function renderStageVectorPDF(
   pdf.setLineWidth(0.3);
   pdf.roundedRect(15, currentY, 180, 15, 2, 2, 'FD');
 
-  pdf.setFont('Amiri', 'bold');
+  safeSetFont(pdf, 'Amiri', 'bold');
   pdf.setFontSize(13);
   pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
 
   if (stageIdx === 0) {
     pdf.text(fixArabicRtl('وثيقة تصفية وتقسيم التركة الشرعية'), 105, currentY + 6.5, { align: 'center' });
-    pdf.setFont('Amiri', 'normal');
+    safeSetFont(pdf, 'Amiri', 'normal');
     pdf.setFontSize(8);
     pdf.setTextColor(...hexToRgb(COLOR_PALETTE.mutedText));
     pdf.text(fixArabicRtl('مستخرج من المنظومة التوثيقية الرقمية - وفق أحكام قانون الأسرة الجزائري (الأمر 84-11)'), 105, currentY + 11.5, { align: 'center' });
   } else {
     pdf.text(fixArabicRtl(`المناسخة رقم ${stageIdx}: تصفية حصة الوارث المتوفى`), 105, currentY + 6.5, { align: 'center' });
-    pdf.setFont('Amiri', 'normal');
+    safeSetFont(pdf, 'Amiri', 'normal');
     pdf.setFontSize(8);
     pdf.setTextColor(...hexToRgb(COLOR_PALETTE.mutedText));
     const deceasedName = stageResult.stage.deceasedName || `الوارث الفرعي رقم ${stageIdx}`;
@@ -363,12 +408,12 @@ function renderStageVectorPDF(
     pdf.setLineWidth(0.3);
     pdf.roundedRect(15, currentY, 180, 16, 2, 2, 'FD');
 
-    pdf.setFont('Amiri', 'bold');
+    safeSetFont(pdf, 'Amiri', 'bold');
     pdf.setFontSize(8.5);
     pdf.setTextColor(...hexToRgb(COLOR_PALETTE.red));
     pdf.text(fixArabicRtl(EXPORT_OFFICE_INFO.disclaimerTitleAr), 192, currentY + 4.5, { align: 'right' });
 
-    pdf.setFont('Amiri', 'normal');
+    safeSetFont(pdf, 'Amiri', 'normal');
     pdf.setFontSize(7.5);
     pdf.setTextColor(...hexToRgb('#7F1D1D'));
     const discLines = wrapArabicText(pdf, EXPORT_OFFICE_INFO.disclaimerTextAr, 174);
@@ -387,7 +432,7 @@ function renderStageVectorPDF(
   pdf.setLineWidth(0.3);
   pdf.roundedRect(15, currentY, 180, 8, 1.5, 1.5, 'FD');
 
-  pdf.setFont('Amiri', 'bold');
+  safeSetFont(pdf, 'Amiri', 'bold');
   pdf.setFontSize(10);
   pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
   const dPronoun = deceasedPronoun(deceasedGender);
@@ -409,7 +454,7 @@ function renderStageVectorPDF(
       pdf.setLineWidth(0.2);
       pdf.rect(15, currentY, 180, 7, 'FD');
 
-      pdf.setFont('Amiri', 'bold');
+      safeSetFont(pdf, 'Amiri', 'bold');
       pdf.setFontSize(8.5);
       pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
       pdf.text(
@@ -420,7 +465,7 @@ function renderStageVectorPDF(
       );
       currentY += 10;
     } else {
-      pdf.setFont('Amiri', 'bold');
+      safeSetFont(pdf, 'Amiri', 'bold');
       pdf.setFontSize(9.5);
       pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
       pdf.text(fixArabicRtl('أولاً: ملخص التركة والاستقطاعات والديون الشرعية (قبل القسمة)'), 195, currentY + 4, { align: 'right' });
@@ -457,7 +502,7 @@ function renderStageVectorPDF(
   }
 
   // 5. Distribution Heading
-  pdf.setFont('Amiri', 'bold');
+  safeSetFont(pdf, 'Amiri', 'bold');
   pdf.setFontSize(9.5);
   pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
   if (stageIdx === 0) {
@@ -478,7 +523,7 @@ function renderStageVectorPDF(
   pdf.setLineWidth(0.2);
   pdf.rect(15, currentY, 180, 7, 'FD');
 
-  pdf.setFont('Amiri', 'bold');
+  safeSetFont(pdf, 'Amiri', 'bold');
   pdf.setFontSize(8.5);
   pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
   pdf.text(fixArabicRtl(`أصل المسألة التصحيحي الشرعي: ${stageProblemBase ?? '-'}`), 192, currentY + 4.8, { align: 'right' });
@@ -501,7 +546,7 @@ function renderStageVectorPDF(
     pdf.setLineWidth(0.2);
     pdf.rect(15, currentY, 180, 6.5, 'FD');
 
-    pdf.setFont('Amiri', 'bold');
+    safeSetFont(pdf, 'Amiri', 'bold');
     pdf.setFontSize(8);
     pdf.setTextColor(...hexToRgb('#000000'));
     pdf.text(fixArabicRtl(alertText), 192, currentY + 4.5, { align: 'right' });
@@ -640,7 +685,7 @@ function renderStageVectorPDF(
 
   // 9. Treasury Section (if applicable)
   if (stageResult.noHeirsRedistribution && stageResult.noHeirsRedistribution.policy === 'treasury') {
-    pdf.setFont('Amiri', 'bold');
+    safeSetFont(pdf, 'Amiri', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
     pdf.text(fixArabicRtl('مستحقين الخزينة العمومية للدولة (المادة 180):'), 195, currentY + 3.5, { align: 'right' });
@@ -692,7 +737,7 @@ function renderStageVectorPDF(
   });
 
   if (blockedRows.length > 0) {
-    pdf.setFont('Amiri', 'bold');
+    safeSetFont(pdf, 'Amiri', 'bold');
     pdf.setFontSize(9);
     pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
     pdf.text(fixArabicRtl('الأقارب والورثة المحجوبون أو المستبعدون بموجب أحكام الميراث:'), 195, currentY + 3.5, { align: 'right' });
@@ -786,7 +831,7 @@ export async function exportToPDF(
       pdf.addFileToVFS('Amiri-Bold.ttf', cachedBoldFontBase64);
       pdf.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
     }
-    pdf.setFont('Amiri', 'normal');
+    safeSetFont(pdf, 'Amiri', 'normal');
   } catch (fontErr) {
     console.warn('Font registration warning:', fontErr);
     pdf.setFont('helvetica', 'normal');

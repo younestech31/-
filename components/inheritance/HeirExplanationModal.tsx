@@ -12,24 +12,42 @@ export default function HeirExplanationModal({
 }: HeirExplanationModalProps) {
   if (!selectedHeirExplanation) return null;
 
+  const isImpeded = selectedHeirExplanation.share === 'محروم' || selectedHeirExplanation.reason?.includes('محروم');
+  const isBlocked = !isImpeded && selectedHeirExplanation.isBlocked;
+
+  const articleNum = selectedHeirExplanation.article ?? (isImpeded ? 135 : isBlocked ? 139 : undefined);
+  const notesText = selectedHeirExplanation.notes || (
+    isImpeded
+      ? 'موانع الإرث محددة في المواد 135، 137، و138 من قانون الأسرة الجزائري (كالقتل العمد، القتل خطأ، واللعان). الوارث المحروم لوجود مانع شرعي يمنع من الإرث ويعتبر كالمعدوم، فلا يحجب غيره من الورثة.'
+      : isBlocked
+        ? 'الحجب في قانون الأسرة الجزائري يكون بحجب حرمان أو حجب نقصان بوجود وارث أقرب درجة (المواد 139-143). المحجوب لا يرث ولكنه قد يحجب غيره حجب نقصان كالإخوة مع الأم.'
+        : ''
+  );
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedHeirExplanation(null)}>
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center p-4 border-b border-[#e2e8f0] bg-[#f8fafc]">
           <h3 className="font-bold text-[#1e293b]">تفاصيل نصيب: {selectedHeirExplanation.nameAr}</h3>
-          <button onClick={() => setSelectedHeirExplanation(null)} className="text-[#64748b] hover:text-[#0f172a] transition-colors"><X size={20} /></button>
+          <button onClick={() => setSelectedHeirExplanation(null)} className="text-[#64748b] hover:text-[#0f172a] transition-colors" aria-label="إغلاق النافذة"><X size={20} /></button>
         </div>
         <div className="p-5 overflow-y-auto max-h-[60vh] text-sm text-[#475569] leading-relaxed">
           <div className="mb-4">
-            <span className="inline-block bg-[#f1f5f9] px-2 py-1 rounded text-[#0f172a] font-medium mb-2 border border-[#e2e8f0]">
-              الحالة الحالية: {selectedHeirExplanation.isBlocked ? 'محجوب' : selectedHeirExplanation.share}
+            <span className="inline-block bg-[#f1f5f9] px-2.5 py-1 rounded text-[#0f172a] font-medium mb-2 border border-[#e2e8f0]">
+              الحالة الحالية: {
+                isImpeded
+                  ? 'محروم من الإرث'
+                  : isBlocked
+                    ? 'محجوب من الإرث'
+                    : selectedHeirExplanation.share
+              }
             </span>
             <p className="mt-2 text-[#1e293b] font-medium">{selectedHeirExplanation.reason}</p>
           </div>
-          {(selectedHeirExplanation.article ?? 0) > 0 && (
+          {articleNum && (
             <div className="mt-4 pt-4 border-t border-[#e2e8f0]">
-              <p className="font-bold text-[#0a5d38] mb-1">المادة {selectedHeirExplanation.article} من قانون الأسرة الجزائري</p>
-              <p className="text-[13px] bg-[#f8fafc] p-3 rounded-md border border-[#e2e8f0] font-mono leading-loose">{selectedHeirExplanation.notes}</p>
+              <p className="font-bold text-[#0a5d38] mb-1">المادة {articleNum} من قانون الأسرة الجزائري</p>
+              <p className="text-[13px] bg-[#f8fafc] p-3 rounded-md border border-[#e2e8f0] font-mono leading-loose">{notesText}</p>
             </div>
           )}
         </div>

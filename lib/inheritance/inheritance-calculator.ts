@@ -192,18 +192,26 @@ export function calculateInheritance(
 
     const heirInfo = HEIRS.find(hi => hi.id === h.heirId);
     if (heirInfo) {
+      const isAllImpeded = h.count > 0 && activeCount === 0;
+      const firstBarId = h.impedimentReasonId || h.impedimentReasonIds?.find(r => r !== undefined);
+      const firstBar = firstBarId ? INHERITANCE_BARS.find(b => b.id === firstBarId) : null;
+      const defaultImpededReason = firstBar
+        ? `محروم: ${firstBar.nameAr} (المادة ${firstBar.article})`
+        : 'ممنوع من الإرث لوجود مانع شرعي (المادتان 135 و138 من قانون الأسرة)';
+
       mergedResults.push({
         heirId: h.heirId,
         nameAr: heirInfo.nameAr,
-        share: groupShare,
+        share: isAllImpeded ? 'محروم' : groupShare,
         shareDecimal: groupShareFraction.valueOf(),
         shareFraction: groupShareFraction,
         shares: groupShares,
         problemBase: activeRes?.problemBase ?? blockedRes?.problemBase ?? 0,
         calculationType: activeRes?.calculationType ?? blockedRes?.calculationType,
         amount: groupAmount,
-        reason: groupReason || (groupIsBlocked ? 'محجوب من الميراث لوجود من يحجبه' : ''),
-        article: groupArticle,
+        reason: isAllImpeded ? defaultImpededReason : (groupReason || (groupIsBlocked ? 'محجوب من الميراث لوجود من يحجبه' : '')),
+        article: isAllImpeded ? (firstBar ? firstBar.article : 135) : groupArticle,
+        notes: isAllImpeded ? (firstBar ? firstBar.description : 'موانع الإرث محددة بالمادتين 135 و138 من قانون الأسرة الجزائري. الوارث المحروم لوجود مانع شرعي يمنع من الإرث كلياً ولا يحجب غيره.') : undefined,
         isBlocked: groupIsBlocked,
         count: h.count,
         individuals
@@ -1080,39 +1088,6 @@ export function calculateInheritanceInternal(
   };
 
   distributeAmounts(results, netEstate);
-  
-  // Add impeded heirs to results for reporting
-  heirs.filter(h => h.isImpeded && h.isPresent).forEach(h => {
-    const existing = results.find(r => r.heirId === h.heirId);
-    const bar = INHERITANCE_BARS.find(b => b.id === h.impedimentReasonId);
-    const reason = bar ? `محروم: ${bar.nameAr} (المادة ${bar.article})` : 'ممنوع من الإرث لوجود مانع شرعي';
-
-    if (existing) {
-      existing.share = 'محروم';
-      existing.isBlocked = true;
-      existing.reason = reason;
-      existing.amount = 0;
-      existing.shareDecimal = 0;
-      existing.shareFraction = new Fraction(0);
-    } else {
-      const heirInfo = HEIRS.find(hi => hi.id === h.heirId);
-      if (heirInfo) {
-        results.push({
-          heirId: h.heirId,
-          nameAr: heirInfo.nameAr,
-          share: 'محروم',
-          shareDecimal: 0,
-          shareFraction: new Fraction(0),
-          shares: 0,
-          problemBase: 0,
-          amount: 0,
-          isBlocked: true,
-          reason: reason,
-          count: h.count
-        });
-      }
-    }
-  });
 
   // Final post-processing and Tas-hih (Correction)
   const activeHeirs = results.filter(r => !r.isBlocked && r.shareFraction.compare(0) !== 0);

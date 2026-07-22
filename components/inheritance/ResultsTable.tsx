@@ -481,21 +481,60 @@ function TableView({
                       <div className={indIsBlocked ? 'text-[#64748b] line-through opacity-70' : ''}>
                         {displayName}
                       </div>
-                      {i === 0 && (
-                        <div className="text-[10px] text-[#64748b] mt-0.5">{r.reason}</div>
-                      )}
+                      <div className="text-[10px] text-[#64748b] mt-0.5">
+                        {individualResult?.reason || r.reason}
+                      </div>
                       {i === 0 && r.count > 1 && !isPureSharesMode && (
-                        <div className="text-[10px] text-[#0a5d38] mt-0.5 font-bold">
-                          نصيب كل واحدة غير محرومة: {individualAmt.toLocaleString('en-US')}
-                        </div>
+                        (() => {
+                          const activeInd = r.individuals?.find(ind => !ind.isBlocked && ind.amount > 0);
+                          const activeAmt = activeInd ? activeInd.amount : 0;
+                          return activeAmt > 0 ? (
+                            <div className="text-[10px] text-[#0a5d38] mt-0.5 font-bold">
+                              نصيب كل واحدة غير محرومة: {activeAmt.toLocaleString('en-US')}
+                            </div>
+                          ) : null;
+                        })()
                       )}
                     </td>
 
                   {/* Share fraction (clickable → explanation modal) */}
                   <td
-                    className="p-2.5 border-b border-[#e2e8f0] cursor-help"
+                    className="p-2.5 border-b border-[#e2e8f0] cursor-pointer hover:bg-slate-100/60 transition-colors"
                     dir="ltr"
-                    onClick={() => setSelectedHeirExplanation(r)}
+                    onClick={() => {
+                      if (isIndImpeded || indShare === 'محروم') {
+                        const bar = indReasonId ? INHERITANCE_BARS.find(b => b.id === indReasonId) : null;
+                        const impededReason = bar
+                          ? `محروم: ${bar.nameAr} (المادة ${bar.article})`
+                          : (individualResult?.reason || r.reason || 'ممنوع من الإرث لوجود مانع شرعي (المادتان 135 و138 من قانون الأسرة). المحروم يعتبر كالمعدوم فلا يرث ولا يحجب غيره.');
+                        setSelectedHeirExplanation({
+                          ...r,
+                          nameAr: displayName,
+                          share: 'محروم',
+                          isBlocked: true,
+                          reason: impededReason,
+                          article: bar ? bar.article : (r.article ?? 135),
+                          notes: bar ? bar.description : (r.notes || 'موانع الإرث محددة بالمادتين 135 و138 من قانون الأسرة الجزائري. الوارث المحروم لوجود مانع شرعي يمنع من الإرث كلياً ولا يحجب غيره.')
+                        });
+                      } else if (indIsBlocked) {
+                        setSelectedHeirExplanation({
+                          ...r,
+                          nameAr: displayName,
+                          share: 'محجوب',
+                          isBlocked: true,
+                          reason: individualResult?.reason || r.reason || 'محجوب من الإرث بوجود وارث أقرب درجة',
+                          article: r.article ?? 139,
+                          notes: r.notes || 'الحجب في الفقه وقانون الأسرة الجزائري (المواد 139-143): المحجوب حجب حرمان لا يستحق شيئاً من التركة لوجود وارث أولى منه.'
+                        });
+                      } else {
+                        setSelectedHeirExplanation({
+                          ...r,
+                          nameAr: displayName,
+                          share: indShare,
+                          amount: individualAmt
+                        });
+                      }
+                    }}
                   >
                     {isInvoluntaryKiller ? (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200">
@@ -552,16 +591,18 @@ function TableView({
                         {presence && (
                           <div className="flex flex-col items-center">
                             <label
-                              className="flex items-center gap-1 text-[10px] cursor-pointer"
+                              className="flex items-center gap-1 text-[10px] cursor-pointer hover:text-[#0a5d38] transition-colors select-none"
                               title="موانع الإرث (القتل، الردة، إلخ)"
+                              onClick={e => e.stopPropagation()}
                             >
                               <input
                                 type="checkbox"
                                 aria-label={`حرمان الوارث: ${displayName}`}
                                 checked={isIndImpeded}
-                                onChange={() =>
-                                  updateImpediment(r.heirId, i, !isIndImpeded, indReasonId)
-                                }
+                                onChange={e => {
+                                  e.stopPropagation();
+                                  updateImpediment(r.heirId, i, !isIndImpeded, indReasonId);
+                                }}
                               />
                               محروم
                             </label>
@@ -569,9 +610,11 @@ function TableView({
                             {isIndImpeded && (
                               <select
                                 value={indReasonId ?? ''}
-                                onChange={e =>
-                                  updateImpediment(r.heirId, i, true, e.target.value)
-                                }
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => {
+                                  e.stopPropagation();
+                                  updateImpediment(r.heirId, i, true, e.target.value || undefined);
+                                }}
                                 className="text-[9px] mt-1 p-0.5 border border-[#e2e8f0] rounded outline-none w-24 bg-white"
                               >
                                 <option value="">سبب الحرمان...</option>

@@ -30,11 +30,74 @@ function hydrateStageResults(stages: StageResult[]): StageResult[] {
   }));
 }
 
+function executeCalculationSync(args: WorkerInput['args']): StageResult[] {
+  const [munasakhatStages, debouncedEstate, debouncedDebts, debouncedFuneralCosts, debouncedBequest] = args;
+  const stagesData: StageResult[] = [];
+
+  for (let index = 0; index < munasakhatStages.length; index++) {
+    const stage = munasakhatStages[index];
+    const stageEstate  = index === 0 ? debouncedEstate       : stage.estate;
+    const stageDebts   = index === 0 ? debouncedDebts        : (stage.debts || 0);
+    const stageFuneral = index === 0 ? debouncedFuneralCosts : (stage.funeralCosts || 0);
+    const stageBequest = index === 0 ? debouncedBequest      : (stage.bequest || 0);
+
+    const sanitizedPresence = Object.values(stage.heirPresence)
+      .filter(h => {
+        if (index === 0 || !stage.parentHeirId) return true;
+        const { excluded } = isHeirExcludedInMunasakhat(h.heirId, stage.parentHeirId);
+        return !excluded;
+      })
+      .map(({ customNames: _customNames, ...rest }) => rest);
+
+    const res = calculateInheritance(
+      sanitizedPresence,
+      stageEstate,
+      stageDebts,
+      stageFuneral,
+      stageBequest,
+      stage.hasMandatoryBequest,
+      [
+        { type: 'son' as const,      count: stage.deceasedSonsCount || 0 },
+        { type: 'daughter' as const, count: stage.deceasedDaughtersCount || 0 },
+      ].filter(c => c.count > 0),
+    );
+
+    const mandatoryBequest = res.find(r => r.heirId === 'mandatory_bequest')?.amount ?? 0;
+    const actualBequest = res.find(r => r.heirId === 'voluntary_bequest')?.amount ?? 0;
+    const net = stageEstate - stageDebts - stageFuneral - actualBequest - mandatoryBequest;
+
+    let noHeirsRedistribution: StageResult['noHeirsRedistribution'] = null;
+
+    if (index > 0 && stage.parentHeirId) {
+      const activeHeirs = res.filter(
+        r => !r.isBlocked && r.amount > 0 &&
+             r.heirId !== 'mandatory_bequest' &&
+             r.heirId !== 'voluntary_bequest' &&
+             r.heirId !== 'treasury'
+      );
+
+      if (activeHeirs.length === 0 && net > 0) {
+        const parentStageData = stagesData.find(
+          sd => sd.stage.id === stage.parentStageId
+        );
+        const parentResults = parentStageData?.results ?? [];
+
+        const redistribution = resolveNoHeirsPolicy(stage, net, parentResults);
+        noHeirsRedistribution = redistribution;
+      }
+    }
+
+    stagesData.push({ stage, results: res, netEstate: net, noHeirsRedistribution });
+  }
+
+  return hydrateStageResults(stagesData);
+}
+
 export function useInheritanceWorker() {
   const [isWorkerCalculating, setIsWorkerCalculating] = useState(false);
   const workerRef = useRef<Worker | null>(null);
   const messageIdRef = useRef(0);
-  const pendingResolvers = useRef<Map<number, (data: StageResult[]) => void>>(new Map());
+  const pendingResolvers = useRef<Map<number, { resolve: (data: StageResult[]) => void; args: WorkerInput['args'] }>>(new Map());
 
   useEffect(() => {
     return () => {
@@ -50,22 +113,26 @@ export function useInheritanceWorker() {
         workerRef.current = new Worker(new URL('../../workers/inheritance.worker.ts', import.meta.url));
         workerRef.current.onmessage = (e: MessageEvent) => {
           const { id, data, error } = e.data;
-          const resolve = pendingResolvers.current.get(id);
-          if (resolve) {
+          const pending = pendingResolvers.current.get(id);
+          if (pending) {
             pendingResolvers.current.delete(id);
-            if (error) {
-              console.error('Worker error:', error);
-              setIsWorkerCalculating(false);
-              return;
+            if (error || !data) {
+              console.warn('Worker error/fallback:', error);
+              pending.resolve(executeCalculationSync(pending.args));
+            } else {
+              pending.resolve(hydrateStageResults(data));
             }
-            resolve(hydrateStageResults(data));
             setIsWorkerCalculating(false);
           }
         };
         workerRef.current.onerror = (e) => {
           console.error('Worker thread error:', e);
           setIsWorkerCalculating(false);
-          // Could reject pending resolvers here based on id
+          // Resolve all pending with sync fallback so UI never freezes
+          pendingResolvers.current.forEach(({ resolve, args }) => {
+            resolve(executeCalculationSync(args));
+          });
+          pendingResolvers.current.clear();
         };
       } catch (err) {
         console.warn('Failed to instantiate Web Worker, falling back to main-thread execution:', err);
@@ -83,75 +150,16 @@ export function useInheritanceWorker() {
       setIsWorkerCalculating(true);
       const id = messageIdRef.current++;
       return new Promise((resolve) => {
-        pendingResolvers.current.set(id, resolve);
+        pendingResolvers.current.set(id, { resolve, args });
         worker.postMessage({ id, args });
       });
     }
 
     // SSR / Fallback path
     setIsWorkerCalculating(true);
-    
-    const [munasakhatStages, debouncedEstate, debouncedDebts, debouncedFuneralCosts, debouncedBequest] = args;
-    const stagesData: StageResult[] = [];
-
-    for (let index = 0; index < munasakhatStages.length; index++) {
-      const stage = munasakhatStages[index];
-      const stageEstate  = index === 0 ? debouncedEstate       : stage.estate;
-      const stageDebts   = index === 0 ? debouncedDebts        : (stage.debts || 0);
-      const stageFuneral = index === 0 ? debouncedFuneralCosts : (stage.funeralCosts || 0);
-      const stageBequest = index === 0 ? debouncedBequest      : (stage.bequest || 0);
-
-      const sanitizedPresence = Object.values(stage.heirPresence)
-        .filter(h => {
-          if (index === 0 || !stage.parentHeirId) return true;
-          const { excluded } = isHeirExcludedInMunasakhat(h.heirId, stage.parentHeirId);
-          return !excluded;
-        })
-        .map(({ customNames: _customNames, ...rest }) => rest);
-
-      const res = calculateInheritance(
-        sanitizedPresence,
-        stageEstate,
-        stageDebts,
-        stageFuneral,
-        stageBequest,
-        stage.hasMandatoryBequest,
-        [
-          { type: 'son' as const,      count: stage.deceasedSonsCount || 0 },
-          { type: 'daughter' as const, count: stage.deceasedDaughtersCount || 0 },
-        ].filter(c => c.count > 0),
-      );
-
-      const mandatoryBequest = res.find(r => r.heirId === 'mandatory_bequest')?.amount ?? 0;
-      const actualBequest = res.find(r => r.heirId === 'voluntary_bequest')?.amount ?? 0;
-      const net = stageEstate - stageDebts - stageFuneral - actualBequest - mandatoryBequest;
-
-      let noHeirsRedistribution: StageResult['noHeirsRedistribution'] = null;
-
-      if (index > 0 && stage.parentHeirId) {
-        const activeHeirs = res.filter(
-          r => !r.isBlocked && r.amount > 0 &&
-               r.heirId !== 'mandatory_bequest' &&
-               r.heirId !== 'voluntary_bequest' &&
-               r.heirId !== 'treasury'
-        );
-
-        if (activeHeirs.length === 0 && net > 0) {
-          const parentStageData = stagesData.find(
-            sd => sd.stage.id === stage.parentStageId
-          );
-          const parentResults = parentStageData?.results ?? [];
-
-          const redistribution = resolveNoHeirsPolicy(stage, net, parentResults);
-          noHeirsRedistribution = redistribution;
-        }
-      }
-
-      stagesData.push({ stage, results: res, netEstate: net, noHeirsRedistribution });
-    }
-
+    const result = executeCalculationSync(args);
     setIsWorkerCalculating(false);
-    return Promise.resolve(hydrateStageResults(stagesData));
+    return Promise.resolve(result);
   }, []);
 
   return { calculate, isWorkerCalculating };
