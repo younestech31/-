@@ -61,6 +61,11 @@ export default function InheritanceCalculator() {
 
   const [mobileTab, setMobileTab] = useState<'estate' | 'heirs' | 'results'>('heirs');
   const [isOfficeSettingsOpen, setIsOfficeSettingsOpen] = useState(false);
+  const [formattedDate, setFormattedDate] = useState<string>('');
+
+  useEffect(() => {
+    setFormattedDate(new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' }));
+  }, []);
 
   const {
     isEstatePanelOpen, setIsEstatePanelOpen,
@@ -166,8 +171,10 @@ export default function InheritanceCalculator() {
                     width={130}
                     height={38}
                     className="h-8 md:h-9 w-auto object-contain select-none pointer-events-none"
+                    style={{ width: 'auto', height: 'auto' }}
                     referrerPolicy="no-referrer"
                     priority
+                    unoptimized
                   />
                   <span className="bg-[#B8894A] text-white text-[9px] md:text-[10px] px-2 py-0.5 rounded font-bold tracking-wide shrink-0 self-center">حاسبة شرعية</span>
                 </div>
@@ -295,7 +302,7 @@ export default function InheritanceCalculator() {
             </div>
             <div className="hidden md:block text-center md:text-left border-l border-white/20 pl-4">
               <div className="text-[9px] md:text-[10px] opacity-80">التاريخ</div>
-              <div suppressHydrationWarning className="text-xs md:text-sm font-bold">{new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+              <div className="text-xs md:text-sm font-bold">{formattedDate}</div>
             </div>
           </div>
         </div>

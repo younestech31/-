@@ -1,10 +1,13 @@
+import { Suspense } from 'react';
 import InheritanceCalculator from '@/components/inheritance/InheritanceCalculator';
 
 export default function Home() {
   return (
     <>
-      {/* Client App Component rendered with full SSR */}
-      <InheritanceCalculator />
+      {/* Client Component whose initial HTML markup is server-rendered by Next.js before hydration */}
+      <Suspense fallback={<div className="min-h-screen bg-[#f8f9fa]" />}>
+        <InheritanceCalculator />
+      </Suspense>
 
       {/* SEO & Search Engine Indexing Fallback (No-JS / Server Crawlers) */}
       <noscript>

@@ -1,3 +1,5 @@
+'use client';
+
 // components/FamilyTree/FamilyNode.tsx
 // يتطلب: npm install reactflow
 // الاستخدام: سجّل هذا الـ component كـ nodeTypes في ReactFlow

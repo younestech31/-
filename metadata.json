@@ -1,6 +1,6 @@
 {
-  "name": "مواريث",
-  "description": "منصة رقمية متقدمة لحساب الفرائض وتصفية التركات وفقاً لقانون الأسرة الجزائري.",
+  "name": "Notaire Lattab - Calculateur d'Héritage",
+  "description": "Application de calcul des parts d'héritage et de succession selon le droit de la famille algérien (مستشارك في حساب الفرائض والتركات)",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

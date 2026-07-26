@@ -1,14 +1,9 @@
 import { OFFICE_INFO } from '../config';
+import QRCode from 'qrcode';
 
 /**
  * Unified, professional color palette for inheritance exports.
  * Standardized on standard #RRGGBB hex values.
- * 
- * Note on disagreements/merging:
- * - raddBg: Word used 'EFF6FF' (light blue) and Excel used 'E3F2FD' (slate blue-ish).
- *   We resolved this by unifying on '#E3F2FD' for a cleaner slate/blue tint.
- * - border: Excel had 'D1D5DB' (grey border), which we preserved as '#D1D5DB'.
- * - treasuryBg: Preserved as '#EFF6FF'.
  */
 export const COLOR_PALETTE = {
   green: '#1F3D2E',       // Primary Brand green (Ink Green)
@@ -32,15 +27,15 @@ export const COLOR_PALETTE = {
 
 // Color converter helpers
 export function toCanvasHex(color: string): string {
-  return color; // e.g. "#0A5D38"
+  return color;
 }
 
 export function toDocxHex(color: string): string {
-  return color.replace('#', ''); // e.g. "0A5D38"
+  return color.replace('#', '');
 }
 
 export function toExcelArgb(color: string): string {
-  return 'FF' + color.replace('#', ''); // e.g. "FF0A5D38"
+  return 'FF' + color.replace('#', '');
 }
 
 export interface OfficeSettings {
@@ -50,7 +45,9 @@ export interface OfficeSettings {
   addressAr: string;
   phone: string;
   email: string;
-  isOfficialMode?: boolean; // Official Notary Certified Export Mode (إصدار محرر رسمي للتوثيق)
+  isOfficialMode?: boolean;      // Toggle for Official Notary Document Mode
+  showDisclaimer?: boolean;      // Show disclaimer box or notary stamp
+  documentRefNumber?: string;   // Unique document reference number
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
@@ -60,7 +57,9 @@ export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
   addressAr: 'حي العقيد لطفي، وهران',
   phone: '+213 562 29 69 81',
   email: 'maitrelattabmohamed@gmail.com',
-  isOfficialMode: true,
+  isOfficialMode: false,
+  showDisclaimer: true,
+  documentRefNumber: '',
 };
 
 // Unified Arabic font family for all documents
@@ -85,37 +84,64 @@ export const EXPORT_OFFICE_INFO = {
   footerPageLabelAr: (page: number, total: number) => `الأستاذ الموثق لعطب محمد بوهران | صفحة ${page} من ${total}`,
 } as const;
 
-// Canonical currency formatter (e.g. "2.430.556,00 دج" or "2.430.556 دج")
-export function formatDocumentCurrency(n: number, includeDecimals: boolean = true): string {
-  if (n === null || n === undefined || isNaN(n)) return '0,00 دج';
-  
-  if (!includeDecimals) {
-    const intStr = Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    return `${intStr} دج`;
+// Format currency as Algerian/French standard: 50.000.000,00 دج or 2.430.556,00 دج
+export function formatDocumentCurrency(n: number, showCents = true): string {
+  if (isNaN(n) || n === null || n === undefined) return '0,00 دج';
+  const parts = Math.abs(n).toFixed(2).split('.');
+  const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  const decPart = parts[1];
+  const formatted = showCents ? `${intPart},${decPart}` : intPart;
+  return n < 0 ? `-${formatted} دج` : `${formatted} دج`;
+}
+
+// Format percentage consistently
+export function formatDocumentPercentage(p: number): string {
+  if (isNaN(p) || p === null || p === undefined) return '0,00%';
+  return `${p.toFixed(2).replace('.', ',')}%`;
+}
+
+// Generate unique Document Reference Number
+export function generateDocumentRefNumber(): string {
+  const year = new Date().getFullYear();
+  const random = Math.floor(1000 + Math.random() * 9000);
+  return `REF: DZD-MWR-${year}-${random}`;
+}
+
+// Generate QR Code data URL
+export async function generateQRCodeDataUrl(text: string): Promise<string> {
+  try {
+    return await QRCode.toDataURL(text, {
+      width: 150,
+      margin: 1,
+      color: {
+        dark: '#1F3D2E',
+        light: '#FFFFFF',
+      },
+    });
+  } catch (err) {
+    console.error('Failed to generate QR Code:', err);
+    return '';
   }
-  
-  const parts = n.toFixed(2).split('.');
-  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `${integerPart},${parts[1]} دج`;
 }
 
 // Standard Excel Custom Number Format for Currency
-export const EXPORT_EXCEL_NUM_FMT = '#,##0" دج"';
+export const EXPORT_EXCEL_NUM_FMT = '#,##0.00" دج"';
 
-// Unified Table Columns
+// Unified 7-Table Columns
 export const EXPORT_TABLE_COLUMNS = [
   { key: 'name', label: 'الوارث' },
-  { key: 'role', label: 'صفة الإرث' },
-  { key: 'share', label: 'النصيب (كسر)' },
+  { key: 'role', label: 'صفة الإرث والسبب' },
+  { key: 'share', label: 'النصيب الشرعي' },
   { key: 'parts', label: 'السهام' },
-  { key: 'amount', label: 'المبلغ المستحق', labelPure: 'النسبة مئوية' },
-  { key: 'article', label: 'المادة القانونية' },
+  { key: 'percentage', label: 'النسبة (%)' },
+  { key: 'amount', label: 'المبلغ المستحق (دج)' },
+  { key: 'article', label: 'السند القانوني' },
 ] as const;
 
 // Canonical filename patterns
 export function EXPORT_FILENAME(name: string, ext: string, notaryName?: string): string {
   const cleanName = name.replace(/[\s\/:*?"<>|]+/g, '_') || 'تركة';
   const cleanNotary = notaryName ? notaryName.replace(/[\s\/:*?"<>|]+/g, '_') : 'Notaire_Lattab';
-  const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const dateStr = new Date().toISOString().split('T')[0];
   return `${cleanNotary}_Succes_Faritha_${cleanName}_${dateStr}.${ext}`;
 }

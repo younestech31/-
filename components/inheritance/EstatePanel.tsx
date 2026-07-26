@@ -1,5 +1,6 @@
 'use client';
 
+import React, { memo } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { MunasakhatStage } from './InheritanceCalculator';
 import { TANZEEL_RULES } from '@/data/tanzeel';
@@ -37,7 +38,7 @@ interface EstatePanelProps {
   parentHeirName?: string;
 }
 
-export default function EstatePanel({
+const EstatePanel = memo(function EstatePanel({
   isOpen,
   onToggle,
   className,
@@ -317,4 +318,6 @@ export default function EstatePanel({
       </div>
     </div>
   );
-}
+});
+
+export default EstatePanel;

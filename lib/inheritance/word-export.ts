@@ -191,27 +191,22 @@ export async function exportToWord(
   const rootStage = allStagesResults[0];
   const rootDeceasedName = rootStage?.stage.deceasedName?.trim() || deceasedLabel(deceasedGender);
 
-  // Legal Disclaimer Box (Rendered in Preview Mode)
-  if (!office.isOfficialMode) {
-    docChildren.push(
-      new Paragraph({
-        bidirectional: true,
-        alignment: 'right' as AlignmentVal,
-        children: [arText(EXPORT_OFFICE_INFO.disclaimerTitleAr, true, 20, BRAND.red)],
-        shading: { fill: BRAND.redLight },
-        spacing: { before: 100, after: 80 }
-      }),
-      new Paragraph({
-        bidirectional: true,
-        alignment: 'right' as AlignmentVal,
-        children: [arText(EXPORT_OFFICE_INFO.disclaimerTextAr, false, 18, '7f1d1d')],
-        shading: { fill: BRAND.redLight },
-        spacing: { after: 300 }
-      })
-    );
-  }
-
+  // Legal Disclaimer Box
   docChildren.push(
+    new Paragraph({
+      bidirectional: true,
+      alignment: 'right' as AlignmentVal,
+      children: [arText(EXPORT_OFFICE_INFO.disclaimerTitleAr, true, 20, BRAND.red)],
+      shading: { fill: BRAND.redLight },
+      spacing: { before: 100, after: 80 }
+    }),
+    new Paragraph({
+      bidirectional: true,
+      alignment: 'right' as AlignmentVal,
+      children: [arText(EXPORT_OFFICE_INFO.disclaimerTextAr, false, 18, '7f1d1d')],
+      shading: { fill: BRAND.redLight },
+      spacing: { after: 300 }
+    }),
     rtlPara(`مسألة تركة ${deceasedLabel(deceasedGender)}: ${rootDeceasedName}`, true, 'center', 26),
     new Paragraph({ text: "", spacing: { after: 300 } })
   );

@@ -16,6 +16,4 @@ public/favicon-1.ico
 firebase-applet-config.json
 firebase-service-account.json
 *.firebase.json
-
-# Arabic TTF removed 2026-06-03 — using next/font Cairo instead
-# See app/layout.tsx for font configuration
+*.lnk

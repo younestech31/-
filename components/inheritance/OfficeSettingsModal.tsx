@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { X, Settings, RotateCcw } from 'lucide-react';
 import { OfficeSettings } from '@/lib/inheritance/document-branding';
@@ -23,7 +25,8 @@ export default function OfficeSettingsModal({
   const [addressAr, setAddressAr] = useState(settings.addressAr);
   const [phone, setPhone] = useState(settings.phone);
   const [email, setEmail] = useState(settings.email);
-  const [isOfficialMode, setIsOfficialMode] = useState(settings.isOfficialMode ?? true);
+  const [isOfficialMode, setIsOfficialMode] = useState(settings.isOfficialMode ?? false);
+  const [showDisclaimer, setShowDisclaimer] = useState(settings.showDisclaimer ?? true);
 
   // Sync state with props when modal opens or settings change
   useEffect(() => {
@@ -34,7 +37,8 @@ export default function OfficeSettingsModal({
       setAddressAr(settings.addressAr);
       setPhone(settings.phone);
       setEmail(settings.email);
-      setIsOfficialMode(settings.isOfficialMode ?? true);
+      setIsOfficialMode(settings.isOfficialMode ?? false);
+      setShowDisclaimer(settings.showDisclaimer ?? true);
     }
   }, [isOpen, settings]);
 
@@ -48,7 +52,8 @@ export default function OfficeSettingsModal({
       addressAr: addressAr.trim(),
       phone: phone.trim(),
       email: email.trim(),
-      isOfficialMode
+      isOfficialMode,
+      showDisclaimer
     });
     onClose();
   };
@@ -160,33 +165,55 @@ export default function OfficeSettingsModal({
               </div>
             </div>
 
-            {/* Official Mode Toggle */}
-            <div className="mt-2 p-3 bg-slate-50 border border-[#cbd5e1] rounded-lg">
-              <label className="flex items-center justify-between cursor-pointer">
-                <div>
-                  <span className="block text-xs font-bold text-[#1e293b]">إصدار محرر رسمي معتمد (للموثقين والخبراء)</span>
-                  <span className="block text-[11px] text-[#64748b] mt-0.5">
-                    عند التفعيل: إخفاء صندوق إخلاء المسؤولية وإبراز بيانات مكتب التوثيق في الترويسة والتذييل
-                  </span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={isOfficialMode}
-                  onChange={e => setIsOfficialMode(e.target.checked)}
-                  className="w-4 h-4 text-[#0a5d38] border-gray-300 rounded focus:ring-[#0a5d38] cursor-pointer"
-                />
-              </label>
-            </div>
-
           </div>
 
-          {/* Mawarith Brand Reminder */}
+            {/* Official Mode & Disclaimer Toggles */}
+            <div className="p-3 bg-amber-50/60 rounded-lg border border-amber-200/80 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-[#1e293b]">إصدار محرر رسمي (نموذج الموثقين)</h4>
+                  <p className="text-[11px] text-[#64748b]">إزالة مربع التنبيه الأحمر وإضافة ختم الموثق ورمز QR للتأكد من الأصالة</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isOfficialMode}
+                    onChange={(e) => {
+                      setIsOfficialMode(e.target.checked);
+                      if (e.target.checked) setShowDisclaimer(false);
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0a5d38]"></div>
+                </label>
+              </div>
+
+              {!isOfficialMode && (
+                <div className="flex items-center justify-between pt-2 border-t border-amber-200/50">
+                  <div>
+                    <h4 className="text-xs font-bold text-[#1e293b]">تضمين التنبيه وإخلاء المسؤولية</h4>
+                    <p className="text-[11px] text-[#64748b]">عرض صندوق الإخلاء القانوني في أول مستند PDF</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showDisclaimer}
+                      onChange={(e) => setShowDisclaimer(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0a5d38]"></div>
+                  </label>
+                </div>
+              )}
+            </div>
+
+            {/* Mawarith Brand Reminder */}
           <div className="mt-6 p-3 bg-emerald-50/50 rounded-lg border border-emerald-100 flex items-start gap-2.5">
             <span className="text-emerald-700 font-bold text-lg leading-none mt-0.5">✨</span>
             <div>
               <h4 className="text-xs font-bold text-[#0a5d38] mb-0.5">منصة مواريث الرقمية</h4>
               <p className="text-[10.5px] text-emerald-800 leading-relaxed">
-                تقديراً للجهود، سيتم تضمين تذييل منصة <strong>«مواريث» (mawarith.dz)</strong> في المستندات المصدرة للحفاظ على مرجعية الحسابات.
+                تقديراً للجهود، سيتم تضمين علامة التوثيق الرقمية وبوابة <strong>«مواريث» (mawarith.dz)</strong> بشكل رسمي في تذييل المستندات المصدرة لحفظ موثوقية الحسابات.
               </p>
             </div>
           </div>

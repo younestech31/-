@@ -1,8 +1,8 @@
 'use client';
 
+import React, { memo } from 'react';
 import FamilyTreeInput from './FamilyTreeInput';
 import { MunasakhatStage } from './InheritanceCalculator';
-import { } from '@/lib/inheritance-calculator';
 
 interface HeirsPanelProps {
   isEstatePanelOpen: boolean;
@@ -16,7 +16,7 @@ interface HeirsPanelProps {
   className?: string;
 }
 
-export default function HeirsPanel({
+const HeirsPanel = memo(function HeirsPanel({
   isEstatePanelOpen,
   currentStage,
   currentStageIndex,
@@ -66,4 +66,6 @@ export default function HeirsPanel({
       </div>
     </div>
   );
-}
+});
+
+export default HeirsPanel;

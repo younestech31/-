@@ -2,7 +2,6 @@
 
 import { type Node as RFNode, getNodesBounds } from "@xyflow/react";
 import * as htmlToImage from "html-to-image";
-import jsPDF from "jspdf";
 
 export interface ExportProgress {
   status: "idle" | "calculating" | "rendering" | "saving" | "success" | "error";
@@ -83,6 +82,9 @@ export async function exportTreeToPDF(
       status: "saving",
       message: "جاري إنشاء وثيقة الـ PDF للطباعة العالية الجودة..."
     });
+
+    const jsPDFModule = await import('jspdf');
+    const jsPDF = jsPDFModule.jsPDF || jsPDFModule.default;
 
     const pdf = new jsPDF({
       orientation: "landscape",

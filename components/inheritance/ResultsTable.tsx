@@ -1,15 +1,14 @@
 'use client';
 
+import React, { memo, useMemo } from 'react';
 import { Info } from 'lucide-react';
 import Fraction from 'fraction.js';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { CalculationResult } from '@/lib/inheritance-calculator';
 import { INHERITANCE_BARS } from '@/data/inheritance-bars';
-import { } from '@/data/heirs';
 import { MunasakhatStage } from './InheritanceCalculator';
 import { StageValidationResult } from '@/lib/inheritance/munasakhat-resolver';
-import { formatDocumentCurrency } from '@/lib/inheritance/document-branding';
 
 const FamilyTree = dynamic(() => import('./FamilyTree/FamilyTree'), {
   ssr: false,
@@ -61,7 +60,7 @@ interface ResultsTableProps {
   className?: string;
 }
 
-export default function ResultsTable({
+const ResultsTable = memo(function ResultsTable({
   isEstatePanelOpen,
   viewMode,
   setViewMode,
@@ -278,6 +277,7 @@ export default function ResultsTable({
                 width={120}
                 height={120}
                 className="w-20 h-20 md:w-24 md:h-24 object-contain select-none pointer-events-none"
+                style={{ width: 'auto', height: 'auto' }}
                 referrerPolicy="no-referrer"
               />
             </div>
@@ -309,7 +309,9 @@ export default function ResultsTable({
       </div>
     </div>
   );
-}
+});
+
+export default ResultsTable;
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Inner: Table view
@@ -324,7 +326,7 @@ interface TableViewProps {
   isPureSharesMode: boolean;
 }
 
-function TableView({
+const TableView = memo(function TableView({
   results,
   problemBase,
   currentStage,
@@ -334,27 +336,73 @@ function TableView({
   isPureSharesMode,
 }: TableViewProps) {
   // Get problem base from the first non-bequest, non-blocked result
-  const firstValidForBase = results.find(
+  const firstValidForBase = useMemo(() => results.find(
     r => !r.isBlocked && r.heirId !== 'mandatory_bequest' && r.heirId !== 'voluntary_bequest'
-  );
-  const problemBaseToDisplay = firstValidForBase?.problemBase ?? problemBase;
+  ), [results]);
+  const problemBaseToDisplay = useMemo(() => firstValidForBase?.problemBase ?? problemBase, [firstValidForBase, problemBase]);
 
   // Calculation type badge
-  const calcType = results[0]?.calculationType;
+  const calcType = useMemo(() => results[0]?.calculationType, [results]);
 
   // Wife plurality notice
-  const wifeResult = results.find(r => r.heirId === 'wife' && !r.isBlocked && r.count > 1);
+  const wifeResult = useMemo(() => results.find(r => r.heirId === 'wife' && !r.isBlocked && r.count > 1), [results]);
 
   // Validity check
-  const inheritableHeirs = results.filter(
+  const inheritableHeirs = useMemo(() => results.filter(
     r => !r.isBlocked && r.heirId !== 'voluntary_bequest' && r.heirId !== 'mandatory_bequest',
-  );
-  const totalSharesFraction = inheritableHeirs.reduce(
+  ), [results]);
+  const totalSharesFraction = useMemo(() => inheritableHeirs.reduce(
     (sum, r) => sum.add(r.shareFraction),
     new Fraction(0),
-  );
-  const isInheritanceEmpty = inheritableHeirs.length === 0;
-  const isComplete         = totalSharesFraction.equals(1);
+  ), [inheritableHeirs]);
+  const isInheritanceEmpty = useMemo(() => inheritableHeirs.length === 0, [inheritableHeirs]);
+  const isComplete         = useMemo(() => totalSharesFraction.equals(1), [totalSharesFraction]);
+
+  const memoizedRowData = useMemo(() => {
+    return results.flatMap((r, idx) => {
+      const presence = currentStage.heirPresence[r.heirId];
+      const items = [];
+      for (let i = 0; i < r.count; i++) {
+        const customName     = presence?.customNames?.[i];
+        const baseName       = r.count > 1 ? `${r.nameAr} ${i + 1}` : r.nameAr;
+        const displayName    = customName ? `${customName} (${r.nameAr})` : baseName;
+        
+        const individualResult = r.individuals?.[i];
+        const individualAmt  = individualResult ? individualResult.amount : (r.amount / r.count);
+        const indIsBlocked   = individualResult ? individualResult.isBlocked : r.isBlocked;
+        const indShare       = individualResult ? individualResult.share : r.share;
+
+        const isIndImpeded   = presence?.impededIndexes?.[i] ?? false;
+        const indReasonId    = presence?.impedimentReasonIds?.[i];
+
+        const indShareFrac   = individualResult ? individualResult.shareFraction : (r.shareFraction.compare(0) === 0 ? new Fraction(0) : r.shareFraction.div(r.count));
+        const percentVal     = indShareFrac.valueOf() * 100;
+        const percentStr     = percentVal > 0 ? (percentVal % 1 === 0 ? `${percentVal}%` : `${percentVal.toFixed(2)}%`) : '0%';
+
+        const isInvoluntaryKiller =
+          indIsBlocked &&
+          (individualResult?.reason?.includes('القاتل خطأ') || indReasonId === 'involuntary_killer');
+
+        items.push({
+          key: `${idx}-${i}`,
+          r,
+          idx,
+          i,
+          displayName,
+          individualResult,
+          individualAmt,
+          indIsBlocked,
+          indShare,
+          isIndImpeded,
+          indReasonId,
+          percentStr,
+          isInvoluntaryKiller,
+          presence,
+        });
+      }
+      return items;
+    });
+  }, [results, currentStage.heirPresence]);
 
   return (
     <>
@@ -450,193 +498,179 @@ function TableView({
             </tr>
           </thead>
           <tbody>
-            {results.flatMap((r, idx) => {
-              const presence = currentStage.heirPresence[r.heirId];
-              const rows: React.ReactNode[] = [];
-  
-              for (let i = 0; i < r.count; i++) {
-                const customName     = presence?.customNames?.[i];
-                const baseName       = r.count > 1 ? `${r.nameAr} ${i + 1}` : r.nameAr;
-                const displayName    = customName ? `${customName} (${r.nameAr})` : baseName;
-                
-                const individualResult = r.individuals?.[i];
-                const individualAmt  = individualResult ? individualResult.amount : (r.amount / r.count);
-                const indIsBlocked   = individualResult ? individualResult.isBlocked : r.isBlocked;
-                const indShare       = individualResult ? individualResult.share : r.share;
-  
-                const isIndImpeded   = presence?.impededIndexes?.[i] ?? false;
-                const indReasonId    = presence?.impedimentReasonIds?.[i];
-  
-                const indShareFrac   = individualResult ? individualResult.shareFraction : (r.shareFraction.compare(0) === 0 ? new Fraction(0) : r.shareFraction.div(r.count));
-                const percentVal     = indShareFrac.valueOf() * 100;
-                const percentStr     = percentVal > 0 ? (percentVal % 1 === 0 ? `${percentVal}%` : `${percentVal.toFixed(2)}%`) : '0%';
-  
-                const isInvoluntaryKiller =
-                  indIsBlocked &&
-                  (individualResult?.reason?.includes('القاتل خطأ') || indReasonId === 'involuntary_killer');
-  
-                rows.push(
-                  <tr key={`${idx}-${i}`} className="hover:bg-[#f8fafc] group">
-                    {/* Name + reason (sticky column) */}
-                    <td className="sticky right-0 bg-white group-hover:bg-[#f8fafc] p-2.5 border-b border-[#e2e8f0] min-w-[130px] z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)] transition-colors">
-                      <div className={indIsBlocked ? 'text-[#64748b] line-through opacity-70' : ''}>
-                        {displayName}
-                      </div>
-                      <div className="text-[10px] text-[#64748b] mt-0.5">
-                        {individualResult?.reason || r.reason}
-                      </div>
-                      {i === 0 && r.count > 1 && !isPureSharesMode && (
-                        (() => {
-                          const activeInd = r.individuals?.find(ind => !ind.isBlocked && ind.amount > 0);
-                          const activeAmt = activeInd ? activeInd.amount : 0;
-                          return activeAmt > 0 ? (
-                            <div className="text-[10px] text-[#0a5d38] mt-0.5 font-bold">
-                              نصيب كل واحدة غير محرومة: {activeAmt.toLocaleString('en-US')}
-                            </div>
-                          ) : null;
-                        })()
-                      )}
-                    </td>
+            {memoizedRowData.map(({
+              key,
+              r,
+              i,
+              displayName,
+              individualResult,
+              individualAmt,
+              indIsBlocked,
+              indShare,
+              isIndImpeded,
+              indReasonId,
+              percentStr,
+              isInvoluntaryKiller,
+              presence,
+            }) => (
+              <tr key={key} className="hover:bg-[#f8fafc] group">
+                {/* Name + reason (sticky column) */}
+                <td className="sticky right-0 bg-white group-hover:bg-[#f8fafc] p-2.5 border-b border-[#e2e8f0] min-w-[130px] z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.08)] transition-colors">
+                  <div className={indIsBlocked ? 'text-[#64748b] line-through opacity-70' : ''}>
+                    {displayName}
+                  </div>
+                  <div className="text-[10px] text-[#64748b] mt-0.5">
+                    {individualResult?.reason || r.reason}
+                  </div>
+                  {i === 0 && r.count > 1 && !isPureSharesMode && (
+                    (() => {
+                      const activeInd = r.individuals?.find(ind => !ind.isBlocked && ind.amount > 0);
+                      const activeAmt = activeInd ? activeInd.amount : 0;
+                      return activeAmt > 0 ? (
+                        <div className="text-[10px] text-[#0a5d38] mt-0.5 font-bold">
+                          نصيب كل واحدة غير محرومة: {activeAmt.toLocaleString('en-US')}
+                        </div>
+                      ) : null;
+                    })()
+                  )}
+                </td>
 
-                  {/* Share fraction (clickable → explanation modal) */}
-                  <td
-                    className="p-2.5 border-b border-[#e2e8f0] cursor-pointer hover:bg-slate-100/60 transition-colors"
-                    dir="ltr"
-                    onClick={() => {
-                      if (isIndImpeded || indShare === 'محروم') {
-                        const bar = indReasonId ? INHERITANCE_BARS.find(b => b.id === indReasonId) : null;
-                        const impededReason = bar
-                          ? `محروم: ${bar.nameAr} (المادة ${bar.article})`
-                          : (individualResult?.reason || r.reason || 'ممنوع من الإرث لوجود مانع شرعي (المادتان 135 و138 من قانون الأسرة). المحروم يعتبر كالمعدوم فلا يرث ولا يحجب غيره.');
-                        setSelectedHeirExplanation({
-                          ...r,
-                          nameAr: displayName,
-                          share: 'محروم',
-                          isBlocked: true,
-                          reason: impededReason,
-                          article: bar ? bar.article : (r.article ?? 135),
-                          notes: bar ? bar.description : (r.notes || 'موانع الإرث محددة بالمادتين 135 و138 من قانون الأسرة الجزائري. الوارث المحروم لوجود مانع شرعي يمنع من الإرث كلياً ولا يحجب غيره.')
-                        });
-                      } else if (indIsBlocked) {
-                        setSelectedHeirExplanation({
-                          ...r,
-                          nameAr: displayName,
-                          share: 'محجوب',
-                          isBlocked: true,
-                          reason: individualResult?.reason || r.reason || 'محجوب من الإرث بوجود وارث أقرب درجة',
-                          article: r.article ?? 139,
-                          notes: r.notes || 'الحجب في الفقه وقانون الأسرة الجزائري (المواد 139-143): المحجوب حجب حرمان لا يستحق شيئاً من التركة لوجود وارث أولى منه.'
-                        });
-                      } else {
-                        setSelectedHeirExplanation({
-                          ...r,
-                          nameAr: displayName,
-                          share: indShare,
-                          amount: individualAmt
-                        });
-                      }
-                    }}
-                  >
-                    {isInvoluntaryKiller ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200">
-                        يرث المال دون الدية — م.137
+                {/* Share fraction (clickable → explanation modal) */}
+                <td
+                  className="p-2.5 border-b border-[#e2e8f0] cursor-pointer hover:bg-slate-100/60 transition-colors"
+                  dir="ltr"
+                  onClick={() => {
+                    if (isIndImpeded || indShare === 'محروم') {
+                      const bar = indReasonId ? INHERITANCE_BARS.find(b => b.id === indReasonId) : null;
+                      const impededReason = bar
+                        ? `محروم: ${bar.nameAr} (المادة ${bar.article})`
+                        : (individualResult?.reason || r.reason || 'ممنوع من الإرث لوجود مانع شرعي (المادتان 135 و138 من قانون الأسرة). المحروم يعتبر كالمعدوم فلا يرث ولا يحجب غيره.');
+                      setSelectedHeirExplanation({
+                        ...r,
+                        nameAr: displayName,
+                        share: 'محروم',
+                        isBlocked: true,
+                        reason: impededReason,
+                        article: bar ? bar.article : (r.article ?? 135),
+                        notes: bar ? bar.description : (r.notes || 'موانع الإرث محددة بالمادتين 135 و138 من قانون الأسرة الجزائري. الوارث المحروم لوجود مانع شرعي يمنع من الإرث كلياً ولا يحجب غيره.')
+                      });
+                    } else if (indIsBlocked) {
+                      setSelectedHeirExplanation({
+                        ...r,
+                        nameAr: displayName,
+                        share: 'محجوب',
+                        isBlocked: true,
+                        reason: individualResult?.reason || r.reason || 'محجوب من الإرث بوجود وارث أقرب درجة',
+                        article: r.article ?? 139,
+                        notes: r.notes || 'الحجب في الفقه وقانون الأسرة الجزائري (المواد 139-143): المحجوب حجب حرمان لا يستحق شيئاً من التركة لوجود وارث أولى منه.'
+                      });
+                    } else {
+                      setSelectedHeirExplanation({
+                        ...r,
+                        nameAr: displayName,
+                        share: indShare,
+                        amount: individualAmt
+                      });
+                    }
+                  }}
+                >
+                  {isInvoluntaryKiller ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200">
+                      يرث المال دون الدية — م.137
+                    </span>
+                  ) : indIsBlocked ? (
+                    indShare === 'محروم' || isIndImpeded ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-red-50 text-red-700 border border-red-200">
+                        محروم
                       </span>
-                    ) : indIsBlocked ? (
-                      indShare === 'محروم' || isIndImpeded ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-red-50 text-red-700 border border-red-200">
-                          محروم
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-gray-200">
-                          محجوب
-                        </span>
-                      )
                     ) : (
-                      <span
-                        className="px-1.5 py-0.5 rounded font-mono font-bold text-[11px] bg-[#f1f5f9] text-[#0a5d38]"
-                      >
-                        {indShare}
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-gray-200">
+                        محجوب
                       </span>
-                    )}
+                    )
+                  ) : (
+                    <span
+                      className="px-1.5 py-0.5 rounded font-mono font-bold text-[11px] bg-[#f1f5f9] text-[#0a5d38]"
+                    >
+                      {indShare}
+                    </span>
+                  )}
+                </td>
+
+                {/* Shares column */}
+                {problemBaseToDisplay !== null && problemBaseToDisplay > 0 ? (
+                  <td className="px-3 py-2 text-center text-sm font-mono">
+                    {indIsBlocked || r.shares === 0 ? '—' : (individualResult ? individualResult.shares : r.shares)}
                   </td>
+                ) : null}
 
-                  {/* Shares column */}
-                  {problemBaseToDisplay !== null && problemBaseToDisplay > 0 ? (
-                    <td className="px-3 py-2 text-center text-sm font-mono">
-                      {indIsBlocked || r.shares === 0 ? '—' : (individualResult ? individualResult.shares : r.shares)}
-                    </td>
-                  ) : null}
+                {/* Amount / Percentage */}
+                <td className="p-2.5 border-b border-[#e2e8f0] font-mono font-medium">
+                  {indIsBlocked ? '-' : (isPureSharesMode ? percentStr : `${individualAmt.toLocaleString('en-US')} دج (${percentStr})`)}
+                </td>
 
-                  {/* Amount / Percentage */}
-                  <td className="p-2.5 border-b border-[#e2e8f0] font-mono font-medium">
-                    {indIsBlocked ? '-' : (isPureSharesMode ? percentStr : `${formatDocumentCurrency(individualAmt)} (${percentStr})`)}
-                  </td>
+                {/* Actions */}
+                <td className="p-2.5 border-b border-[#e2e8f0] text-center no-print">
+                  {r.heirId !== 'treasury' &&
+                    r.heirId !== 'mandatory_bequest' &&
+                    r.heirId !== 'voluntary_bequest' && (
+                    <div className="flex flex-col gap-1 items-center">
+                      {!indIsBlocked && (
+                        <button
+                          onClick={() => addMunasakhatStage(displayName, individualAmt, r.heirId, i)}
+                          className="text-[10px] bg-[#0a5d38]/10 text-[#0a5d38] px-2 py-1 rounded hover:bg-[#0a5d38] hover:text-white transition-colors"
+                          title="إضافة مناسخة (وفاة هذا الوارث)"
+                          aria-label={`مناسخة: وفاة ${displayName}`}
+                        >
+                          وفاة
+                        </button>
+                      )}
 
-                  {/* Actions */}
-                  <td className="p-2.5 border-b border-[#e2e8f0] text-center no-print">
-                    {r.heirId !== 'treasury' &&
-                      r.heirId !== 'mandatory_bequest' &&
-                      r.heirId !== 'voluntary_bequest' && (
-                      <div className="flex flex-col gap-1 items-center">
-                        {!indIsBlocked && (
-                          <button
-                            onClick={() => addMunasakhatStage(displayName, individualAmt, r.heirId, i)}
-                            className="text-[10px] bg-[#0a5d38]/10 text-[#0a5d38] px-2 py-1 rounded hover:bg-[#0a5d38] hover:text-white transition-colors"
-                            title="إضافة مناسخة (وفاة هذا الوارث)"
-                            aria-label={`مناسخة: وفاة ${displayName}`}
+                      {presence && (
+                        <div className="flex flex-col items-center">
+                          <label
+                            className="flex items-center gap-1 text-[10px] cursor-pointer hover:text-[#0a5d38] transition-colors select-none"
+                            title="موانع الإرث (القتل، الردة، إلخ)"
+                            onClick={e => e.stopPropagation()}
                           >
-                            وفاة
-                          </button>
-                        )}
+                            <input
+                              type="checkbox"
+                              aria-label={`حرمان الوارث: ${displayName}`}
+                              checked={isIndImpeded}
+                              onChange={e => {
+                                e.stopPropagation();
+                                updateImpediment(r.heirId, i, !isIndImpeded, indReasonId);
+                              }}
+                            />
+                            محروم
+                          </label>
 
-                        {presence && (
-                          <div className="flex flex-col items-center">
-                            <label
-                              className="flex items-center gap-1 text-[10px] cursor-pointer hover:text-[#0a5d38] transition-colors select-none"
-                              title="موانع الإرث (القتل، الردة، إلخ)"
+                          {isIndImpeded && (
+                            <select
+                              value={indReasonId ?? ''}
                               onClick={e => e.stopPropagation()}
+                              onChange={e => {
+                                e.stopPropagation();
+                                updateImpediment(r.heirId, i, true, e.target.value || undefined);
+                              }}
+                              className="text-[9px] mt-1 p-0.5 border border-[#e2e8f0] rounded outline-none w-24 bg-white"
                             >
-                              <input
-                                type="checkbox"
-                                aria-label={`حرمان الوارث: ${displayName}`}
-                                checked={isIndImpeded}
-                                onChange={e => {
-                                  e.stopPropagation();
-                                  updateImpediment(r.heirId, i, !isIndImpeded, indReasonId);
-                                }}
-                              />
-                              محروم
-                            </label>
-
-                            {isIndImpeded && (
-                              <select
-                                value={indReasonId ?? ''}
-                                onClick={e => e.stopPropagation()}
-                                onChange={e => {
-                                  e.stopPropagation();
-                                  updateImpediment(r.heirId, i, true, e.target.value || undefined);
-                                }}
-                                className="text-[9px] mt-1 p-0.5 border border-[#e2e8f0] rounded outline-none w-24 bg-white"
-                              >
-                                <option value="">سبب الحرمان...</option>
-                                {INHERITANCE_BARS.map(bar => (
-                                  <option key={bar.id} value={bar.id}>{bar.nameAr}</option>
-                                ))}
-                              </select>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </td>
-                </tr>,
-              );
-            }
-            return rows;
-          })}
-        </tbody>
-      </table>
-    </div>
+                              <option value="">سبب الحرمان...</option>
+                              {INHERITANCE_BARS.map(bar => (
+                                <option key={bar.id} value={bar.id}>{bar.nameAr}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Munasakhat note */}
       <div className="mt-4 p-3 bg-[#f0f9ff] rounded border border-[#bae6fd] no-print">
@@ -647,4 +681,4 @@ function TableView({
       </div>
     </>
   );
-}
+});

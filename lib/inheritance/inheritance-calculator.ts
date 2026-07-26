@@ -46,18 +46,8 @@ export interface CalculationResult {
   individuals?: IndividualResult[]; // Individual results for each of the count heirs
 }
 
-const gcd = (a: number, b: number): number => {
-  const numA = Number(a);
-  const numB = Number(b);
-  return numB === 0 ? numA : gcd(numB, numA % numB);
-};
-
-const lcm = (a: number, b: number): number => {
-  const numA = Number(a);
-  const numB = Number(b);
-  if (numA === 0 || numB === 0) return 0;
-  return Math.abs(Math.round((numA / gcd(numA, numB)) * numB));
-};
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+const lcm = (a: number, b: number): number => Math.abs((a / gcd(a, b)) * b);
 
 export function calculateInheritance(
   heirs: HeirPresence[],
@@ -968,9 +958,9 @@ export function calculateInheritanceInternal(
     .reduce((acc, r) => lcm(acc, Number(r.shareFraction.d)), 1);
   
   // حفظ القاعدة الأصلية قبل العول لاستخدامها في تصحيح المسألة (tasHih)
-  const _originalBase = traditionalBase;
+  const originalBase = traditionalBase;
   // حفظ الكسور الأصلية قبل تعديلها في العول لاستخدامها في تصحيح المسألة
-  const _originalFractions = new Map<string, Fraction>(inheritanceResults.map(r => [r.heirId, new Fraction(r.shareFraction)]));
+  const originalFractions = new Map<string, Fraction>(inheritanceResults.map(r => [r.heirId, new Fraction(r.shareFraction)]));
   
   const totalShares = inheritanceResults.reduce((sum, r) => sum.add(r.isBlocked ? new Fraction(0) : r.shareFraction), new Fraction(0));
   
@@ -987,7 +977,7 @@ export function calculateInheritanceInternal(
     }, new Fraction(0));
     
     // تأكيد أن القيمة عدد صحيح قبل التقريب
-    traditionalBase = Number(Number(awlBaseNumerator.d) === 1 ? Number(awlBaseNumerator.n) : Math.round(awlBaseNumerator.valueOf()));
+    traditionalBase = Number(Number(awlBaseNumerator.d) === 1 ? awlBaseNumerator.n : Math.round(awlBaseNumerator.valueOf()));
 
     inheritanceResults.forEach(r => {
       if (!r.isBlocked) {
@@ -1099,21 +1089,23 @@ export function calculateInheritanceInternal(
 
   distributeAmounts(results, netEstate);
 
-  // Final post-processing and Tas-hih (Correction for groups)
+  // Final post-processing and Tas-hih (Correction)
   const activeHeirs = results.filter(r => !r.isBlocked && r.shareFraction.compare(0) !== 0);
-
-  // 2. Adjust for Tas-hih: Base must be a multiple of the denominator of every active individual's share fraction
-  let finalBase = traditionalBase > 0 ? traditionalBase : 1;
+  
+  // 2. Adjust for Tas-hih (Correction for groups and individual shares to guarantee integer shares)
+  let tasHihFactor = 1;
   activeHeirs.forEach(r => {
-    const activeCount = r.count || 1;
+    const activeCount = Math.max(1, r.count);
     const indFrac = r.shareFraction.div(activeCount);
-    // indFrac.d is the denominator in lowest terms from fraction.js
-    const denom = Number(indFrac.d);
-    if (denom > 0) {
-      finalBase = lcm(finalBase, denom);
+    const den = Number(indFrac.d);
+    if (den > 0) {
+      const requiredFactor = den / gcd(traditionalBase, den);
+      tasHihFactor = lcm(tasHihFactor, requiredFactor);
     }
   });
 
+  const finalBase = traditionalBase * tasHihFactor;
+  
   results.forEach(r => {
     r.problemBase = finalBase;
     r.shares = Math.round(r.shareFraction.mul(finalBase).valueOf());

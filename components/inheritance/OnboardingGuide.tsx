@@ -125,7 +125,7 @@ const steps = [
     
     💾 الحفظ السحابي والمحلي: احفظ ملف القضية في المتصفح للرجوع وتعديل الحصص والمناسخات لاحقاً في أي يوم بنقرة واحدة.
     
-    📕 التصدير بصيغة PDF الحديثة: استخراج وثيقة رسمية جاهزة للطباعة والعمل بها كأداة مساعدة تحتوي على شجرة العائلة الرائعة وجدول تفصيلي لتوزيع الأنصبة والسهام ومبررات الحجب الشرعية.
+    📕 التصدير بصيغة PDF الحديثة: استخراج وثيقة رسمية جاهزة للطباعة والختم تحتوي على شجرة العائلة الرائعة وجدول تفصيلي لتوزيع الأنصبة والسهام ومبررات الحجب الشرعية.
     
     📄 ملخص نصي فوري (.txt): صياغة مستند نصي رسمي يعود للقانون والآيات الكريمة والأدلة لإملاء وتضمين نصوص الفريضة في محضر التوثيق مباشرة.
     
@@ -502,7 +502,9 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
                         width={130}
                         height={130}
                         className="h-24 w-auto object-contain select-none pointer-events-none"
+                        style={{ width: 'auto', height: 'auto' }}
                         referrerPolicy="no-referrer"
+                        unoptimized
                       />
                     </div>
                   )}
@@ -615,7 +617,9 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
                         width={140}
                         height={140}
                         className="h-28 w-auto object-contain select-none pointer-events-none"
+                        style={{ width: 'auto', height: 'auto' }}
                         referrerPolicy="no-referrer"
+                        unoptimized
                       />
                     </div>
                   )}

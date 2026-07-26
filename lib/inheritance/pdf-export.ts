@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { jsPDF } from 'jspdf';
 import { StageResult } from '@/components/inheritance/ResultsTable';
 import Fraction from 'fraction.js';
@@ -7,6 +6,7 @@ import {
   COLOR_PALETTE,
   EXPORT_OFFICE_INFO,
   formatDocumentCurrency,
+  EXPORT_TABLE_COLUMNS,
   EXPORT_FILENAME,
   OfficeSettings,
   DEFAULT_OFFICE_SETTINGS
@@ -24,7 +24,7 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
 }
 
-export function safeSetFont(pdf: any, fontName: string, style: string = 'normal'): void {
+export function safeSetFont(pdf: jsPDF, fontName: string, style: string = 'normal'): void {
   try {
     pdf.setFont(fontName, style);
     pdf.getTextWidth('a');
@@ -59,7 +59,7 @@ export function fixArabicRtl(text: string | number | null | undefined): string {
 /**
  * Wraps text into multiple lines given a maximum width in millimeters for jsPDF.
  */
-function wrapArabicText(pdf: any, text: string, maxWidthMm: number): string[] {
+function wrapArabicText(pdf: jsPDF, text: string, maxWidthMm: number): string[] {
   if (!text) return [''];
   const words = String(text).split(' ');
   const lines: string[] = [];
@@ -100,7 +100,7 @@ function wrapArabicText(pdf: any, text: string, maxWidthMm: number): string[] {
  * Draws a native vector table cell with background fill, border, and vertically centered vector text.
  */
 function drawVectorCell(
-  pdf: any,
+  pdf: jsPDF,
   text: string,
   x: number,
   y: number,
@@ -160,25 +160,6 @@ function drawVectorCell(
   });
 }
 
-function getRowHeight(
-  pdf: any,
-  cells: { text: string; width: number; fontSize?: number }[],
-  baseH: number = 7.5,
-  paddingMm: number = 1.5
-): number {
-  let maxH = baseH;
-  cells.forEach(c => {
-    const fontSize = c.fontSize || 8;
-    safeSetFont(pdf, 'Amiri', 'bold');
-    pdf.setFontSize(fontSize);
-    const lines = wrapArabicText(pdf, c.text, c.width - (paddingMm * 2));
-    const lineHeightMm = (fontSize * 0.3527) * 1.25;
-    const textH = lines.length * lineHeightMm + paddingMm * 2;
-    if (textH > maxH) maxH = textH;
-  });
-  return maxH;
-}
-
 // Memory font cache so font fetch occurs only once per session
 let cachedRegularFontBase64: string | null = null;
 let cachedBoldFontBase64: string | null = null;
@@ -186,100 +167,108 @@ let cachedLogoDataUrl: string | null = null;
 
 function isValidFont(base64Str: string): boolean {
   if (!base64Str || base64Str.length < 1000) return false;
-  return true;
+  try {
+    const rawBinary = typeof window !== 'undefined' ? atob(base64Str) : Buffer.from(base64Str, 'base64').toString('binary');
+    const bytes = new Uint8Array(rawBinary.length);
+    for (let i = 0; i < rawBinary.length; i++) {
+      bytes[i] = rawBinary.charCodeAt(i);
+    }
+
+    if (bytes.length < 12) return false;
+
+    const sfntVersion = ((bytes[0] << 24) >>> 0) | (bytes[1] << 16) | (bytes[2] << 8) | bytes[3];
+    const magic = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+
+    if (magic === 'wOF2' || magic === 'wOFF') {
+      return true;
+    }
+
+    const isValidSfnt = sfntVersion === 0x00010000 || sfntVersion === 0x4f54544f || magic === 'true';
+    if (!isValidSfnt) return false;
+
+    const numTables = (bytes[4] << 8) | bytes[5];
+    return numTables > 0 && numTables <= 200;
+  } catch {
+    return false;
+  }
 }
 
 async function fetchArrayBufferAsBase64(url: string): Promise<string> {
-  const candidates: string[] = [url];
   const isFont = url.toLowerCase().endsWith('.ttf');
 
-  if (url.includes('amiri-regular.ttf')) {
-    candidates.push('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/amiri/Amiri-Regular.ttf');
-    candidates.push('https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Regular.ttf');
-  } else if (url.includes('amiri-bold.ttf')) {
-    candidates.push('https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/amiri/Amiri-Bold.ttf');
-    candidates.push('https://raw.githubusercontent.com/google/fonts/main/ofl/amiri/Amiri-Bold.ttf');
-  }
-
-  let lastError: any = null;
-  for (const candidate of candidates) {
+  let base64Result = '';
+  if (typeof window === 'undefined' && url.startsWith('/')) {
     try {
-      let base64Result = '';
-      if (typeof window === 'undefined' && candidate.startsWith('/')) {
-        try {
-          const fs = await import('fs');
-          const path = await import('path');
-          const localPath = path.join(process.cwd(), 'public', candidate);
-          if (fs.existsSync(localPath)) {
-            const buffer = fs.readFileSync(localPath);
-            if (buffer.length > 100) {
-              base64Result = buffer.toString('base64');
-            }
-          }
-        } catch {
-          // Fallback to fetch
+      const fs = await import('fs');
+      const path = await import('path');
+      const localPath = path.join(process.cwd(), 'public', url);
+      if (fs.existsSync(localPath)) {
+        const buffer = fs.readFileSync(localPath);
+        if (buffer.length > 100) {
+          base64Result = buffer.toString('base64');
         }
       }
-
-      if (!base64Result) {
-        const targetUrl = typeof window !== 'undefined' && candidate.startsWith('/')
-          ? `${window.location.origin}${candidate}`
-          : candidate;
-        const response = await fetch(targetUrl);
-        if (!response.ok) {
-          continue;
-        }
-        const buffer = await response.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        if (bytes.length > 0) {
-          let headerStr = '';
-          for (let i = 0; i < Math.min(20, bytes.length); i++) {
-            headerStr += String.fromCharCode(bytes[i]);
-          }
-          if (headerStr.includes('<!DOCTYPE') || headerStr.includes('<html') || headerStr.includes('Not Found')) {
-            continue;
-          }
-        }
-
-        if (typeof window !== 'undefined') {
-          // Browser environment: Use ultra-reliable FileReader for base64 conversion
-          base64Result = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => {
-              const result = reader.result as string;
-              const base64 = result.split(',')[1];
-              resolve(base64);
-            };
-            reader.onerror = () => reject(new Error('FileReader base64 conversion failed'));
-            reader.readAsDataURL(new Blob([buffer]));
-          });
-        } else {
-          // Node environment: Use Buffer
-          base64Result = Buffer.from(buffer).toString('base64');
-        }
-      }
-
-      if (base64Result) {
-        if (isFont) {
-          if (!isValidFont(base64Result)) {
-            console.warn(`Font candidate validation failed for ${candidate}, trying next candidate...`);
-            continue;
-          }
-        }
-        return base64Result;
-      }
-    } catch (err) {
-      lastError = err;
+    } catch {
+      // Fallback to fetch
     }
   }
-  throw lastError || new Error(`Failed to fetch and validate resource at ${url}`);
+
+  if (!base64Result) {
+    const targetUrl = typeof window !== 'undefined' && url.startsWith('/')
+      ? `${window.location.origin}${url}`
+      : url;
+    const response = await fetch(targetUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status} fetching ${url}`);
+    }
+    const buffer = await response.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    if (bytes.length > 0) {
+      let headerStr = '';
+      for (let i = 0; i < Math.min(20, bytes.length); i++) {
+        headerStr += String.fromCharCode(bytes[i]);
+      }
+      if (headerStr.includes('<!DOCTYPE') || headerStr.includes('<html') || headerStr.includes('Not Found')) {
+        throw new Error(`Invalid non-binary response when fetching ${url}`);
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      // Browser environment: Use FileReader for base64 conversion
+      base64Result = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('FileReader base64 conversion failed'));
+        reader.readAsDataURL(new Blob([buffer]));
+      });
+    } else {
+      // Node environment: Use Buffer
+      base64Result = Buffer.from(buffer).toString('base64');
+    }
+  }
+
+  if (base64Result && isFont) {
+    if (!isValidFont(base64Result)) {
+      throw new Error(`Font structural validation failed for ${url}`);
+    }
+  }
+
+  if (base64Result) {
+    return base64Result;
+  }
+
+  throw new Error(`Failed to fetch and validate resource at ${url}`);
 }
 
 /**
  * Draws the vector header, outer borders, official watermark & footers on a PDF page.
  */
 function drawPageDecorations(
-  pdf: any,
+  pdf: jsPDF,
   office: OfficeSettings,
   stageIdx: number,
   totalStages: number,
@@ -350,7 +339,7 @@ function drawPageDecorations(
  * Render a single stage result onto the vector PDF document.
  */
 function renderStageVectorPDF(
-  pdf: any,
+  pdf: jsPDF,
   stageResult: StageResult,
   stageIdx: number,
   totalStages: number,
@@ -405,29 +394,59 @@ function renderStageVectorPDF(
 
   currentY += 18;
 
-  // 2. Legal Disclaimer Box (Stage 0 Page 1) - Rendered ONLY in Preview Mode when office.isOfficialMode is false
-  if (stageIdx === 0 && !office.isOfficialMode) {
-    pdf.setFillColor(...hexToRgb(COLOR_PALETTE.slateLight));
-    pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.border));
-    pdf.setLineWidth(0.2);
-    pdf.roundedRect(15, currentY, 180, 14, 2, 2, 'FD');
+  // 2. Legal Disclaimer Box OR Official Notary Banner (Stage 0 Page 1)
+  if (stageIdx === 0) {
+    if (office.isOfficialMode || office.showDisclaimer === false) {
+      // Official Notary Certification Banner
+      pdf.setFillColor(...hexToRgb(COLOR_PALETTE.greenLight));
+      pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.amber));
+      pdf.setLineWidth(0.4);
+      pdf.roundedRect(15, currentY, 180, 16, 2, 2, 'FD');
 
-    safeSetFont(pdf, 'Amiri', 'bold');
-    pdf.setFontSize(8);
-    pdf.setTextColor(...hexToRgb(COLOR_PALETTE.mutedText));
-    pdf.text(fixArabicRtl(EXPORT_OFFICE_INFO.disclaimerTitleAr), 192, currentY + 4, { align: 'right' });
+      safeSetFont(pdf, 'Amiri', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
+      pdf.text(fixArabicRtl('إصدار محرر رسمي للفريضة الشرعية — الديوان العمومي للتوثيق'), 192, currentY + 5, { align: 'right' });
 
-    safeSetFont(pdf, 'Amiri', 'normal');
-    pdf.setFontSize(7);
-    pdf.setTextColor(...hexToRgb(COLOR_PALETTE.mutedText));
-    const discLines = wrapArabicText(pdf, EXPORT_OFFICE_INFO.disclaimerTextAr, 174);
-    let dY = currentY + 7.5;
-    discLines.forEach((l) => {
-      pdf.text(fixArabicRtl(l), 192, dY, { align: 'right' });
-      dY += 3.2;
-    });
+      safeSetFont(pdf, 'Amiri', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(...hexToRgb('#1E293B'));
+      pdf.text(fixArabicRtl(`رقم المرجع الرسمي للوثيقة: ${docRefNumber}`), 192, currentY + 10, { align: 'right' });
+      pdf.text(fixArabicRtl(`الأستاذ الموثق المعتمـد: ${office.notaryNameAr} — ${office.titleAr}`), 192, currentY + 14, { align: 'right' });
 
-    currentY += 17;
+      if (qrDataUrl) {
+        try {
+          pdf.addImage(qrDataUrl, 'PNG', 18, currentY + 2, 12, 12);
+        } catch {
+          // ignore qr draw errors
+        }
+      }
+
+      currentY += 19;
+    } else {
+      // Standard Legal Disclaimer Box
+      pdf.setFillColor(...hexToRgb(COLOR_PALETTE.redLight));
+      pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.red));
+      pdf.setLineWidth(0.3);
+      pdf.roundedRect(15, currentY, 180, 16, 2, 2, 'FD');
+
+      safeSetFont(pdf, 'Amiri', 'bold');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(...hexToRgb(COLOR_PALETTE.red));
+      pdf.text(fixArabicRtl(EXPORT_OFFICE_INFO.disclaimerTitleAr), 192, currentY + 4.5, { align: 'right' });
+
+      safeSetFont(pdf, 'Amiri', 'normal');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(...hexToRgb('#7F1D1D'));
+      const discLines = wrapArabicText(pdf, EXPORT_OFFICE_INFO.disclaimerTextAr, 174);
+      let dY = currentY + 8.5;
+      discLines.forEach((l) => {
+        pdf.text(fixArabicRtl(l), 192, dY, { align: 'right' });
+        dY += 3.5;
+      });
+
+      currentY += 19;
+    }
   }
 
   // 3. Deceased Name Banner
@@ -479,11 +498,11 @@ function renderStageVectorPDF(
       const sumX = [15, 51, 87, 123, 159];
       const sumHeaders = ['صافي التركة الموزعة', 'الوصايا الشرعية', 'تكاليف تجهيز الجنازة', 'الديون والتبعات الوفائية', 'التركة الإجمالية'];
       const sumVals = [
-        formatDocumentCurrency(stageResult.netEstate ?? 0),
-        formatDocumentCurrency(globalBequest),
-        formatDocumentCurrency(globalFuneralCosts),
-        formatDocumentCurrency(globalDebts),
-        formatDocumentCurrency(globalEstate),
+        formatCurrency(stageResult.netEstate ?? 0),
+        formatCurrency(globalBequest),
+        formatCurrency(globalFuneralCosts),
+        formatCurrency(globalDebts),
+        formatCurrency(globalEstate),
       ];
 
       for (let c = 0; c < 5; c++) {
@@ -533,7 +552,7 @@ function renderStageVectorPDF(
   pdf.text(fixArabicRtl(`أصل المسألة التصحيحي الشرعي: ${stageProblemBase ?? '-'}`), 192, currentY + 4.8, { align: 'right' });
 
   if (stageIdx > 0 && !isPureMode) {
-    pdf.text(fixArabicRtl(`حصة التصفية للمناسخة: ${formatDocumentCurrency(stageResult.netEstate)}`), 18, currentY + 4.8, { align: 'left' });
+    pdf.text(fixArabicRtl(`حصة التصفية للمناسخة: ${formatCurrency(stageResult.netEstate)}`), 18, currentY + 4.8, { align: 'left' });
   }
 
   currentY += 9;
@@ -558,37 +577,65 @@ function renderStageVectorPDF(
     currentY += 8.5;
   }
 
-  // 8. Main Enterprise Distribution Vector Table (7 Columns, Total width: 180mm from X=15 to X=195)
-  // Col 0 (X=153, W=42mm): اسم الوارث
-  // Col 1 (X=125, W=28mm): صفة الوارث / القرابة
-  // Col 2 (X=85, W=40mm) : سبب الإرث / الفرض
-  // Col 3 (X=72, W=13mm) : السهام
-  // Col 4 (X=55, W=17mm) : النسبة (%)
-  // Col 5 (X=28, W=27mm) : المبلغ المستحق (دج)
-  // Col 6 (X=15, W=13mm) : المادة
-  const colW = [13, 27, 17, 13, 40, 28, 42];
-  const colX = [15, 28, 55, 72, 85, 125, 153];
+  // 8. Main Distribution Vector Table (Enterprise 7-Column Layout)
+  // Columns (Total width: 180mm from X=15 to X=195)
+  // Col 0: Legal Art (20mm)
+  // Col 1: Amount DZD (32mm)
+  // Col 2: Percentage (18mm)
+  // Col 3: Shares (16mm)
+  // Col 4: Share Fraction (20mm)
+  // Col 5: Reason/Role (44mm)
+  // Col 6: Name (30mm)
+  const colW = [20, 32, 18, 16, 20, 44, 30];
+  const colX = [15, 35, 67, 85, 101, 121, 165];
 
   const tableHeaders = [
-    'المادة',
-    isPureMode ? 'النسبة (%)' : 'المبلغ (دج)',
-    'النسبة (%)',
-    'السهام',
-    'سبب الإرث / الفرض',
-    'صفة الوارث',
-    'اسم الوارث',
+    EXPORT_TABLE_COLUMNS[6].label, // السند القانوني
+    EXPORT_TABLE_COLUMNS[5].label, // المبلغ المستحق (دج)
+    EXPORT_TABLE_COLUMNS[4].label, // النسبة (%)
+    EXPORT_TABLE_COLUMNS[3].label, // السهام
+    EXPORT_TABLE_COLUMNS[2].label, // النصيب الشرعي
+    EXPORT_TABLE_COLUMNS[1].label, // صفة الإرث والسبب
+    EXPORT_TABLE_COLUMNS[0].label, // الوارث
   ];
 
   const headerH = 7.5;
-  for (let c = 0; c < 7; c++) {
-    drawVectorCell(pdf, tableHeaders[c], colX[c], currentY, colW[c], headerH, {
-      fillColor: COLOR_PALETTE.green,
-      textColor: COLOR_PALETTE.white,
-      fontSize: 8,
-      fontStyle: 'bold',
-    });
-  }
-  currentY += headerH;
+
+  const renderTableHeader = () => {
+    for (let c = 0; c < 7; c++) {
+      drawVectorCell(pdf, tableHeaders[c], colX[c], currentY, colW[c], headerH, {
+        fillColor: COLOR_PALETTE.green,
+        textColor: COLOR_PALETTE.white,
+        fontSize: 8.5,
+        fontStyle: 'bold',
+      });
+    }
+    currentY += headerH;
+  };
+
+  renderTableHeader();
+
+  const getDynamicRowH = (rowData: string[]) => {
+    let maxLines = 1;
+    for (let c = 0; c < 7; c++) {
+      safeSetFont(pdf, 'Amiri', 'bold');
+      pdf.setFontSize(8);
+      const lines = wrapArabicText(pdf, rowData[c], colW[c] - 3);
+      if (lines.length > maxLines) {
+        maxLines = lines.length;
+      }
+    }
+    return Math.max(7, (maxLines * 3.5) + 3);
+  };
+
+  const checkOverflowAndNewPage = (neededH: number) => {
+    if (currentY + neededH > 262) {
+      pdf.addPage();
+      drawPageDecorations(pdf, office, stageIdx, totalStages, logoDataUrl);
+      currentY = 38;
+      renderTableHeader();
+    }
+  };
 
   const results = stageResult.results;
   const stage = stageResult.stage;
@@ -597,33 +644,26 @@ function renderStageVectorPDF(
 
   // Render Bequests rows
   bequests.forEach((b) => {
-    const typeLabel = b.heirId === 'mandatory_bequest' ? 'تنزيل' : 'وصية';
+    const typeLabel = b.heirId === 'mandatory_bequest' ? 'تنزيل (وصية واجبة)' : 'وصية اختيارية';
     const bPct = b.shareFraction.valueOf() * 100;
     const bPctStr = bPct > 0 ? (bPct % 1 === 0 ? `${bPct}%` : `${bPct.toFixed(2)}%`) : '0%';
-    const amtStr = isPureMode ? bPctStr : formatDocumentCurrency(b.amount);
+    const amtStr = isPureMode ? '-' : formatCurrency(b.amount);
     const artText = b.article ? `م ${b.article}` : 'م 169';
 
-    const rowCells = [
-      { text: artText, width: colW[0] },
-      { text: amtStr, width: colW[1] },
-      { text: bPctStr, width: colW[2] },
-      { text: '-', width: colW[3] },
-      { text: b.share, width: colW[4] },
-      { text: typeLabel, width: colW[5] },
-      { text: b.nameAr, width: colW[6] },
-    ];
+    const rowData = [artText, amtStr, bPctStr, '-', b.share, typeLabel, b.nameAr];
+    const dynamicH = getDynamicRowH(rowData);
+    checkOverflowAndNewPage(dynamicH);
 
-    const rowH = getRowHeight(pdf, rowCells, 7.5);
     for (let c = 0; c < 7; c++) {
-      drawVectorCell(pdf, rowCells[c].text, colX[c], currentY, colW[c], rowH, {
+      drawVectorCell(pdf, rowData[c], colX[c], currentY, colW[c], dynamicH, {
         fillColor: COLOR_PALETTE.bequestRow,
         textColor: '#000000',
         fontSize: 8,
         fontStyle: 'bold',
-        align: c >= 4 ? 'right' : 'center',
+        align: c === 5 || c === 6 ? 'right' : 'center',
       });
     }
-    currentY += rowH;
+    currentY += dynamicH;
   });
 
   // Render Inheritor rows
@@ -638,62 +678,66 @@ function renderStageVectorPDF(
       if (isBlocked) continue;
 
       const customName = customNames?.[i];
-      const heirName = customName || r.nameAr;
-      const heirRole = r.nameAr; // Relationship title
+      const baseName = r.count > 1 ? `${r.nameAr} (${i + 1})` : r.nameAr;
+      const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
 
       const individualAmt = indResult ? indResult.amount : r.amount / r.count;
-      const _indShare = indResult ? indResult.share : r.share;
-      const indSharesText = indResult ? String(indResult.shares) : String(r.shares > 0 ? Math.round(r.shares / r.count) : 0);
+      const indShare = indResult ? indResult.share : r.share;
+      const indSharesVal = indResult ? indResult.shares : (r.shares > 0 ? Math.round(r.shares / r.count) : 0);
+      const indSharesText = String(indSharesVal);
 
       const indShareFrac = indResult && indResult.shareFraction ? indResult.shareFraction : r.shareFraction.compare(0) === 0 ? new Fraction(0) : r.shareFraction.div(r.count);
       const indPct = indShareFrac.valueOf() * 100;
       const indPctStr = indPct > 0 ? (indPct % 1 === 0 ? `${indPct}%` : `${indPct.toFixed(2)}%`) : '0%';
-      const amtStr = isPureMode ? indPctStr : formatDocumentCurrency(individualAmt);
+      const amtStr = isPureMode ? '-' : formatCurrency(individualAmt);
       const reason = indResult ? indResult.reason : r.reason;
       const artText = r.article ? `م ${r.article}` : '-';
 
       const rowBg = rowIndex % 2 === 0 ? COLOR_PALETTE.white : COLOR_PALETTE.mint;
 
-      const rowCells = [
-        { text: artText, width: colW[0] },
-        { text: amtStr, width: colW[1] },
-        { text: indPctStr, width: colW[2] },
-        { text: indSharesText, width: colW[3] },
-        { text: reason, width: colW[4] },
-        { text: heirRole, width: colW[5] },
-        { text: heirName, width: colW[6] },
-      ];
+      const rowData = [artText, amtStr, indPctStr, indSharesText, indShare, reason, displayName];
+      const dynamicH = getDynamicRowH(rowData);
+      checkOverflowAndNewPage(dynamicH);
 
-      const rowH = getRowHeight(pdf, rowCells, 7.5);
       for (let c = 0; c < 7; c++) {
-        drawVectorCell(pdf, rowCells[c].text, colX[c], currentY, colW[c], rowH, {
+        drawVectorCell(pdf, rowData[c], colX[c], currentY, colW[c], dynamicH, {
           fillColor: rowBg,
           textColor: '#000000',
           fontSize: 8,
           fontStyle: 'bold',
-          align: c >= 4 ? 'right' : 'center',
+          align: c === 5 || c === 6 ? 'right' : 'center',
         });
       }
-      currentY += rowH;
+      currentY += dynamicH;
       rowIndex++;
     }
   });
 
   // Totals Row
-  const totalCells = [
-    { text: '-', width: colW[0] },
-    { text: isPureMode ? '100%' : formatDocumentCurrency(stageResult.netEstate), width: colW[1] },
-    { text: '100%', width: colW[2] },
-    { text: String(stageProblemBase ?? '-'), width: colW[3] },
-    { text: 'المجموع الكلي للسهام والحصص الشرعية', width: colW[4] + colW[5] + colW[6] },
-  ];
-  const totalRowH = 7.5;
+  checkOverflowAndNewPage(headerH);
+  drawVectorCell(pdf, '-', colX[0], currentY, colW[0], headerH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white });
+  drawVectorCell(pdf, isPureMode ? '-' : formatCurrency(stageResult.netEstate), colX[1], currentY, colW[1], headerH, {
+    fillColor: COLOR_PALETTE.green,
+    textColor: COLOR_PALETTE.white,
+    fontSize: 8,
+    fontStyle: 'bold',
+  });
+  drawVectorCell(pdf, '100%', colX[2], currentY, colW[2], headerH, {
+    fillColor: COLOR_PALETTE.green,
+    textColor: COLOR_PALETTE.white,
+    fontSize: 8,
+    fontStyle: 'bold',
+  });
+  drawVectorCell(pdf, String(stageProblemBase ?? '-'), colX[3], currentY, colW[3], headerH, {
+    fillColor: COLOR_PALETTE.green,
+    textColor: COLOR_PALETTE.white,
+    fontSize: 8.5,
+    fontStyle: 'bold',
+  });
+  drawVectorCell(pdf, '-', colX[4], currentY, colW[4], headerH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white });
 
-  drawVectorCell(pdf, totalCells[0].text, colX[0], currentY, colW[0], totalRowH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white });
-  drawVectorCell(pdf, totalCells[1].text, colX[1], currentY, colW[1], totalRowH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white, fontSize: 8, fontStyle: 'bold' });
-  drawVectorCell(pdf, totalCells[2].text, colX[2], currentY, colW[2], totalRowH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white, fontSize: 8, fontStyle: 'bold' });
-  drawVectorCell(pdf, totalCells[3].text, colX[3], currentY, colW[3], totalRowH, { fillColor: COLOR_PALETTE.green, textColor: COLOR_PALETTE.white, fontSize: 8, fontStyle: 'bold' });
-  drawVectorCell(pdf, totalCells[4].text, colX[4], currentY, colW[4] + colW[5] + colW[6], totalRowH, {
+  const mergedW = colW[5] + colW[6];
+  drawVectorCell(pdf, 'المجموع الكلي للحصص والسهام المصححة للمسألة', colX[5], currentY, mergedW, headerH, {
     fillColor: COLOR_PALETTE.green,
     textColor: COLOR_PALETTE.white,
     fontSize: 8.5,
@@ -701,7 +745,7 @@ function renderStageVectorPDF(
     align: 'right',
   });
 
-  currentY += totalRowH + 6;
+  currentY += headerH + 6;
 
   // 9. Treasury Section (if applicable)
   if (stageResult.noHeirsRedistribution && stageResult.noHeirsRedistribution.policy === 'treasury') {
@@ -845,19 +889,11 @@ export async function exportToPDF(
   try {
     if (cachedRegularFontBase64) {
       pdf.addFileToVFS('Amiri-Regular.ttf', cachedRegularFontBase64);
-      try {
-        pdf.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-      } catch (e) {
-        console.warn('Amiri regular addFont warning:', e);
-      }
+      pdf.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
     }
     if (cachedBoldFontBase64) {
       pdf.addFileToVFS('Amiri-Bold.ttf', cachedBoldFontBase64);
-      try {
-        pdf.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
-      } catch (e) {
-        console.warn('Amiri bold addFont warning:', e);
-      }
+      pdf.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
     }
     safeSetFont(pdf, 'Amiri', 'normal');
   } catch (fontErr) {

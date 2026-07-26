@@ -12,13 +12,13 @@ interface PDFExportParams {
 }
 
 /**
- * Custom React hook to orchestrate server-side legal PDF generation and downloads
+ * Custom React hook to orchestrate client-side legal PDF generation and downloads using jsPDF
  */
 export function usePdfExport() {
   const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const exportToPDFServer = useCallback(async (
+  const exportToPDFClient = useCallback(async (
     allStagesResults: StageResult[],
     params: PDFExportParams,
     officeSettings?: OfficeSettings
@@ -44,6 +44,6 @@ export function usePdfExport() {
   return {
     isExportingPDF,
     exportError,
-    exportToPDFServer,
+    exportToPDFClient,
   };
 }

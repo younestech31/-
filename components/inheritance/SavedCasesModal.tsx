@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import { X, FolderOpen, Trash2 } from 'lucide-react';
 import { SavedCase } from './InheritanceCalculator';

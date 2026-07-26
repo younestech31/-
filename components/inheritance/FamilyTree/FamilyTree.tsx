@@ -1,6 +1,6 @@
-// components/FamilyTree/FamilyTree.tsx
+'use client';
 
-"use client";
+// components/FamilyTree/FamilyTree.tsx
 
 import { useCallback, useState, useEffect } from "react";
 import {
@@ -39,8 +39,8 @@ function getFrac(val: unknown): Fraction {
   if (typeof val === 'object' && val !== null) {
     const v = val as { s?: unknown; n?: unknown; d?: unknown };
     const s = typeof v.s === 'number' ? v.s : 1;
-    const n = typeof v.n === 'bigint' ? Number(v.n) : typeof v.n === 'number' ? v.n : 0;
-    const d = typeof v.d === 'bigint' ? Number(v.d) : typeof v.d === 'number' ? v.d : 1;
+    const n = typeof v.n === 'number' ? v.n : 0;
+    const d = typeof v.d === 'number' ? v.d : 1;
     return new Fraction(s * n, d);
   }
   return new Fraction(0);

@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import * as Sentry from '@sentry/nextjs';
 
 export default function ErrorPage({
   error,
@@ -11,9 +12,10 @@ export default function ErrorPage({
   reset: () => void;
 }) {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(error);
-    }
+    console.error(error);
+    Sentry.captureException(error, {
+      extra: { digest: error.digest },
+    });
   }, [error]);
 
   return (

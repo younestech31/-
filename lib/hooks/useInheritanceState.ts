@@ -124,7 +124,7 @@ export function useInheritanceState() {
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [caseToDelete, setCaseToDelete]               = useState<string | null>(null);
 
-  const { isExportingPDF, exportToPDFServer } = usePdfExport();
+  const { isExportingPDF, exportToPDFClient } = usePdfExport();
   const [isExportingExcel, setIsExportingExcel]       = useState(false);
   const [isExportingWord, setIsExportingWord]         = useState(false);
 
@@ -930,12 +930,12 @@ export function useInheritanceState() {
       showToast('لا يمكن التصدير: الرجاء إضافة ورثة أولاً.', 'error');
       return;
     }
-    exportToPDFServer(allStagesResults, { estate, debts, funeralCosts, bequest, deceasedGender }, officeSettings)
+    exportToPDFClient(allStagesResults, { estate, debts, funeralCosts, bequest, deceasedGender }, officeSettings)
       .then(() => showToast('تم تصدير PDF بنجاح ✓', 'success'))
       .catch((err) => {
         showToast(err.message || 'حدث خطأ أثناء تصدير PDF.', 'error');
       });
-  }, [allStagesResults, estate, debts, funeralCosts, bequest, deceasedGender, showToast, isCalculatorEmpty, exportToPDFServer, officeSettings]);
+  }, [allStagesResults, estate, debts, funeralCosts, bequest, deceasedGender, showToast, isCalculatorEmpty, exportToPDFClient, officeSettings]);
 
   const handleCopyFullSummary = useCallback(async () => {
     if (isCalculatorEmpty) {

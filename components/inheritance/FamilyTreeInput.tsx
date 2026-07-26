@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, memo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -125,7 +125,7 @@ interface FamilyTreeInputProps {
 
 const nodeTypes = { heirInput: HeirInputNode };
 
-export default function FamilyTreeInput({
+const FamilyTreeInput = memo(function FamilyTreeInput({
   heirPresence,
   toggleHeir,
   updateCount,
@@ -337,4 +337,6 @@ export default function FamilyTreeInput({
       </div>
     </div>
   );
-}
+});
+
+export default FamilyTreeInput;
