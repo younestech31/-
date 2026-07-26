@@ -94,12 +94,13 @@ export async function exportToWord(
   });
 
   const COL = {
-    heir   : 2100,   // الوارث
-    role   : 3126,   // صفة الإرث
-    share  : 1000,   // النصيب
-    parts  :  800,   // السهام
-    amount : 1200,   // المبلغ
-    article:  800,   // المادة
+    heir      : 2000,   // الوارث
+    role      : 2800,   // صفة الإرث والسبب
+    share     : 1000,   // النصيب الشرعي
+    parts     :  700,   // السهام
+    percentage:  900,   // النسبة (%)
+    amount    : 1800,   // المبلغ المستحق (دج)
+    article   :  700,   // السند القانوني
   } as const;
 
   const COL_BLOCKED = {
@@ -331,11 +332,9 @@ export async function exportToWord(
                         col.key === 'role' ? COL.role :
                         col.key === 'share' ? COL.share :
                         col.key === 'parts' ? COL.parts :
+                        col.key === 'percentage' ? COL.percentage :
                         col.key === 'amount' ? COL.amount : COL.article;
-          const label = col.key === 'amount'
-            ? (isPureMode ? col.labelPure : col.label)
-            : col.label;
-          return createCell(label, true, col.key === 'name' || col.key === 'role' ? 'right' : 'center', undefined, width);
+          return createCell(col.label, true, col.key === 'name' || col.key === 'role' ? 'right' : 'center', undefined, width);
         })
       })
     );
@@ -344,7 +343,7 @@ export async function exportToWord(
     bequests.forEach((b) => {
       const bPct = b.shareFraction.valueOf() * 100;
       const bPctStr = bPct > 0 ? (bPct % 1 === 0 ? `${bPct}%` : `${bPct.toFixed(2)}%`) : '0%';
-      const valStr = isPureMode ? bPctStr : `${formatDocumentCurrency(b.amount)} (${bPctStr})`;
+      const amtStr = isPureMode ? '-' : formatDocumentCurrency(b.amount);
 
       tableRows.push(
         new TableRow({
@@ -354,7 +353,8 @@ export async function exportToWord(
             createCell('وصية (تخرج قبل القسمة)', false, 'right', BRAND.amberLight, COL.role),
             createCell(b.share, false, 'center', BRAND.amberLight, COL.share),
             createCell('-', false, 'center', BRAND.amberLight, COL.parts),
-            createCell(valStr, false, 'center', BRAND.amberLight, COL.amount),
+            createCell(bPctStr, false, 'center', BRAND.amberLight, COL.percentage),
+            createCell(amtStr, false, 'center', BRAND.amberLight, COL.amount),
             createCell(b.article ? `م ${b.article}` : 'م 184', false, 'center', BRAND.amberLight, COL.article),
           ]
         })
@@ -383,7 +383,7 @@ export async function exportToWord(
         const indShareFrac = indResult && indResult.shareFraction ? indResult.shareFraction : (r.shareFraction.compare(0) === 0 ? new Fraction(0) : r.shareFraction.div(r.count));
         const indPct = indShareFrac.valueOf() * 100;
         const indPctStr = indPct > 0 ? (indPct % 1 === 0 ? `${indPct}%` : `${indPct.toFixed(2)}%`) : '0%';
-        const valStr = isPureMode ? indPctStr : `${formatDocumentCurrency(individualAmt)} (${indPctStr})`;
+        const amtStr = isPureMode ? '-' : formatDocumentCurrency(individualAmt);
 
         const bgColor = rowIndex % 2 === 0 ? 'FFFFFF' : BRAND.mint;
 
@@ -395,7 +395,8 @@ export async function exportToWord(
               createCell(indResult ? indResult.reason : r.reason, false, 'right', bgColor, COL.role),
               createCell(indShare.toString(), false, 'center', bgColor, COL.share),
               createCell(fmtShares(indShares), false, 'center', bgColor, COL.parts),
-              createCell(valStr, false, 'center', bgColor, COL.amount),
+              createCell(indPctStr, false, 'center', bgColor, COL.percentage),
+              createCell(amtStr, false, 'center', bgColor, COL.amount),
               createCell(r.article ? `م ${r.article}` : '', false, 'center', bgColor, COL.article),
             ]
           })
@@ -412,8 +413,9 @@ export async function exportToWord(
           createCell('المجموع الكلي', true, 'right', BRAND.green, COL.heir),
           createCell('', true, 'right', BRAND.green, COL.role),
           createCell('', true, 'center', BRAND.green, COL.share),
-          createCell('', true, 'center', BRAND.green, COL.parts),
-          createCell(isPureMode ? '100%' : `${formatDocumentCurrency(netEstate)} (100%)`, true, 'center', BRAND.green, COL.amount),
+          createCell(String(stageProblemBase ?? '-'), true, 'center', BRAND.green, COL.parts),
+          createCell('100%', true, 'center', BRAND.green, COL.percentage),
+          createCell(isPureMode ? '-' : formatDocumentCurrency(netEstate), true, 'center', BRAND.green, COL.amount),
           createCell('', true, 'center', BRAND.green, COL.article),
         ]
       })

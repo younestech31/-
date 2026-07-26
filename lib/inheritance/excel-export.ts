@@ -254,15 +254,13 @@ export async function exportToExcel(
     
     // Dynamic columns from EXPORT_TABLE_COLUMNS
     ws1.columns = EXPORT_TABLE_COLUMNS.map((col) => {
-      const width = col.key === 'name' ? 26 :
-                    col.key === 'role' ? 46 :
+      const width = col.key === 'name' ? 24 :
+                    col.key === 'role' ? 36 :
                     col.key === 'share' ? 16 :
-                    col.key === 'parts' ? 11 :
-                    col.key === 'amount' ? 24 : 16;
-      const header = col.key === 'amount'
-        ? (isPureMode ? col.labelPure : col.label + ' (دج)')
-        : col.label;
-      return { key: col.key, header, width };
+                    col.key === 'parts' ? 12 :
+                    col.key === 'percentage' ? 14 :
+                    col.key === 'amount' ? 22 : 16;
+      return { key: col.key, header: col.label, width };
     });
 
     // Format headers
@@ -277,10 +275,10 @@ export async function exportToExcel(
         ? 'عول (م.166): أصل المسألة وُسِّع لاستيعاب جميع الفروض الشرعية'
         : 'رد (م.167): الفائض الشاغر رُدَّ على أصحاب الفروض بالنسبة';
       const noticeRow = ws1.addRow({
-        name: noticeText, role: '', share: '', parts: '', amount: '', article: ''
+        name: noticeText, role: '', share: '', parts: '', percentage: '', amount: '', article: ''
       });
       noticeRow.height = 18;
-      ws1.mergeCells(`A${noticeRow.number}:F${noticeRow.number}`);
+      ws1.mergeCells(`A${noticeRow.number}:G${noticeRow.number}`);
       noticeRow.eachCell({ includeEmpty: true }, (cell) => {
         styleData(cell, {
           argbBg: calcType === 'awl' ? COLOR.awlBg : COLOR.raddBg,
@@ -294,23 +292,25 @@ export async function exportToExcel(
     bequests.forEach((b) => {
       const bPct = b.shareFraction.valueOf() * 100;
       const bPctStr = bPct > 0 ? (bPct % 1 === 0 ? `${bPct}%` : `${bPct.toFixed(2)}%`) : '0%';
-      const valStr = isPureMode ? bPctStr : `${formatDocumentCurrency(b.amount)} (${bPctStr})`;
+      const amtVal = isPureMode ? 0 : b.amount;
 
       const row = ws1.addRow({
         name: b.nameAr,
         role: 'وصية (تخرج قبل القسمة)',
         share: b.share,
         parts: '-',
-        amount: valStr,
+        percentage: bPctStr,
+        amount: amtVal,
         article: b.article ? `م ${b.article}` : 'م 184',
       });
       row.height = 20;
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        const isAmountCol = colNum === 6;
         styleData(cell, {
           argbBg: COLOR.bequestRow,
           hAlign: colNum <= 2 ? 'right' : 'center',
-          numFmt: undefined,
-          readingOrder: colNum >= 3 && colNum <= 5 ? 'ltr' : 'rtl',
+          numFmt: isAmountCol && !isPureMode ? EXPORT_EXCEL_NUM_FMT : undefined,
+          readingOrder: colNum >= 3 && colNum <= 6 ? 'ltr' : 'rtl',
         });
       });
     });
@@ -321,23 +321,25 @@ export async function exportToExcel(
       const bgColor = rowIndex % 2 === 0 ? 'FFFFFFFF' : COLOR.altRow;
       const hPct = h.shareDecimal * 100;
       const hPctStr = hPct > 0 ? (hPct % 1 === 0 ? `${hPct}%` : `${hPct.toFixed(2)}%`) : '0%';
-      const valStr = isPureMode ? hPctStr : `${formatDocumentCurrency(h.amount)} (${hPctStr})`;
+      const individualAmt = isPureMode ? 0 : (h.amount ?? 0);
 
       const row = ws1.addRow({
         name: h.displayName,
         role: h.reason,
         share: h.share,
         parts: fmtShares(h.shares),
-        amount: valStr,
+        percentage: hPctStr,
+        amount: individualAmt,
         article: h.article ? `م ${h.article}` : '',
       });
       row.height = 20;
       row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        const isAmountCol = colNum === 6;
         styleData(cell, {
           argbBg: bgColor,
           hAlign: colNum <= 2 ? 'right' : 'center',
-          numFmt: undefined,
-          readingOrder: colNum >= 3 && colNum <= 5 ? 'ltr' : 'rtl',
+          numFmt: isAmountCol && !isPureMode ? EXPORT_EXCEL_NUM_FMT : undefined,
+          readingOrder: colNum >= 3 && colNum <= 6 ? 'ltr' : 'rtl',
         });
       });
       rowIndex++;
@@ -348,18 +350,20 @@ export async function exportToExcel(
       name: 'المجموع الكلي',
       role: '',
       share: '',
-      parts: '',
-      amount: isPureMode ? '100%' : `${formatDocumentCurrency(netEstate)} (100%)`,
+      parts: stageProblemBase ?? '-',
+      percentage: '100%',
+      amount: isPureMode ? 0 : netEstate,
       article: '',
     });
     totalAmt.height = 22;
     totalAmt.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      const isAmountCol = colNum === 6;
       styleData(cell, {
         argbBg: COLOR.headerBg,
         bold: true,
         hAlign: colNum <= 2 ? 'right' : 'center',
-        numFmt: undefined,
-        readingOrder: colNum >= 3 && colNum <= 5 ? 'ltr' : 'rtl',
+        numFmt: isAmountCol && !isPureMode ? EXPORT_EXCEL_NUM_FMT : undefined,
+        readingOrder: colNum >= 3 && colNum <= 6 ? 'ltr' : 'rtl',
       });
       cell.font = {
         bold: true,
