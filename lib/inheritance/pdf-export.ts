@@ -9,7 +9,9 @@ import {
   EXPORT_TABLE_COLUMNS,
   EXPORT_FILENAME,
   OfficeSettings,
-  DEFAULT_OFFICE_SETTINGS
+  DEFAULT_OFFICE_SETTINGS,
+  generateDocumentRefNumber,
+  generateQRCodeDataUrl
 } from './document-branding';
 
 const formatCurrency = formatDocumentCurrency;
@@ -351,7 +353,9 @@ function renderStageVectorPDF(
     deceasedGender: 'male' | 'female' | null;
   },
   officeSettings?: OfficeSettings,
-  logoDataUrl?: string | null
+  logoDataUrl?: string | null,
+  docRefNumber?: string,
+  qrDataUrl?: string | null
 ) {
   const office = officeSettings || DEFAULT_OFFICE_SETTINGS;
   const { estate: globalEstate, debts: globalDebts, funeralCosts: globalFuneralCosts, bequest: globalBequest, deceasedGender } = params;
@@ -901,10 +905,13 @@ export async function exportToPDF(
     pdf.setFont('helvetica', 'normal');
   }
 
+  const docRefNumber = generateDocumentRefNumber();
+  const qrDataUrl = await generateQRCodeDataUrl(docRefNumber);
+
   // 5. Render each stage as a clean vector page
   for (let idx = 0; idx < allStagesResults.length; idx++) {
     const stageResult = allStagesResults[idx];
-    renderStageVectorPDF(pdf, stageResult, idx, allStagesResults.length, params, officeSettings, cachedLogoDataUrl);
+    renderStageVectorPDF(pdf, stageResult, idx, allStagesResults.length, params, officeSettings, cachedLogoDataUrl, docRefNumber, qrDataUrl);
   }
 
   // 6. Save as official Court/Notary Faritha PDF file

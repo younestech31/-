@@ -957,11 +957,6 @@ export function calculateInheritanceInternal(
   let traditionalBase = inheritanceResults.filter(r => !r.isBlocked && r.shareFraction.compare(0) > 0)
     .reduce((acc, r) => lcm(acc, Number(r.shareFraction.d)), 1);
   
-  // حفظ القاعدة الأصلية قبل العول لاستخدامها في تصحيح المسألة (tasHih)
-  const originalBase = traditionalBase;
-  // حفظ الكسور الأصلية قبل تعديلها في العول لاستخدامها في تصحيح المسألة
-  const originalFractions = new Map<string, Fraction>(inheritanceResults.map(r => [r.heirId, new Fraction(r.shareFraction)]));
-  
   const totalShares = inheritanceResults.reduce((sum, r) => sum.add(r.isBlocked ? new Fraction(0) : r.shareFraction), new Fraction(0));
   
   let calcType: 'normal' | 'awl' | 'radd' = 'normal';
