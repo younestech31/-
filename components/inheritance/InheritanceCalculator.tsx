@@ -153,32 +153,32 @@ export default function InheritanceCalculator() {
       {/* Sticky Top Bar and Mobile Navigation Wrapper */}
       <div className="sticky top-0 z-30 flex flex-col shrink-0 no-print shadow-sm md:shadow-none bg-[#f8f9fa]">
         {/* Header */}
-        <div className="bg-[#1F3D2E] text-white px-3 md:px-8 py-2 md:py-2.5 flex flex-col md:flex-row justify-between items-center border-b-4 border-[#B8894A] shrink-0 gap-2.5 md:gap-4 text-center md:text-right">
-          <div className="flex flex-row items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+        <div className="bg-[#1F3D2E] text-white px-3 md:px-6 py-1 flex flex-col md:flex-row justify-between items-center border-b-2 border-[#B8894A] shrink-0 gap-1.5 md:gap-3 text-center md:text-right">
+          <div className="flex flex-row items-center gap-2.5 w-full md:w-auto justify-between md:justify-start">
             <Link
               href={homeUrl}
-              className="flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-lg p-1.5 md:p-2 text-xs font-bold transition-all shadow-sm border border-white/5"
+              className="flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-md p-1 text-xs font-bold transition-all shadow-sm border border-white/5"
               title={homeLabel}
             >
-              <Home size={14} className="md:size-[15px]" />
+              <Home size={13} className="md:size-[14px]" />
             </Link>
-            <div className="text-right flex items-center gap-3">
+            <div className="text-right flex items-center gap-2.5">
               <div className="flex flex-col items-center md:items-start text-center md:text-right">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-1.5">
                   <Image
                     src="/logo/logo-horizontal-white.svg"
                     alt="مواريث"
-                    width={130}
-                    height={38}
-                    className="h-8 md:h-9 w-auto object-contain select-none pointer-events-none"
+                    width={64}
+                    height={18}
+                    className="h-3.5 md:h-4 w-auto object-contain select-none pointer-events-none"
                     style={{ width: 'auto', height: 'auto' }}
                     referrerPolicy="no-referrer"
                     priority
                     unoptimized
                   />
-                  <span className="bg-[#B8894A] text-white text-[9px] md:text-[10px] px-2 py-0.5 rounded font-bold tracking-wide shrink-0 self-center">حاسبة شرعية</span>
+                  <span className="bg-[#B8894A] text-white text-[7px] md:text-[8px] px-1 py-0.2 rounded font-bold tracking-wide shrink-0 self-center">حاسبة شرعية</span>
                 </div>
-                <p className="text-[9px] md:text-xs text-[#B6E0D1] opacity-90 mt-1 font-medium font-cairo">
+                <p className="text-[7px] md:text-[9px] text-[#B6E0D1] opacity-90 font-medium font-cairo">
                   {isFr ? 'Code de la Famille Algérien' : 'منصة رقمية مساعدة لتصفية التركات وقسمة المواريث'}
                 </p>
               </div>
