@@ -168,17 +168,16 @@ export default function InheritanceCalculator() {
                   <Image
                     src="/logo/logo-horizontal-white.svg"
                     alt="مواريث"
-                    width={64}
-                    height={18}
-                    className="h-3.5 md:h-4 w-auto object-contain select-none pointer-events-none"
-                    style={{ width: 'auto', height: 'auto' }}
+                    width={180}
+                    height={50}
+                    className="h-8 md:h-11 w-auto max-w-[160px] md:max-w-[220px] object-contain select-none pointer-events-none"
                     referrerPolicy="no-referrer"
                     priority
                     unoptimized
                   />
-                  <span className="bg-[#B8894A] text-white text-[7px] md:text-[8px] px-1 py-0.2 rounded font-bold tracking-wide shrink-0 self-center">حاسبة شرعية</span>
+                  <span className="bg-[#B8894A] text-white text-[10px] md:text-xs px-1.5 py-0.5 rounded font-bold tracking-wide shrink-0 self-center">حاسبة شرعية</span>
                 </div>
-                <p className="text-[7px] md:text-[9px] text-[#B6E0D1] opacity-90 font-medium font-cairo">
+                <p className="text-[11px] md:text-xs text-[#B6E0D1] opacity-90 font-medium font-cairo">
                   {isFr ? 'Code de la Famille Algérien' : 'منصة رقمية مساعدة لتصفية التركات وقسمة المواريث'}
                 </p>
               </div>
