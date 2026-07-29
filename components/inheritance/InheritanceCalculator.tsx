@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, FolderOpen, FilePlus, BookOpen, FileText, Table, FileSignature, FileDown, Home, Settings } from 'lucide-react';
-import Link from 'next/link';
+import { X, Save, FolderOpen, FilePlus, BookOpen, FileText, Table, FileSignature, FileDown, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useInheritanceState } from '@/lib/hooks/useInheritanceState';
@@ -54,8 +53,6 @@ export type { ClassicCase };
 export default function InheritanceCalculator() {
   const pathname = usePathname();
   const isFr = pathname ? pathname.startsWith('/fr') : false;
-  const homeUrl = isFr ? '/fr' : '/';
-  const homeLabel = isFr ? "Retour au site" : "العودة للموقع الرئيسي";
 
   const state = useInheritanceState();
 
