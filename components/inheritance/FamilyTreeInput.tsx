@@ -27,6 +27,8 @@ interface HeirInputNodeData {
   toggleHeir?: (id: string) => void;
   updateCount?: (id: string, count: number) => void;
   updateCustomName?: (id: string, index: number, name: string) => void;
+  updateMissingPersonStatus?: (id: string, status: 'none' | 'missing_presumed_alive') => void;
+  missingPersonStatus?: 'none' | 'missing_presumed_alive';
   isDeceased?: boolean;
   deceasedName?: string;
   deceasedGender?: 'male' | 'female' | null;
@@ -35,7 +37,7 @@ interface HeirInputNodeData {
 
 // --- Custom Node Component ---
 const HeirInputNode = ({ data }: NodeProps<Node<HeirInputNodeData>>) => {
-  const { heir, isPresent, count, customNames, toggleHeir, updateCount, updateCustomName, isDeceased, deceasedName, deceasedGender, exclusionReason } = data;
+  const { heir, isPresent, count, customNames, toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, missingPersonStatus, isDeceased, deceasedName, deceasedGender, exclusionReason } = data;
 
   // وارث مستبعد في مسألة ثانوية
   if (exclusionReason) {
