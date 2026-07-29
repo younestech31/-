@@ -16,17 +16,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OnboardingGuideProps {
   onOpenStateChange?: (isOpen: boolean) => void;
+  introContent?: React.ReactNode;
 }
 
 const steps = [
   {
     title: "مرحباً بك في حاسبة الميراث الرقمية المحترفة",
     spotlight: null,
-    body: `هذه الحاسبة المتطورة مُصممة خصيصاً لمكاتب التوثيق والقضاء في الجزائر لتصفية التركات وقسمة الفرائض والمواريث.
-    
-    تُطبّق المنظومة بدقة بالغة أحكام قانون الأسرة الجزائري (المواد 126 إلى 183 من الأمر رقم 84-11 المعدل والمتمم) وقواعد الفقه المالكي المعمول بها في المحاكم الجزائرية.
-    
-    🔒 أمان وخصوصية مطلقة: تتم جميع العمليات الحسابية والمعالجة داخل متصفحك بالكامل (Client-side)، مما يضمن عدم خروج أي أسماء أو تركات مالية حساسة خارج حاسوب المكتب.`,
+    body: `🔒 أمان وخصوصية مطلقة: تتم جميع العمليات الحسابية والمعالجة داخل متصفحك بالكامل (Client-side)، مما يضمن عدم خروج أي أسماء أو تركات مالية حساسة خارج حاسوب المكتب.`,
     showBadges: true,
   },
   {
@@ -149,7 +146,7 @@ const steps = [
 
 const TOTAL_STEPS = steps.length;
 
-export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuideProps) {
+export default function OnboardingGuide({ onOpenStateChange, introContent }: OnboardingGuideProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
@@ -629,7 +626,7 @@ export default function OnboardingGuide({ onOpenStateChange }: OnboardingGuidePr
                   </h3>
 
                   <div className="space-y-1 text-[#334155]">
-                    {renderBodyText(steps[currentStep].body)}
+                    {currentStep === 0 && introContent ? introContent : renderBodyText(steps[currentStep].body)}
                   </div>
 
                   {/* Badge Area for Step 1 */}

@@ -1,12 +1,36 @@
 import { Suspense } from 'react';
 import InheritanceCalculator from '@/components/inheritance/InheritanceCalculator';
+import ClassicCasesIntroContent from '@/components/inheritance/content/ClassicCasesIntroContent';
+import MinbariyyaExplainer from '@/components/inheritance/content/MinbariyyaExplainer';
+import AkdariyyaExplainer from '@/components/inheritance/content/AkdariyyaExplainer';
+import MubahalaExplainer from '@/components/inheritance/content/MubahalaExplainer';
+import GharawainExplainer from '@/components/inheritance/content/GharawainExplainer';
+import MusharrakahExplainer from '@/components/inheritance/content/MusharrakahExplainer';
+import OnboardingGuideIntroContent from '@/components/inheritance/content/OnboardingGuideIntroContent';
 
 export default function Home() {
+  const classicCasesExplainers = {
+    minbariyya: <MinbariyyaExplainer />,
+    mubahalah: <MubahalaExplainer />,
+    akdariyya: <AkdariyyaExplainer />,
+    'gharawain-husband': <GharawainExplainer />,
+    'gharawain-wife': <GharawainExplainer />,
+    musharrakah: <MusharrakahExplainer />,
+    marwaniyyah: <MubahalaExplainer />,
+    kharqaa: <AkdariyyaExplainer />,
+    dinariyyah: <MinbariyyaExplainer />,
+    yatimah: <AkdariyyaExplainer />
+  };
+
   return (
     <>
       {/* Client Component whose initial HTML markup is server-rendered by Next.js before hydration */}
       <Suspense fallback={<div className="min-h-screen bg-[#f8f9fa]" />}>
-        <InheritanceCalculator />
+        <InheritanceCalculator 
+          classicCasesIntroContent={<ClassicCasesIntroContent />}
+          classicCasesExplainers={classicCasesExplainers}
+          onboardingIntroContent={<OnboardingGuideIntroContent />}
+        />
       </Suspense>
 
       {/* SEO & Search Engine Indexing Fallback (No-JS / Server Crawlers) */}

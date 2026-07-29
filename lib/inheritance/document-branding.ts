@@ -67,15 +67,13 @@ export const EXPORT_FONT_FAMILY = 'Amiri';
 
 // Shared office & legal content
 export const EXPORT_OFFICE_INFO = {
-  notaryNameAr: OFFICE_INFO.notaryFullName.ar,
-  notaryNameFr: OFFICE_INFO.notaryFullName.fr,
+  notaryNameAr: OFFICE_INFO.notaryFullName,
   addressAr: 'حي العقيد لطفي، وهران',
-  addressFr: "Cité Akid Lotfi, Oran",
   phone: OFFICE_INFO.phone.display,
   email: OFFICE_INFO.email,
-  officialDesignationAr: OFFICE_INFO.officialDesignation.ar,
-  titleAr: OFFICE_INFO.title.ar,
-  legalBasisAr: OFFICE_INFO.legalBasis.ar,
+  officialDesignationAr: OFFICE_INFO.officialDesignation,
+  titleAr: OFFICE_INFO.title,
+  legalBasisAr: OFFICE_INFO.legalBasis,
   
   disclaimerTitleAr: 'تنبيه وإخلاء مسؤولية قانونية رسمية (منصة رقمية مساعدة وليست وسيلة إعلان):',
   disclaimerTextAr: 'إن العملية الحسابية والوثيقة المرفقة هي تصفية آلية استرشادية تقنية بحتة تم إعدادها لتوفير التسهيل والتدقيق النظري المسبق ولا يعتبر هذا الموقع أو مستخرجاته وسيلة دعاية أو إشهار بأي شكل من الأشكال. كما لا يمكن بأي حال من الأحوال أن تحل هذه الحاسبة محل الفريضة الشرعية الأصلية الموثقة رسمياً تحت مسؤولية الموثق لدى المحاكم والمجالس القضائية.',

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { X, Save, FolderOpen, FilePlus, BookOpen, FileText, Table, FileSignature, FileDown, Settings } from 'lucide-react';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 import { useInheritanceState } from '@/lib/hooks/useInheritanceState';
 import { HEIRS } from '@/data/heirs';
 import EstatePanel    from './EstatePanel';
@@ -53,10 +52,17 @@ export interface SavedCase {
 import { ClassicCase } from '@/data/classic-cases';
 export type { ClassicCase };
 
-export default function InheritanceCalculator() {
-  const pathname = usePathname();
-  const isFr = pathname ? pathname.startsWith('/fr') : false;
+export interface InheritanceCalculatorProps {
+  classicCasesIntroContent?: React.ReactNode;
+  classicCasesExplainers?: Record<string, React.ReactNode>;
+  onboardingIntroContent?: React.ReactNode;
+}
 
+export default function InheritanceCalculator({
+  classicCasesIntroContent,
+  classicCasesExplainers,
+  onboardingIntroContent
+}: InheritanceCalculatorProps) {
   const state = useInheritanceState();
 
   const [mobileTab, setMobileTab] = useState<'estate' | 'heirs' | 'results'>('heirs');
@@ -186,7 +192,7 @@ export default function InheritanceCalculator() {
                   <span className="bg-[#B8894A] text-white text-[10px] md:text-xs px-1.5 py-0.5 rounded font-bold tracking-wide shrink-0 self-center">حاسبة شرعية</span>
                 </div>
                 <p className="text-[11px] md:text-xs text-[#B6E0D1] opacity-90 font-medium font-cairo">
-                  {isFr ? 'Code de la Famille Algérien' : 'منصة رقمية مساعدة لتصفية التركات وقسمة المواريث'}
+                  منصة رقمية مساعدة لتصفية التركات وقسمة المواريث
                 </p>
               </div>
             </div>
@@ -315,7 +321,7 @@ export default function InheritanceCalculator() {
         </div>
 
       {/* Mobile Tab Navigation (stuck inside top bar wrapper so that it retains absolute positioning perfectly relative to header) */}
-      <div className="lg:hidden shrink-0 px-4 pt-3 pb-1 flex gap-2 bg-[#f8f9fa] border-b border-[#e2e8f0] no-print" dir={isFr ? 'ltr' : 'rtl'}>
+      <div className="lg:hidden shrink-0 px-4 pt-3 pb-1 flex gap-2 bg-[#f8f9fa] border-b border-[#e2e8f0] no-print" dir="rtl">
         <button
           onClick={() => {
             setMobileTab('estate');
@@ -328,7 +334,7 @@ export default function InheritanceCalculator() {
           }`}
         >
           <span className="w-4 h-4 rounded-full bg-black/10 flex items-center justify-center text-[10px] shrink-0">1</span>
-          <span className="truncate">{isFr ? 'Succession' : 'التركة'}</span>
+          <span className="truncate">التركة</span>
         </button>
         <button
           onClick={() => {
@@ -342,7 +348,7 @@ export default function InheritanceCalculator() {
           }`}
         >
           <span className="w-4 h-4 rounded-full bg-black/10 flex items-center justify-center text-[10px] shrink-0">2</span>
-          <span className="truncate">{isFr ? 'Héritiers' : 'الورثة'}</span>
+          <span className="truncate">الورثة</span>
         </button>
         <button
           onClick={() => {
@@ -356,7 +362,7 @@ export default function InheritanceCalculator() {
           }`}
         >
           <span className="w-4 h-4 rounded-full bg-black/10 flex items-center justify-center text-[10px] shrink-0">3</span>
-          <span className="truncate">{isFr ? 'Résultats' : 'النتائج'}</span>
+          <span className="truncate">النتائج</span>
         </button>
       </div>
       </div>
@@ -380,7 +386,13 @@ export default function InheritanceCalculator() {
       </div>
 
       <div className="shrink-0">
-        <ClassicCasesModal isOpen={isClassicCasesModalOpen} onClose={() => setIsClassicCasesModalOpen(false)} loadClassicCase={loadClassicCase} />
+        <ClassicCasesModal 
+          isOpen={isClassicCasesModalOpen} 
+          onClose={() => setIsClassicCasesModalOpen(false)} 
+          loadClassicCase={loadClassicCase} 
+          introContent={classicCasesIntroContent}
+          explainers={classicCasesExplainers}
+        />
       </div>
 
       {estate < 0 ? (
@@ -393,7 +405,7 @@ export default function InheritanceCalculator() {
         </div>
       ) : (
         <>
-          <OnboardingGuide />
+          <OnboardingGuide introContent={onboardingIntroContent} />
           <div className={`grid grid-cols-1 gap-4 p-4 flex-grow min-h-0 lg:h-0 transition-all duration-300 ${isEstatePanelOpen ? 'lg:grid-cols-[260px_1fr_1fr] lg:grid-rows-1' : 'lg:grid-cols-[1fr_1fr] lg:grid-rows-[auto_1fr]'}`}>
 
           <EstatePanel

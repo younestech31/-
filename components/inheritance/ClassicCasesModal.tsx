@@ -7,12 +7,16 @@ interface ClassicCasesModalProps {
   isOpen: boolean;
   onClose: () => void;
   loadClassicCase: (c: ClassicCase) => void;
+  introContent?: React.ReactNode;
+  explainers?: Record<string, React.ReactNode>;
 }
 
 export default function ClassicCasesModal({
   isOpen,
   onClose,
-  loadClassicCase
+  loadClassicCase,
+  introContent,
+  explainers
 }: ClassicCasesModalProps) {
   if (!isOpen) return null;
 
@@ -30,9 +34,7 @@ export default function ClassicCasesModal({
               </button>
           </div>
           <div className="p-5 overflow-y-auto space-y-3">
-             <p className="text-xs text-[#64748b] leading-relaxed mb-1">
-               اختر إحدى المسائل التراثية الكلاسيكية الشهيرة في علم المواريث (مثل المنبرية أو الأكدرية) لتلقين حاسبتنا الورثة والنسب المناسبة تلقائياً بناءً على فقه التشريع المنظم:
-             </p>
+             {introContent}
              {CLASSIC_CASES.map((c, i) => (
                  <button 
                      key={i} 
@@ -47,10 +49,12 @@ export default function ClassicCasesModal({
                              </span>
                          )}
                      </div>
-                     {c.descriptionAr && (
-                         <div className="text-[11px] text-[#64748b] mt-1.5 leading-relaxed">
-                             {c.descriptionAr}
-                         </div>
+                     {explainers && explainers[c.id] ? explainers[c.id] : (
+                         c.descriptionAr && (
+                             <div className="text-[11px] text-[#64748b] mt-1.5 leading-relaxed">
+                                 {c.descriptionAr}
+                             </div>
+                         )
                      )}
                  </button>
              ))}

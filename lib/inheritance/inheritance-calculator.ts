@@ -6,6 +6,25 @@ import { AWL_RADD_RULES } from '@/data/awl-radd';
 import { INHERITANCE_BARS } from '@/data/inheritance-bars';
 import Fraction from 'fraction.js';
 
+/**
+ * INTERPRETIVE LEGAL DECISIONS & NOTARIAL STANDARDS (Algerian Family Code & Maliki Jurisprudence)
+ * 
+ * 1. IMPEDED_SIBLINGS_COUNT_TOWARDS_MOTHER_REDUCTION (Arts. 135, 138, 148, 160):
+ *    Under Algerian Notarial Law and Maliki jurisprudence ("الممنوع كالمعدوم"), a sibling who is legally impeded from inheriting
+ *    (e.g., due to homicide, false testimony, concealed murder, lian, or apostasy under Arts. 135/138) is treated as non-existent.
+ *    Therefore, impeded siblings do NOT count toward the two-sibling threshold that reduces the mother's Quranic share from
+ *    1/3 to 1/6 under Article 148.
+ */
+export const IMPEDED_SIBLINGS_COUNT_TOWARDS_MOTHER_REDUCTION = false;
+
+/**
+ * 2. AKDARIYYA_EXTENDS_TO_PATERNAL_SISTER (Art. 175):
+ *    In Algerian legal practice and Maliki jurisprudence, if no full sister exists in an Akdariyya scenario (Husband, Mother,
+ *    Grandfather, Sister), a single paternal sister takes the place of the full sister and receives the same Akdariyya division
+ *    (9/27, 6/27, 8/27, 4/27).
+ */
+export const AKDARIYYA_EXTENDS_TO_PATERNAL_SISTER = true;
+
 export interface HeirPresence {
   heirId: string;
   count: number;
@@ -258,13 +277,17 @@ export function calculateInheritanceInternal(
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn' = 'stillborn',
   hasUnbornHeir: boolean = false
 ): CalculationResult[] {
-  // 1. Calculate net estate
-  const netEstateBase = estate - debts - funeralCosts;
-  let netEstate = netEstateBase;
+  // 1. Calculate net estate via Fraction arithmetic
+  const estateFrac = new Fraction(estate);
+  const debtsFrac = new Fraction(debts);
+  const funeralCostsFrac = new Fraction(funeralCosts);
+  const bequestFrac = new Fraction(bequest);
+  const netEstateBaseFrac = estateFrac.sub(debtsFrac).sub(funeralCostsFrac);
+  let netEstateFrac = netEstateBaseFrac;
   const skipInSiblingSection = new Set<string>();
 
   // --- Al-Haml (Articles 173-174) Handling ---
-  let unbornWithholdingAmount = 0;
+  let unbornWithholdingAmountFrac = new Fraction(0);
   let unbornWithholdingReason = '';
   let unbornWithholdingFraction = new Fraction(0);
 
@@ -316,10 +339,10 @@ export function calculateInheritanceInternal(
       }
 
       if (hasFullBlock) {
-        unbornWithholdingAmount = netEstate;
+        unbornWithholdingAmountFrac = netEstateFrac;
         unbornWithholdingFraction = new Fraction(1);
         unbornWithholdingReason = 'توقف التركة بالكامل لترتب حجب حرمان كلي على بعض الورثة في حال وجود الحمل — م.173';
-        netEstate = 0;
+        netEstateFrac = new Fraction(0);
       } else {
         const sonUnbornRes = sonResults.find(r => r.heirId === 'son');
         const daughterUnbornRes = daughterResults.find(r => r.heirId === 'daughter');
@@ -327,18 +350,18 @@ export function calculateInheritanceInternal(
         const daughterShareFrac = daughterUnbornRes ? daughterUnbornRes.shareFraction.div(daughterUnbornRes.count || 1) : new Fraction(0);
         
         unbornWithholdingFraction = sonShareFrac.compare(daughterShareFrac) > 0 ? sonShareFrac : daughterShareFrac;
-        unbornWithholdingAmount = netEstate * unbornWithholdingFraction.valueOf();
+        unbornWithholdingAmountFrac = netEstateFrac.mul(unbornWithholdingFraction);
         unbornWithholdingReason = 'موقوف للحمل (الأكبر من نصيب ابن أو بنت) لحجب النقصان — م.173';
-        netEstate = Math.max(0, netEstate - unbornWithholdingAmount);
+        const subUnborn = netEstateFrac.sub(unbornWithholdingAmountFrac);
+        netEstateFrac = subUnborn.compare(0) > 0 ? subUnborn : new Fraction(0);
       }
     }
   }
   
   // 2. Calculate Mandatory Bequest (الوصية الواجبة / التنزيل) - Articles 169-172
-  let mandatoryBequestAmount = 0;
+  let mandatoryBequestAmountFrac = new Fraction(0);
   const validDeceasedChildren = deceasedChildren.filter(dc => dc.count > 0);
   if (hasMandatoryBequest && validDeceasedChildren.length > 0) {
-    // Art. 171 'not_heir': skip if hasOwnChildrenWhoAreAlsoDirectHeirs
     const eligibleDeceasedChildren = validDeceasedChildren.filter(dc => !(dc as DeceasedChildGroup).hasOwnChildrenWhoAreAlsoDirectHeirs);
 
     if (eligibleDeceasedChildren.length > 0) {
@@ -358,34 +381,40 @@ export function calculateInheritanceInternal(
       eligibleDeceasedChildren.forEach(dc => {
         const result = shadowResults.find(r => r.heirId === dc.type);
         if (result) {
-          const totalForType = result.amount;
+          const totalForTypeFrac = result.shareFraction.mul(netEstateBaseFrac);
           const shadowHeirEntry = shadowHeirs.find(h => h.heirId === dc.type);
           const totalCountForType = shadowHeirEntry?.count || 1;
-          const perPerson = totalForType / totalCountForType;
-          let entitlement = perPerson * dc.count;
+          const perPersonFrac = totalForTypeFrac.div(totalCountForType);
+          let entitlementFrac = perPersonFrac.mul(dc.count);
 
-          // Art. 171 'not_bequeathed': prior gift or bequest amount
           const group = dc as DeceasedChildGroup;
           if (group.priorGiftOrBequestAmount && group.priorGiftOrBequestAmount > 0) {
-            entitlement = Math.max(0, entitlement - group.priorGiftOrBequestAmount);
+            const priorFrac = new Fraction(group.priorGiftOrBequestAmount);
+            const subPrior = entitlementFrac.sub(priorFrac);
+            entitlementFrac = subPrior.compare(0) > 0 ? subPrior : new Fraction(0);
           }
 
-          mandatoryBequestAmount += entitlement;
+          mandatoryBequestAmountFrac = mandatoryBequestAmountFrac.add(entitlementFrac);
         }
       });
     }
 
-    // Limit to 1/3 of net estate
-    const maxMandatory = netEstateBase / 3;
-    mandatoryBequestAmount = Math.min(mandatoryBequestAmount, maxMandatory);
-    netEstate -= mandatoryBequestAmount;
+    const maxMandatoryFrac = netEstateBaseFrac.div(3);
+    mandatoryBequestAmountFrac = mandatoryBequestAmountFrac.compare(maxMandatoryFrac) < 0 ? mandatoryBequestAmountFrac : maxMandatoryFrac;
+    netEstateFrac = netEstateFrac.sub(mandatoryBequestAmountFrac);
   }
 
   // 3. Bequest cannot exceed 1/3 of estate minus mandatory bequest
-  const remainingThird = (netEstateBase / 3) - mandatoryBequestAmount;
-  const maxBequest = Math.max(0, remainingThird);
-  const actualBequest = Math.min(bequest, maxBequest);
-  netEstate = Math.max(0, netEstate - actualBequest);
+  const remainingThirdFrac = netEstateBaseFrac.div(3).sub(mandatoryBequestAmountFrac);
+  const maxBequestFrac = remainingThirdFrac.compare(0) > 0 ? remainingThirdFrac : new Fraction(0);
+  const actualBequestFrac = bequestFrac.compare(maxBequestFrac) < 0 ? bequestFrac : maxBequestFrac;
+  const subBeq = netEstateFrac.sub(actualBequestFrac);
+  netEstateFrac = subBeq.compare(0) > 0 ? subBeq : new Fraction(0);
+
+  const netEstate = netEstateFrac.valueOf();
+  const unbornWithholdingAmount = unbornWithholdingAmountFrac.valueOf();
+  const mandatoryBequestAmount = mandatoryBequestAmountFrac.valueOf();
+  const actualBequest = actualBequestFrac.valueOf();
 
   const results: CalculationResult[] = [];
 
@@ -452,7 +481,24 @@ export function calculateInheritanceInternal(
   // 'Involuntary killer' (م.137) inherits only from property, not indemnity. 
   // It is handled by not impeding them here, but the UI/calculation should reflect this limitation if needed.
   // We treat them as present, and they will receive their share based on the netEstate.
-  if (presentHeirs.length === 0) return results;
+  if (presentHeirs.length === 0) {
+    if (!results.some(r => r.heirId === 'treasury')) {
+      results.push({
+        heirId: 'treasury',
+        nameAr: 'بيت المال / الباقي',
+        share: 'الباقي',
+        shareDecimal: 1,
+        shareFraction: new Fraction(1),
+        shares: 0,
+        problemBase: 0,
+        amount: netEstate,
+        isBlocked: false,
+        reason: 'لعدم وجود مستحق للرد أو عصبة — م.180',
+        count: 1
+      });
+    }
+    return results;
+  }
 
   const has = (id: string) => presentHeirs.some(h => h.heirId === id);
   const getCount = (id: string) => presentHeirs.find(h => h.heirId === id)?.count || 0;
@@ -527,7 +573,8 @@ export function calculateInheritanceInternal(
                      getCount('paternal_brother') === 0 && getCount('paternal_sister') === 0 && 
                      getCount('maternal_siblings') === 0 && !hasFather;
 
-  const isAkdariyaPaternalSister = hasHusband && hasMother && hasGrandfather && getCount('paternal_sister') === 1 &&
+  const isAkdariyaPaternalSister = AKDARIYYA_EXTENDS_TO_PATERNAL_SISTER &&
+                                   hasHusband && hasMother && hasGrandfather && getCount('paternal_sister') === 1 &&
                                    !hasChildren && getCount('full_sister') === 0 && getCount('full_brother') === 0 &&
                                    getCount('paternal_brother') === 0 && getCount('maternal_siblings') === 0 && !hasFather;
 
@@ -962,7 +1009,7 @@ export function calculateInheritanceInternal(
       r => r.heirId === 'full_sister' && r.reason.includes('تعصيباً')
     );
 
-    if (has('paternal_brother') || has('paternal_sister')) {
+    if ((has('paternal_brother') || has('paternal_sister')) && !isAnyAkdariya) {
       const pbBlocking = checkBlocking('paternal_brother');
       const psBlocking = checkBlocking('paternal_sister');
 
