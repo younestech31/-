@@ -155,13 +155,7 @@ export default function InheritanceCalculator() {
         {/* Header */}
         <div className="bg-[#1F3D2E] text-white px-3 md:px-6 py-1 flex flex-col md:flex-row justify-between items-center border-b-2 border-[#B8894A] shrink-0 gap-1.5 md:gap-3 text-center md:text-right">
           <div className="flex flex-row items-center gap-2.5 w-full md:w-auto justify-between md:justify-start">
-            <Link
-              href={homeUrl}
-              className="flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-md p-1 text-xs font-bold transition-all shadow-sm border border-white/5"
-              title={homeLabel}
-            >
-              <Home size={13} className="md:size-[14px]" />
-            </Link>
+
             <div className="text-right flex items-center gap-2.5">
               <div className="flex flex-col items-center md:items-start text-center md:text-right">
                 <div className="flex items-center gap-1.5">

@@ -46,6 +46,13 @@ export interface CalculationResult {
   individuals?: IndividualResult[]; // Individual results for each of the count heirs
 }
 
+export interface DeceasedChildGroup {
+  type: 'son' | 'daughter';
+  count: number;
+  hasOwnChildrenWhoAreAlsoDirectHeirs?: boolean; // Art. 171 not_heir
+  priorGiftOrBequestAmount?: number; // Art. 171 not_bequeathed
+}
+
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 const lcm = (a: number, b: number): number => Math.abs((a / gcd(a, b)) * b);
 
@@ -56,7 +63,9 @@ export function calculateInheritance(
   funeralCosts: number,
   bequest: number,
   hasMandatoryBequest: boolean = false,
-  deceasedChildren: { type: 'son' | 'daughter', count: number }[] = []
+  deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[] = [],
+  unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn' = 'stillborn',
+  hasUnbornHeir: boolean = false
 ): CalculationResult[] {
   // Pre-process: Map original heirs to active heirs with counts matching non-impeded individuals
   const activeHeirs = heirs.map(h => {
@@ -82,7 +91,9 @@ export function calculateInheritance(
     funeralCosts,
     bequest,
     hasMandatoryBequest,
-    deceasedChildren
+    deceasedChildren,
+    unbornOutcome,
+    hasUnbornHeir
   );
 
   // Post-process: Merge internal results back to construct individual levels
@@ -229,43 +240,126 @@ export function calculateInheritanceInternal(
   funeralCosts: number,
   bequest: number,
   hasMandatoryBequest: boolean = false,
-  deceasedChildren: { type: 'son' | 'daughter', count: number }[] = []
+  deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[] = [],
+  unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn' = 'stillborn',
+  hasUnbornHeir: boolean = false
 ): CalculationResult[] {
   // 1. Calculate net estate
   const netEstateBase = estate - debts - funeralCosts;
   let netEstate = netEstateBase;
   const skipInSiblingSection = new Set<string>();
+
+  // --- Al-Haml (Articles 173-174) Handling ---
+  let unbornWithholdingAmount = 0;
+  let unbornWithholdingReason = '';
+  let unbornWithholdingFraction = new Fraction(0);
+
+  if (hasUnbornHeir) {
+    if (unbornOutcome === 'born_male') {
+      const existingSon = heirs.find(h => h.heirId === 'son');
+      if (existingSon) {
+        existingSon.count += 1;
+        existingSon.isPresent = true;
+      } else {
+        heirs.push({ heirId: 'son', count: 1, isPresent: true });
+      }
+    } else if (unbornOutcome === 'born_female') {
+      const existingDaughter = heirs.find(h => h.heirId === 'daughter');
+      if (existingDaughter) {
+        existingDaughter.count += 1;
+        existingDaughter.isPresent = true;
+      } else {
+        heirs.push({ heirId: 'daughter', count: 1, isPresent: true });
+      }
+    } else if (unbornOutcome === 'pending') {
+      const normalResults = calculateInheritance(
+        heirs.map(h => ({ ...h })),
+        estate, debts, funeralCosts, bequest, hasMandatoryBequest, deceasedChildren, 'stillborn', false
+      );
+
+      const sonHeirs = heirs.map(h => ({ ...h }));
+      const sExist = sonHeirs.find(h => h.heirId === 'son');
+      if (sExist) { sExist.count += 1; sExist.isPresent = true; }
+      else { sonHeirs.push({ heirId: 'son', count: 1, isPresent: true }); }
+      const sonResults = calculateInheritance(sonHeirs, estate, debts, funeralCosts, 0, false, deceasedChildren, 'stillborn', false);
+
+      const daughterHeirs = heirs.map(h => ({ ...h }));
+      const dExist = daughterHeirs.find(h => h.heirId === 'daughter');
+      if (dExist) { dExist.count += 1; dExist.isPresent = true; }
+      else { daughterHeirs.push({ heirId: 'daughter', count: 1, isPresent: true }); }
+      const daughterResults = calculateInheritance(daughterHeirs, estate, debts, funeralCosts, 0, false, deceasedChildren, 'stillborn', false);
+
+      let hasFullBlock = false;
+      for (const nr of normalResults) {
+        if (nr.amount > 0 && !['mandatory_bequest', 'voluntary_bequest'].includes(nr.heirId)) {
+          const sr = sonResults.find(r => r.heirId === nr.heirId);
+          const dr = daughterResults.find(r => r.heirId === nr.heirId);
+          if ((sr && (sr.isBlocked || sr.amount === 0)) || (dr && (dr.isBlocked || dr.amount === 0))) {
+            hasFullBlock = true;
+            break;
+          }
+        }
+      }
+
+      if (hasFullBlock) {
+        unbornWithholdingAmount = netEstate;
+        unbornWithholdingFraction = new Fraction(1);
+        unbornWithholdingReason = 'توقف التركة بالكامل لترتب حجب حرمان كلي على بعض الورثة في حال وجود الحمل — م.173';
+        netEstate = 0;
+      } else {
+        const sonUnbornRes = sonResults.find(r => r.heirId === 'son');
+        const daughterUnbornRes = daughterResults.find(r => r.heirId === 'daughter');
+        const sonShareFrac = sonUnbornRes ? sonUnbornRes.shareFraction.div(sonUnbornRes.count || 1) : new Fraction(0);
+        const daughterShareFrac = daughterUnbornRes ? daughterUnbornRes.shareFraction.div(daughterUnbornRes.count || 1) : new Fraction(0);
+        
+        unbornWithholdingFraction = sonShareFrac.compare(daughterShareFrac) > 0 ? sonShareFrac : daughterShareFrac;
+        unbornWithholdingAmount = netEstate * unbornWithholdingFraction.valueOf();
+        unbornWithholdingReason = 'موقوف للحمل (الأكبر من نصيب ابن أو بنت) لحجب النقصان — م.173';
+        netEstate = Math.max(0, netEstate - unbornWithholdingAmount);
+      }
+    }
+  }
   
-  // 2. Calculate Mandatory Bequest (الوصية الواجبة / التنزيل)
+  // 2. Calculate Mandatory Bequest (الوصية الواجبة / التنزيل) - Articles 169-172
   let mandatoryBequestAmount = 0;
   const validDeceasedChildren = deceasedChildren.filter(dc => dc.count > 0);
   if (hasMandatoryBequest && validDeceasedChildren.length > 0) {
-    // Run shadow calculation using the full net estate for fair share determination
-    const shadowHeirs = heirs.map(h => ({ ...h }));
-    validDeceasedChildren.forEach(dc => {
-      const existing = shadowHeirs.find(h => h.heirId === dc.type);
-      if (existing) {
-        existing.count += dc.count;
-        existing.isPresent = true;
-      } else {
-        shadowHeirs.push({ heirId: dc.type, count: dc.count, isPresent: true });
-      }
-    });
-    
-    const shadowResults = calculateInheritance(shadowHeirs, estate, debts, funeralCosts, 0, false, []);
-    
-    validDeceasedChildren.forEach(dc => {
-      const result = shadowResults.find(r => r.heirId === dc.type);
-      if (result) {
-        const totalForType = result.amount;
-        // استخدام العدد الإجمالي في shadow (أحياء + متوفين) لتقسيم النصيب بعدل
-        const shadowHeirEntry = shadowHeirs.find(h => h.heirId === dc.type);
-        const totalCountForType = shadowHeirEntry?.count || 1;
-        // نصيب الأحفاد فقط (المتوفين) دون الأحياء
-        const perPerson = totalForType / totalCountForType;
-        mandatoryBequestAmount += perPerson * dc.count;
-      }
-    });
+    // Art. 171 'not_heir': skip if hasOwnChildrenWhoAreAlsoDirectHeirs
+    const eligibleDeceasedChildren = validDeceasedChildren.filter(dc => !(dc as DeceasedChildGroup).hasOwnChildrenWhoAreAlsoDirectHeirs);
+
+    if (eligibleDeceasedChildren.length > 0) {
+      const shadowHeirs = heirs.map(h => ({ ...h }));
+      eligibleDeceasedChildren.forEach(dc => {
+        const existing = shadowHeirs.find(h => h.heirId === dc.type);
+        if (existing) {
+          existing.count += dc.count;
+          existing.isPresent = true;
+        } else {
+          shadowHeirs.push({ heirId: dc.type, count: dc.count, isPresent: true });
+        }
+      });
+      
+      const shadowResults = calculateInheritance(shadowHeirs, estate, debts, funeralCosts, 0, false, [], 'stillborn', false);
+      
+      eligibleDeceasedChildren.forEach(dc => {
+        const result = shadowResults.find(r => r.heirId === dc.type);
+        if (result) {
+          const totalForType = result.amount;
+          const shadowHeirEntry = shadowHeirs.find(h => h.heirId === dc.type);
+          const totalCountForType = shadowHeirEntry?.count || 1;
+          const perPerson = totalForType / totalCountForType;
+          let entitlement = perPerson * dc.count;
+
+          // Art. 171 'not_bequeathed': prior gift or bequest amount
+          const group = dc as DeceasedChildGroup;
+          if (group.priorGiftOrBequestAmount && group.priorGiftOrBequestAmount > 0) {
+            entitlement = Math.max(0, entitlement - group.priorGiftOrBequestAmount);
+          }
+
+          mandatoryBequestAmount += entitlement;
+        }
+      });
+    }
 
     // Limit to 1/3 of net estate
     const maxMandatory = netEstateBase / 3;
@@ -280,6 +374,26 @@ export function calculateInheritanceInternal(
   netEstate = Math.max(0, netEstate - actualBequest);
 
   const results: CalculationResult[] = [];
+
+  // Add Unborn Withholding to results if it exists
+  if (unbornWithholdingAmount > 0) {
+    const initialAvailable = estate - debts - funeralCosts;
+    const withholdFraction = initialAvailable > 0 ? new Fraction(unbornWithholdingAmount).div(initialAvailable) : unbornWithholdingFraction;
+    results.push({
+      heirId: 'unborn_withholding',
+      nameAr: 'نصيب الحمل الموقوف',
+      share: unbornWithholdingFraction.toFraction(true),
+      shareDecimal: withholdFraction.valueOf(),
+      shareFraction: withholdFraction,
+      shares: 0,
+      problemBase: 0,
+      amount: unbornWithholdingAmount,
+      reason: unbornWithholdingReason,
+      isBlocked: false,
+      article: 173,
+      count: 1
+    });
+  }
 
   // Add Mandatory Bequest to results if it exists
   if (mandatoryBequestAmount > 0) {
@@ -1106,6 +1220,20 @@ export function calculateInheritanceInternal(
     r.shares = Math.round(r.shareFraction.mul(finalBase).valueOf());
     r.calculationType = calcType;
   });
+
+  // Invariant: no heirId appears more than once in results
+  const seenHeirIds = new Set<string>();
+  for (const r of results) {
+    if (seenHeirIds.has(r.heirId)) {
+      const msg = `Invariant violation: heirId '${r.heirId}' appears multiple times in calculation results.`;
+      if (process.env.NODE_ENV === 'test' || process.env.NODE_ENV !== 'production') {
+        throw new Error(msg);
+      } else {
+        console.error(msg);
+      }
+    }
+    seenHeirIds.add(r.heirId);
+  }
 
   return results;
 }

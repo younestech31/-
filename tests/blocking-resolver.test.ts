@@ -43,6 +43,18 @@ describe('Blocking Resolver Tests (Hajb)', () => {
     expect(result.article).toBe(164);
   });
 
+  it('does NOT block paternal sister when two full sisters and paternal brother are present', () => {
+    const ctx: BlockingContext = {
+      has: (id: string) => id === 'full_sister' || id === 'paternal_brother',
+      getCount: (id: string) => (id === 'full_sister' ? 2 : 0),
+      hasDirectProgeny: false,
+      siblingsCount: 3,
+    };
+
+    const result = resolveBlocking('paternal_sister', ctx);
+    expect(result.isBlocked).toBe(false);
+  });
+
   it('blocks maternal siblings when direct progeny or father is present', () => {
     const ctx: BlockingContext = {
       has: (id: string) => id === 'father',

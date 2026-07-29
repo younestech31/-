@@ -65,10 +65,11 @@ export function resolveBlocking(heirId: string, ctx: BlockingContext): BlockingR
       // ذلك يعني: وجود أختين، عدم وجود الأخ الشقيق (لم تعصبا)، وعدم وجود حاجب أصلي (أب، ابن)
       const fullSistersCount = ctx.getCount('full_sister');
       const hasFullBrother = ctx.has('full_brother');
+      const hasPaternalBrother = ctx.has('paternal_brother');
       const hasSon = ctx.has('son');
       const hasFather = ctx.has('father');
       
-      isApplied = fullSistersCount >= 2 && !hasFullBrother && !hasSon && !hasFather;
+      isApplied = fullSistersCount >= 2 && !hasFullBrother && !hasPaternalBrother && !hasSon && !hasFather;
     } else if (rule.blocker === 'two_daughters') {
       isApplied = ctx.getCount('daughter') >= 2;
     } else {

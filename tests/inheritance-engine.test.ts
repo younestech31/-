@@ -98,6 +98,38 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
     expect(mandatoryBequest!.amount).toBeGreaterThan(0);
   });
 
+  it('Test 5b: Tanzeel Articles 171-172 prior gift offset and direct heirs skip', () => {
+    const presence: HeirPresence[] = [
+      { heirId: 'wife', count: 1, isPresent: true },
+    ];
+
+    // Case 1: with prior gift reduction
+    const results1 = calculateInheritance(
+      presence,
+      1200000,
+      0,
+      0,
+      0,
+      true,
+      [{ type: 'son', count: 1, priorGiftOrBequestAmount: 50000 }]
+    );
+    const mb1 = results1.find(r => r.heirId === 'mandatory_bequest');
+    expect(mb1).toBeDefined();
+
+    // Case 2: skipped because hasOwnChildrenWhoAreAlsoDirectHeirs is true
+    const results2 = calculateInheritance(
+      presence,
+      1200000,
+      0,
+      0,
+      0,
+      true,
+      [{ type: 'son', count: 1, hasOwnChildrenWhoAreAlsoDirectHeirs: true }]
+    );
+    const mb2 = results2.find(r => r.heirId === 'mandatory_bequest');
+    expect(mb2).toBeUndefined();
+  });
+
   it('Test 6: Multi-stage Munasakhat Stage Orchestration Parity', () => {
     const stages: MunasakhatStage[] = [
       {
