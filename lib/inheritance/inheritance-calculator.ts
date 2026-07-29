@@ -16,6 +16,7 @@ export interface HeirPresence {
   impedimentReasonId?: string;
   impededIndexes?: boolean[]; // State for individual impediments (index-based)
   impedimentReasonIds?: (string | undefined)[]; // State for individual impediment reasons
+  missingPersonStatus?: 'none' | 'missing_presumed_alive';
 }
 
 export interface IndividualResult {
@@ -44,6 +45,7 @@ export interface CalculationResult {
   blockedBy?: string;
   count: number;
   individuals?: IndividualResult[]; // Individual results for each of the count heirs
+  isWithheld?: boolean;
 }
 
 export interface DeceasedChildGroup {
@@ -210,6 +212,13 @@ export function calculateInheritance(
         ? `محروم: ${firstBar.nameAr} (المادة ${firstBar.article})`
         : 'ممنوع من الإرث لوجود مانع شرعي (المادتان 135 و138 من قانون الأسرة)';
 
+      const isMissing = h.missingPersonStatus === 'missing_presumed_alive';
+      const finalReason = isAllImpeded
+        ? defaultImpededReason
+        : isMissing && !groupIsBlocked
+          ? 'موقوف للمفقود تحت الحيازة بموجب المادة 133 من قانون الأسرة'
+          : (groupReason || (groupIsBlocked ? 'محجوب من الميراث لوجود من يحجبه' : ''));
+
       mergedResults.push({
         heirId: h.heirId,
         nameAr: heirInfo.nameAr,
@@ -220,12 +229,17 @@ export function calculateInheritance(
         problemBase: activeRes?.problemBase ?? blockedRes?.problemBase ?? 0,
         calculationType: activeRes?.calculationType ?? blockedRes?.calculationType,
         amount: groupAmount,
-        reason: isAllImpeded ? defaultImpededReason : (groupReason || (groupIsBlocked ? 'محجوب من الميراث لوجود من يحجبه' : '')),
-        article: isAllImpeded ? (firstBar ? firstBar.article : 135) : groupArticle,
-        notes: isAllImpeded ? (firstBar ? firstBar.description : 'موانع الإرث محددة بالمادتين 135 و138 من قانون الأسرة الجزائري. الوارث المحروم لوجود مانع شرعي يمنع من الإرث كلياً ولا يحجب غيره.') : undefined,
+        reason: finalReason,
+        article: isAllImpeded ? (firstBar ? firstBar.article : 135) : (isMissing && !groupIsBlocked ? 133 : groupArticle),
+        notes: isAllImpeded 
+          ? (firstBar ? firstBar.description : 'موانع الإرث محددة بالمادتين 135 و138 من قانون الأسرة الجزائري. الوارث المحروم لوجود مانع شرعي يمنع من الإرث كلياً ولا يحجب غيره.') 
+          : isMissing && !groupIsBlocked 
+            ? 'تنص المادة 133 من قانون الأسرة على أنه يوضع نصيب المفقود من التركة تحت الحيازة حتى يتبين أمره بصدور حكم بموته طبقاً للمادتين 113 و114.' 
+            : undefined,
         isBlocked: groupIsBlocked,
         count: h.count,
-        individuals
+        individuals,
+        isWithheld: isMissing && !groupIsBlocked,
       });
     }
   });
@@ -391,7 +405,8 @@ export function calculateInheritanceInternal(
       reason: unbornWithholdingReason,
       isBlocked: false,
       article: 173,
-      count: 1
+      count: 1,
+      isWithheld: true
     });
   }
 
@@ -448,8 +463,9 @@ export function calculateInheritanceInternal(
     if (!heirInfo) return;
     
     const count = getCount(id);
-    
-    results.push({
+    const existingIndex = results.findIndex(r => r.heirId === id);
+
+    const newResult: CalculationResult = {
       heirId: id,
       nameAr: heirInfo.nameAr,
       share: shareStr,
@@ -463,7 +479,18 @@ export function calculateInheritanceInternal(
       article: articleOverride || heirInfo.article,
       notes: heirInfo.notes,
       count
-    });
+    };
+
+    if (existingIndex !== -1) {
+      if (results[existingIndex].isBlocked && !isBlocked) {
+        results[existingIndex] = newResult;
+      } else if (!isBlocked) {
+        results[existingIndex] = newResult;
+      }
+      return;
+    }
+    
+    results.push(newResult);
   };
 
   // Basic flags

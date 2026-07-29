@@ -5,6 +5,7 @@
 import { CalculationResult } from './inheritance-calculator';
 import { MunasakhatStage } from '@/components/inheritance/InheritanceCalculator';
 import { StageResult } from '@/components/inheritance/ResultsTable';
+import Fraction from 'fraction.js';
 
 interface StageSummaryInput {
   stage: MunasakhatStage;
@@ -149,6 +150,26 @@ export function generateLegalSummary(
       const mbPctStr = mbPct > 0 ? (mbPct % 1 === 0 ? `${mbPct}%` : `${mbPct.toFixed(2)}%`) : '0%';
       lines.push(
         `وقد خُصِّص للتنزيل (الوصية الواجبة) طبقاً للمادتين 169-172 من قانون الأسرة بنسبة تعادل ${mbPctStr} (${mandatoryBequest.share}) قبل توزيع سائر التركة.`
+      );
+    }
+    lines.push('');
+  }
+
+  // التنبيه القضائي للمفقود (المادتان 113 و133)
+  const missingHeirsWithheld = results.filter(r => r.isWithheld && r.heirId !== 'unborn_withholding');
+  if (missingHeirsWithheld.length > 0) {
+    const missingNames = missingHeirsWithheld.map(r => `"${r.nameAr}"`).join(' و');
+    const missingWithheldAmount = missingHeirsWithheld.reduce((sum, r) => sum + r.amount, 0);
+    if (estate > 0) {
+      lines.push(
+        `تنبيه قضائي (المادتان 113 و133): نظراً لكون الوارث ${missingNames} مفقوداً، فقد تقرر وقف نصيبه من التركة وقدره إجمالاً ${formatAmount(missingWithheldAmount)}، ووضعه تحت الحيازة القانونية دون تصفية نهائية لصالح باقي الورثة لحين صدور حكم نهائي يثبت وفاته أو حياته.`
+      );
+    } else {
+      const totalFrac = missingHeirsWithheld.reduce((sum, r) => sum.add(r.shareFraction || new Fraction(0)), new Fraction(0));
+      const pct = totalFrac.valueOf() * 100;
+      const pctStr = pct > 0 ? (pct % 1 === 0 ? `${pct}%` : `${pct.toFixed(2)}%`) : '0%';
+      lines.push(
+        `تنبيه قضائي (المادتان 113 و133): نظراً لكون الوارث ${missingNames} مفقوداً، فقد تقرر وقف نصيبه من التركة بنسبة تعادل ${pctStr} (بمجموع سهمين/سهام)، ووضعه تحت الحيازة القانونية دون تصفية نهائية لصالح باقي الورثة لحين صدور حكم نهائي يثبت وفاته أو حياته.`
       );
     }
     lines.push('');

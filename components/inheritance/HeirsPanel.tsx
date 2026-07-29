@@ -13,6 +13,7 @@ interface HeirsPanelProps {
   toggleHeir: (heirId: string) => void;
   updateCount: (heirId: string, count: number) => void;
   updateCustomName: (heirId: string, index: number, name: string) => void;
+  updateMissingPersonStatus: (heirId: string, status: 'none' | 'missing_presumed_alive') => void;
   className?: string;
 }
 
@@ -25,6 +26,7 @@ const HeirsPanel = memo(function HeirsPanel({
   toggleHeir,
   updateCount,
   updateCustomName,
+  updateMissingPersonStatus,
   className,
 }: HeirsPanelProps) {
   return (
@@ -49,6 +51,7 @@ const HeirsPanel = memo(function HeirsPanel({
           toggleHeir={toggleHeir}
           updateCount={updateCount}
           updateCustomName={updateCustomName}
+          updateMissingPersonStatus={updateMissingPersonStatus}
           deceasedGender={currentStageIndex === 0 ? deceasedGender : currentGender}
           deceasedName={currentStage.deceasedName}
           parentHeirId={currentStageIndex > 0 ? currentStage.parentHeirId : undefined}

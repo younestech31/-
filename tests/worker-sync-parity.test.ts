@@ -69,4 +69,48 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
       expect(workerArgsOrchestrationResult).toEqual(directOrchestrationResult);
     }
   });
+
+  it('rejects malformed payloads and returns structured errors on safeParse failure', async () => {
+    const badPayloads = [
+      { id: 999 }, // missing args
+      { id: 102, args: [sampleStages, -100, 0, 0, 0] }, // negative estate
+      { id: 103, args: ["not an array", 100, 0, 0, 0] }, // wrong types
+      { id: 104, args: [sampleStages, 100, 0, 0] }, // missing arguments in tuple
+    ];
+
+    badPayloads.forEach(badPayload => {
+      const parsed = WorkerInputSchema.safeParse(badPayload);
+      expect(parsed.success).toBe(false);
+    });
+
+    // Mock globalThis.self to capture the message sent back by worker
+    const originalSelf = globalThis.self;
+    const messages: unknown[] = [];
+    const mockSelf = {
+      postMessage: (msg: unknown) => {
+        messages.push(msg);
+      },
+      onmessage: null as unknown
+    };
+    (globalThis as unknown as Record<string, unknown>).self = mockSelf as unknown as Window & typeof globalThis;
+
+    // Load the worker to run its registration
+    await import('../workers/inheritance.worker');
+
+    expect(mockSelf.onmessage).toBeTypeOf('function');
+
+    // Test rejection of malformed payload
+    const onMsgFn = mockSelf.onmessage as (e: MessageEvent) => void;
+    onMsgFn({ data: { id: 105, args: ["invalid"] } } as MessageEvent);
+    expect(messages.length).toBe(1);
+    
+    const responseMsg = messages[0] as Record<string, unknown>;
+    expect(responseMsg.id).toBe(105);
+    expect(responseMsg.error).toBe('invalid_worker_input');
+    expect(responseMsg.details).toBeDefined();
+
+    // Clean up
+    (globalThis as unknown as Record<string, unknown>).self = originalSelf;
+  });
 });
+

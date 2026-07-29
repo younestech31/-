@@ -26,6 +26,7 @@ import { generateFullLegalSummary } from '@/lib/inheritance/legal-summary';
 import { validateAllStages } from '@/lib/inheritance/munasakhat-resolver';
 import { usePdfExport } from '@/lib/hooks/usePdfExport';
 import { OfficeSettings, DEFAULT_OFFICE_SETTINGS } from '@/lib/inheritance/document-branding';
+import { encryptData, decryptData } from '@/lib/crypto';
 
 // ---------- Validation Schema ----------
 const SavedCaseSchema = z.object({
@@ -54,6 +55,7 @@ const SavedCaseSchema = z.object({
       impedimentReasonId: z.string().optional(),
       impededIndexes: z.array(z.boolean()).optional(),
       impedimentReasonIds: z.array(z.string().nullable().optional()).optional(),
+      missingPersonStatus: z.enum(['none', 'missing_presumed_alive']).optional(),
     })),
     deceasedSonsCount: z.number().optional(),
     deceasedDaughtersCount: z.number().optional(),
@@ -61,6 +63,8 @@ const SavedCaseSchema = z.object({
     debts: z.number().optional().default(0),
     funeralCosts: z.number().optional().default(0),
     bequest: z.number().optional().default(0),
+    secondDeceasedHasChildrenFromOtherUnion: z.boolean().optional().default(false),
+    acknowledgedExclusions: z.array(z.string()).optional().default([]),
   }))
 });
 
@@ -182,6 +186,21 @@ export function useInheritanceState() {
     toastTimerRef.current = setTimeout(() => setToast(null), 3500);
   }, []);
 
+  const persistCases = useCallback(async (cases: SavedCase[]) => {
+    if (typeof window !== 'undefined') {
+      try {
+        const plainText = JSON.stringify(cases);
+        const cipherText = await encryptData(plainText);
+        localStorage.setItem('savedInheritanceCases', cipherText);
+      } catch (e) {
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+          showToast('امتلأت مساحة التخزين الخاصة بالمتصفح. يرجى حذف بعض المسائل القديمة.', 'error');
+        }
+        throw e;
+      }
+    }
+  }, [showToast]);
+
   const saveOfficeSettings = useCallback((settings: OfficeSettings) => {
     setOfficeSettings(settings);
     if (typeof window !== 'undefined') {
@@ -207,24 +226,41 @@ export function useInheritanceState() {
     }
   }, [showToast]);
 
-  // ── Load saved cases from localStorage on mount ───────────────────────
+  // ── Load saved cases from localStorage on mount with Decryption ───────
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem('savedInheritanceCases');
-    if (!saved) return;
-    try {
-      const parsed: unknown = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.every(isSavedCase)) {
-        setSavedCases(parsed);
-      } else {
-        console.error('Invalid schema in localStorage savedCases');
-        setStorageError('تم اكتشاف خطأ في بيانات المسائل المحفوظة.');
+    const loadAndDecryptCases = async () => {
+      const saved = localStorage.getItem('savedInheritanceCases');
+      if (!saved) return;
+      
+      try {
+        let plainText = saved;
+        // Check if plain JSON or encrypted
+        if (!saved.trim().startsWith('[')) {
+          // It is encrypted GCM Base64! Decrypt it
+          plainText = await decryptData(saved);
+        }
+        
+        const parsed: unknown = JSON.parse(plainText);
+        if (Array.isArray(parsed) && parsed.every(isSavedCase)) {
+          setSavedCases(parsed);
+          
+          // If it was plain text, let's automatically upgrade/encrypt it now!
+          if (saved.trim().startsWith('[')) {
+            await persistCases(parsed);
+          }
+        } else {
+          console.error('Invalid schema in localStorage savedCases');
+          setStorageError('تم اكتشاف خطأ في بيانات المسائل المحفوظة.');
+        }
+      } catch (e) {
+        setStorageError('فشل في تحميل أو فك تشفير المسائل المحفوظة.');
+        console.error('Failed to parse saved cases', e);
       }
-    } catch (e) {
-      setStorageError('فشل في تحميل المسائل المحفوظة.');
-      console.error('Failed to parse saved cases', e);
-    }
-  }, []);
+    };
+    
+    loadAndDecryptCases();
+  }, [persistCases]);
 
   // ── Derived: current stage ─────────────────────────────────────────────
   const currentStage = munasakhatStages[currentStageIndex] ?? munasakhatStages[0];
@@ -608,6 +644,53 @@ export function useInheritanceState() {
     [currentStageIndex],
   );
 
+  const updateStageChildrenFromOtherUnion = useCallback(
+    (checked: boolean) => {
+      setMunasakhatStages(prev => {
+        const next = [...prev];
+        next[currentStageIndex] = { ...next[currentStageIndex], secondDeceasedHasChildrenFromOtherUnion: checked };
+        return next;
+      });
+    },
+    [currentStageIndex],
+  );
+
+  const acknowledgeStageExclusion = useCallback(
+    (heirId: string) => {
+      setMunasakhatStages(prev => {
+        const next = [...prev];
+        const current = next[currentStageIndex];
+        const currentAcknowledged = current.acknowledgedExclusions || [];
+        if (!currentAcknowledged.includes(heirId)) {
+          next[currentStageIndex] = {
+            ...current,
+            acknowledgedExclusions: [...currentAcknowledged, heirId],
+          };
+        }
+        return next;
+      });
+    },
+    [currentStageIndex],
+  );
+
+  const removeStageExclusionAcknowledgment = useCallback(
+    (heirId: string) => {
+      setMunasakhatStages(prev => {
+        const next = [...prev];
+        const current = next[currentStageIndex];
+        const currentAcknowledged = current.acknowledgedExclusions || [];
+        if (currentAcknowledged.includes(heirId)) {
+          next[currentStageIndex] = {
+            ...current,
+            acknowledgedExclusions: currentAcknowledged.filter(id => id !== heirId),
+          };
+        }
+        return next;
+      });
+    },
+    [currentStageIndex],
+  );
+
   // ══════════════════════════════════════════════════════════════════════
   //  Calculator reset
   // ══════════════════════════════════════════════════════════════════════
@@ -628,20 +711,7 @@ export function useInheritanceState() {
   //  Saved cases CRUD
   // ══════════════════════════════════════════════════════════════════════
 
-  const persistCases = useCallback((cases: SavedCase[]) => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('savedInheritanceCases', JSON.stringify(cases));
-      } catch (e) {
-        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-          showToast('امتلأت مساحة التخزين الخاصة بالمتصفح. يرجى حذف بعض المسائل القديمة.', 'error');
-        }
-        throw e;
-      }
-    }
-  }, [showToast]);
-
-  const saveCurrentCase = useCallback(() => {
+  const saveCurrentCase = useCallback(async () => {
     if (!saveName.trim()) return;
 
     if (savedCases.length >= 50) {
@@ -662,7 +732,7 @@ export function useInheritanceState() {
     };
     const updated = [newCase, ...savedCases];
     try {
-      persistCases(updated);
+      await persistCases(updated);
       setSavedCases(updated);
       setActiveCaseId(newCase.id);
       setIsSaveModalOpen(false);
@@ -674,7 +744,7 @@ export function useInheritanceState() {
     }
   }, [saveName, deceasedGender, estate, debts, funeralCosts, bequest, munasakhatStages, savedCases, showToast, persistCases]);
 
-  const updateSavedCase = useCallback(() => {
+  const updateSavedCase = useCallback(async () => {
     if (!activeCaseId) return;
     const updated = savedCases.map(c =>
       c.id === activeCaseId
@@ -682,7 +752,7 @@ export function useInheritanceState() {
         : c,
     );
     try {
-      persistCases(updated);
+      await persistCases(updated);
       setSavedCases(updated);
       setStorageError(null);
       showToast('تم تحديث المسألة بنجاح', 'success');
@@ -712,11 +782,11 @@ export function useInheritanceState() {
     setIsConfirmDeleteOpen(true);
   }, []);
 
-  const confirmDelete = useCallback(() => {
+  const confirmDelete = useCallback(async () => {
     if (!caseToDelete) return;
     const updated = savedCases.filter(c => c.id !== caseToDelete);
     setSavedCases(updated);
-    persistCases(updated);
+    await persistCases(updated);
     if (activeCaseId === caseToDelete) setActiveCaseId(null);
     setCaseToDelete(null);
     setIsConfirmDeleteOpen(false);
@@ -1017,6 +1087,9 @@ export function useInheritanceState() {
     updateStageMandatoryBequest,
     updateStageDeceasedChildren,
     updateStageFinancialField,
+    updateStageChildrenFromOtherUnion,
+    acknowledgeStageExclusion,
+    removeStageExclusionAcknowledgment,
     resetCalculator,
     saveCurrentCase,
     updateSavedCase,

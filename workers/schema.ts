@@ -10,6 +10,7 @@ export const HeirPresenceItemSchema = z.object({
   impededIndexes: z.array(z.boolean()).optional(),
   impedimentReasonIds: z.array(z.string().nullish()).optional(),
   customNames: z.array(z.string()).optional(),
+  missingPersonStatus: z.enum(['none', 'missing_presumed_alive']).optional(),
 }).passthrough();
 
 export const MunasakhatStageSchema = z.object({

@@ -22,6 +22,12 @@ const FamilyTree = dynamic(() => import('./FamilyTree/FamilyTree'), {
   ),
 });
 
+export interface ExcludedHeirWarning {
+  heirId: string;
+  heirNameAr: string;
+  reason: string;
+}
+
 export interface StageResult {
   stage: MunasakhatStage;
   results: CalculationResult[];
@@ -32,6 +38,7 @@ export interface StageResult {
     messageAr: string;
     redistributeTo?: CalculationResult[];
   } | null;
+  excludedHeirWarnings?: ExcludedHeirWarning[];
 }
 
 interface ResultsTableProps {

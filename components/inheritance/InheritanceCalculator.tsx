@@ -10,6 +10,7 @@ import EstatePanel    from './EstatePanel';
 import HeirsPanel     from './HeirsPanel';
 import ResultsTable   from './ResultsTable';
 import SaveCaseModal       from './SaveCaseModal';
+import MunasakhatExclusionWarningModal from './MunasakhatExclusionWarningModal';
 import SavedCasesModal     from './SavedCasesModal';
 import HeirExplanationModal from './HeirExplanationModal';
 import ClassicCasesModal   from './ClassicCasesModal';
@@ -33,6 +34,8 @@ export interface MunasakhatStage {
   debts?: number;
   funeralCosts?: number;
   bequest?: number;
+  secondDeceasedHasChildrenFromOtherUnion?: boolean;
+  acknowledgedExclusions?: string[];
 }
 
 export interface SavedCase {
@@ -59,6 +62,7 @@ export default function InheritanceCalculator() {
   const [mobileTab, setMobileTab] = useState<'estate' | 'heirs' | 'results'>('heirs');
   const [isOfficeSettingsOpen, setIsOfficeSettingsOpen] = useState(false);
   const [formattedDate, setFormattedDate] = useState<string>('');
+  const [isExclusionModalOpen, setIsExclusionModalOpen] = useState(false);
 
   useEffect(() => {
     setFormattedDate(new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' }));
@@ -99,6 +103,8 @@ export default function InheritanceCalculator() {
     toggleHeir, updateCount, updateCustomName, updateImpediment,
     addMunasakhatStage, removeStage,
     updateStageName, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageFinancialField,
+    updateStageChildrenFromOtherUnion,
+    acknowledgeStageExclusion,
     resetCalculator, saveCurrentCase, updateSavedCase, loadCase,
     deleteCase, confirmDelete, exportData, importData, loadClassicCase, exportToExcelApplet, exportToWordApplet, exportToPDFApplet,
     isExportingPDF, isExportingExcel, isExportingWord, isCalculatorEmpty,
@@ -109,6 +115,17 @@ export default function InheritanceCalculator() {
     saveOfficeSettings,
     resetOfficeSettings,
   } = state;
+
+  const currentStageResult = allStagesResults[currentStageIndex];
+  const currentWarnings = currentStageResult?.excludedHeirWarnings || [];
+  const acknowledgedExclusions = currentStage?.acknowledgedExclusions || [];
+  const activeWarningsCount = currentWarnings.filter(w => !acknowledgedExclusions.includes(w.heirId)).length;
+
+  useEffect(() => {
+    if (activeWarningsCount > 0) {
+      setIsExclusionModalOpen(true);
+    }
+  }, [activeWarningsCount]);
 
   useEffect(() => {
     if (isEstatePanelOpen) {
@@ -392,6 +409,7 @@ export default function InheritanceCalculator() {
             updateStageMandatoryBequest={updateStageMandatoryBequest}
             updateStageDeceasedChildren={updateStageDeceasedChildren}
             updateStageFinancialField={updateStageFinancialField}
+            updateStageChildrenFromOtherUnion={updateStageChildrenFromOtherUnion}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}
             className={mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
           />
@@ -466,6 +484,14 @@ export default function InheritanceCalculator() {
           settings={officeSettings}
           onSave={saveOfficeSettings}
           onReset={resetOfficeSettings}
+        />
+
+        <MunasakhatExclusionWarningModal
+          isOpen={isExclusionModalOpen}
+          onClose={() => setIsExclusionModalOpen(false)}
+          warnings={currentWarnings}
+          acknowledgedExclusions={acknowledgedExclusions}
+          onAcknowledge={acknowledgeStageExclusion}
         />
       </div>
 

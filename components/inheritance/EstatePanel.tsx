@@ -35,6 +35,7 @@ interface EstatePanelProps {
   updateStageMandatoryBequest: (checked: boolean) => void;
   updateStageDeceasedChildren: (field: 'deceasedSonsCount' | 'deceasedDaughtersCount', value: number) => void;
   updateStageFinancialField: (field: 'debts' | 'funeralCosts' | 'bequest', value: number) => void;
+  updateStageChildrenFromOtherUnion?: (checked: boolean) => void;
   parentHeirName?: string;
 }
 
@@ -60,6 +61,7 @@ const EstatePanel = memo(function EstatePanel({
   updateStageMandatoryBequest,
   updateStageDeceasedChildren,
   updateStageFinancialField,
+  updateStageChildrenFromOtherUnion,
   parentHeirName,
 }: EstatePanelProps) {
   return (
@@ -220,6 +222,22 @@ const EstatePanel = memo(function EstatePanel({
               />
             </div>
           </>
+        )}
+
+        {/* Toggle for other union children (Munasakhat only) */}
+        {currentStageIndex > 0 && ['father', 'mother'].includes(currentStage.parentHeirId) && (
+          <div className="mb-3 flex items-center gap-2 p-2 bg-emerald-50/40 rounded border border-emerald-100">
+            <input
+              type="checkbox"
+              id="secondDeceasedHasChildrenFromOtherUnion"
+              checked={currentStage.secondDeceasedHasChildrenFromOtherUnion || false}
+              onChange={e => updateStageChildrenFromOtherUnion?.(e.target.checked)}
+              className="w-4 h-4 accent-[#0a5d38] cursor-pointer"
+            />
+            <label htmlFor="secondDeceasedHasChildrenFromOtherUnion" className="text-xs text-[#1e293b] cursor-pointer font-bold leading-normal">
+              المتوفى الثاني له فروع (أبناء) من زواج/اتحاد آخر
+            </label>
+          </div>
         )}
 
         {/* Mandatory bequest toggle */}

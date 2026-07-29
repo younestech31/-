@@ -176,4 +176,48 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
     expect(orchestratorResult[0].netEstate).toBe(920000);
     expect(orchestratorResult[1].netEstate).toBe(200000);
   });
+
+  it('Test 7: Article 133 Missing Heir withholding and effect on co-heirs', () => {
+    // Scenario: Deceased has Mother, Wife, Paternal Brother, and a Missing Full Brother
+    // If Full Brother is alive (the missing heir):
+    // - Mother gets 1/6 (due to multiple siblings: Full Brother + Paternal Brother)
+    // - Wife gets 1/4 (no descendants)
+    // - Full Brother blocks Paternal Brother, gets the remaining share (7/12)
+    // - Full Brother's share is withheld under Article 133
+    const presence: HeirPresence[] = [
+      { heirId: 'mother', count: 1, isPresent: true },
+      { heirId: 'wife', count: 1, isPresent: true },
+      { heirId: 'paternal_brother', count: 1, isPresent: true },
+      { heirId: 'full_brother', count: 1, isPresent: true, missingPersonStatus: 'missing_presumed_alive' },
+    ];
+
+    const results = calculateInheritance(presence, 1200000, 0, 0, 0, false);
+
+    const motherRes = results.find(r => r.heirId === 'mother');
+    const wifeRes = results.find(r => r.heirId === 'wife');
+    const fullBrotherRes = results.find(r => r.heirId === 'full_brother');
+    const paternalBrotherRes = results.find(r => r.heirId === 'paternal_brother');
+
+    expect(motherRes).toBeDefined();
+    expect(motherRes?.share).toBe('1/6'); // 1/6 due to multiple siblings
+    expect(wifeRes?.share).toBe('1/4');
+
+    expect(paternalBrotherRes).toBeDefined();
+    expect(paternalBrotherRes?.isBlocked).toBe(true); // Blocked by Full Brother
+
+    expect(fullBrotherRes).toBeDefined();
+    expect(fullBrotherRes?.isBlocked).toBe(false);
+    expect(fullBrotherRes?.isWithheld).toBe(true); // Flagged as withheld!
+    expect(fullBrotherRes?.article).toBe(133); // Cites Article 133!
+    expect(fullBrotherRes?.reason).toContain('المادة 133');
+    
+    // Total estate: 1,200,000 دج
+    // Mother: 1/6 = 200,000 دج
+    // Wife: 1/4 = 300,000 دج
+    // Full Brother: 7/12 = 700,000 دج (Withheld)
+    // Paternal Brother: 0
+    expect(motherRes?.amount).toBe(200000);
+    expect(wifeRes?.amount).toBe(300000);
+    expect(fullBrotherRes?.amount).toBe(700000);
+  });
 });

@@ -3,6 +3,7 @@ import { resolveNoHeirsPolicy } from '@/lib/inheritance/munasakhat-resolver';
 import type { MunasakhatStage } from '@/components/inheritance/InheritanceCalculator';
 import type { StageResult } from '@/components/inheritance/ResultsTable';
 import { isHeirExcludedInMunasakhat } from '@/data/munasakhat-exclusions';
+import { HEIRS } from '@/data/heirs';
 
 export function runInheritanceOrchestration(
   args: [MunasakhatStage[], number, number, number, number]
@@ -17,11 +18,46 @@ export function runInheritanceOrchestration(
     const stageFuneral = index === 0 ? debouncedFuneralCosts : (stage.funeralCosts || 0);
     const stageBequest = index === 0 ? debouncedBequest      : (stage.bequest || 0);
 
+    // First pass: identify all present heirs that would be excluded by default
+    const excludedHeirWarnings: Array<{ heirId: string; heirNameAr: string; reason: string }> = [];
+    const heirsToCheck = Object.values(stage.heirPresence).filter(h => h.isPresent && h.count > 0 && !h.isImpeded);
+
+    for (const h of heirsToCheck) {
+      if (index === 0 || !stage.parentHeirId) continue;
+      
+      const { excluded, reason } = isHeirExcludedInMunasakhat(
+        h.heirId,
+        stage.parentHeirId,
+        stage.secondDeceasedHasChildrenFromOtherUnion
+      );
+      
+      if (excluded) {
+        const heirDetails = HEIRS.find(x => x.id === h.heirId);
+        excludedHeirWarnings.push({
+          heirId: h.heirId,
+          heirNameAr: heirDetails?.nameAr || h.heirId,
+          reason,
+        });
+      }
+    }
+
+    // Second pass: filter the presence list, keeping acknowledged exclusions or those bypassed by other unions
     const sanitizedPresence = Object.values(stage.heirPresence)
       .filter(h => {
         if (index === 0 || !stage.parentHeirId) return true; // م.171 — root stage: no exclusion
-        const { excluded } = isHeirExcludedInMunasakhat(h.heirId, stage.parentHeirId);
-        return !excluded; // enforce exclusions per MUNASAKHAT_EXCLUSIONS — م.171
+
+        const { excluded } = isHeirExcludedInMunasakhat(
+          h.heirId,
+          stage.parentHeirId,
+          stage.secondDeceasedHasChildrenFromOtherUnion
+        );
+
+        if (excluded) {
+          const isAcknowledged = stage.acknowledgedExclusions?.includes(h.heirId);
+          return isAcknowledged ?? false;
+        }
+
+        return true;
       })
       .map(({ customNames: _customNames, ...rest }) => rest);
 
@@ -63,7 +99,7 @@ export function runInheritanceOrchestration(
       }
     }
 
-    stagesData.push({ stage, results: res, netEstate: net, noHeirsRedistribution });
+    stagesData.push({ stage, results: res, netEstate: net, noHeirsRedistribution, excludedHeirWarnings });
   }
 
   return stagesData;

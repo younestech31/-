@@ -108,6 +108,25 @@ const HeirInputNode = ({ data }: NodeProps<Node<HeirInputNodeData>>) => {
           >+</button>
         </div>
       )}
+
+      {isPresent && heir && (
+        <div className="flex items-center gap-1.5 mt-1 border-t border-[#cbd5e1] pt-1 w-full justify-center" onClick={e => e.stopPropagation()}>
+          <input
+            type="checkbox"
+            id={`missing-${heir.id}`}
+            checked={missingPersonStatus === 'missing_presumed_alive'}
+            onChange={(e) => {
+              if (updateMissingPersonStatus) {
+                updateMissingPersonStatus(heir.id, e.target.checked ? 'missing_presumed_alive' : 'none');
+              }
+            }}
+            className="w-3 h-3 accent-amber-600 rounded cursor-pointer"
+          />
+          <label htmlFor={`missing-${heir.id}`} className="text-[10px] text-amber-700 font-bold cursor-pointer select-none">
+            مفقود (م.133)
+          </label>
+        </div>
+      )}
     </div>
   );
 };
@@ -117,6 +136,7 @@ interface FamilyTreeInputProps {
   toggleHeir: (heirId: string) => void;
   updateCount: (heirId: string, count: number) => void;
   updateCustomName: (heirId: string, index: number, name: string) => void;
+  updateMissingPersonStatus: (heirId: string, status: 'none' | 'missing_presumed_alive') => void;
   deceasedGender: 'male' | 'female' | null;
   deceasedName: string;
   /** معرّف الوارث الذي توفي ثانياً (لتفعيل قواعد استبعاد المناسخات) */
@@ -130,6 +150,7 @@ const FamilyTreeInput = memo(function FamilyTreeInput({
   toggleHeir,
   updateCount,
   updateCustomName,
+  updateMissingPersonStatus,
   deceasedGender,
   deceasedName,
   parentHeirId,
@@ -298,10 +319,12 @@ const FamilyTreeInput = memo(function FamilyTreeInput({
           toggleHeir: node.data.exclusionReason ? () => {} : toggleHeir,
           updateCount,
           updateCustomName,
+          updateMissingPersonStatus,
+          missingPersonStatus: presence?.missingPersonStatus || 'none',
         }
       };
     }));
-  }, [heirPresence, deceasedName, toggleHeir, updateCount, updateCustomName, setNodes]);
+  }, [heirPresence, deceasedName, toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, setNodes]);
 
   if (!deceasedGender) {
     return (

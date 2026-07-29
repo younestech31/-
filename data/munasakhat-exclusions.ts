@@ -35,8 +35,17 @@ const MUNASAKHAT_EXCLUSIONS: Record<string, string[]> = {
 
 export const isHeirExcludedInMunasakhat = (
   heirId: string,
-  parentHeirId: string
+  parentHeirId: string,
+  secondDeceasedHasChildrenFromOtherUnion: boolean = false
 ): { excluded: boolean; reason: string } => {
+  if (
+    secondDeceasedHasChildrenFromOtherUnion &&
+    ['father', 'mother'].includes(parentHeirId) &&
+    ['son', 'daughter', 'son_son', 'granddaughter'].includes(heirId)
+  ) {
+    return { excluded: false, reason: '' };
+  }
+
   const excludedList = MUNASAKHAT_EXCLUSIONS[parentHeirId] || [];
   
   if (excludedList.includes(heirId)) {

@@ -33,5 +33,11 @@ jobs:
       - name: Run Unit Tests
         run: npm run test
 
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Privacy Regression Tests
+        run: npx playwright test
+
       - name: Build Application
         run: npm run build
