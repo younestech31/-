@@ -100,7 +100,7 @@ export default function InheritanceCalculator() {
     currentStageValidation,
     inputWarnings,
     savedCases,
-    toggleHeir, updateCount, updateCustomName, updateImpediment,
+    toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, updateImpediment,
     addMunasakhatStage, removeStage,
     updateStageName, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
@@ -420,7 +420,7 @@ export default function InheritanceCalculator() {
             currentStageIndex={currentStageIndex}
             currentGender={currentGender}
             deceasedGender={deceasedGender}
-            toggleHeir={toggleHeir} updateCount={updateCount} updateCustomName={updateCustomName}
+            toggleHeir={toggleHeir} updateCount={updateCount} updateCustomName={updateCustomName} updateMissingPersonStatus={updateMissingPersonStatus}
             className={mobileTab === 'heirs' ? 'flex h-full' : 'hidden lg:flex'}
           />
 

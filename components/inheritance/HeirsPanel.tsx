@@ -13,7 +13,7 @@ interface HeirsPanelProps {
   toggleHeir: (heirId: string) => void;
   updateCount: (heirId: string, count: number) => void;
   updateCustomName: (heirId: string, index: number, name: string) => void;
-  updateMissingPersonStatus: (heirId: string, status: 'none' | 'missing_presumed_alive') => void;
+  updateMissingPersonStatus?: (heirId: string, status: 'none' | 'missing_presumed_alive') => void;
   className?: string;
 }
 

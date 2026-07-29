@@ -497,6 +497,24 @@ export function useInheritanceState() {
     [currentStageIndex],
   );
 
+  const updateMissingPersonStatus = useCallback(
+    (heirId: string, status: 'none' | 'missing_presumed_alive') => {
+      setMunasakhatStages(prev => {
+        const next  = [...prev];
+        const stage = { ...next[currentStageIndex] };
+        if (stage.heirPresence[heirId]) {
+          stage.heirPresence = {
+            ...stage.heirPresence,
+            [heirId]: { ...stage.heirPresence[heirId], missingPersonStatus: status },
+          };
+        }
+        next[currentStageIndex] = stage;
+        return next;
+      });
+    },
+    [currentStageIndex],
+  );
+
   const updateImpediment = useCallback(
     (heirId: string, index: number, isImpeded: boolean, impedimentReasonId?: string) => {
       setMunasakhatStages(prev => {
@@ -1080,6 +1098,7 @@ export function useInheritanceState() {
     toggleHeir,
     updateCount,
     updateCustomName,
+    updateMissingPersonStatus,
     updateImpediment,
     addMunasakhatStage,
     removeStage,
