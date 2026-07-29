@@ -138,7 +138,7 @@ interface FamilyTreeInputProps {
   toggleHeir: (heirId: string) => void;
   updateCount: (heirId: string, count: number) => void;
   updateCustomName: (heirId: string, index: number, name: string) => void;
-  updateMissingPersonStatus: (heirId: string, status: 'none' | 'missing_presumed_alive') => void;
+  updateMissingPersonStatus?: (heirId: string, status: 'none' | 'missing_presumed_alive') => void;
   deceasedGender: 'male' | 'female' | null;
   deceasedName: string;
   /** معرّف الوارث الذي توفي ثانياً (لتفعيل قواعد استبعاد المناسخات) */
