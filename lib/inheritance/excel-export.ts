@@ -224,8 +224,9 @@ export async function exportToExcel(
           if (isBlocked) continue;
 
           const customName = customNames?.[i];
+          const isolatedCustom = customName && !/[\u0600-\u06FF]/.test(customName) ? `\u2066${customName}\u2069` : customName;
           const baseName = r.count > 1 ? `${r.nameAr} (${i + 1})` : r.nameAr;
-          const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
+          const displayName = isolatedCustom ? `${isolatedCustom} (${r.nameAr})` : baseName;
 
           const individualAmt = indResult ? indResult.amount : (r.amount / r.count);
           const indShare = indResult
@@ -413,8 +414,9 @@ export async function exportToExcel(
           if (!isBlocked) continue;
 
           const customName = customNames?.[i];
+          const isolatedCustom = customName && !/[\u0600-\u06FF]/.test(customName) ? `\u2066${customName}\u2069` : customName;
           const baseName = r.count > 1 ? `${r.nameAr} (${i + 1})` : r.nameAr;
-          const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
+          const displayName = isolatedCustom ? `${isolatedCustom} (${r.nameAr})` : baseName;
 
           individualRows.push({
             name: displayName,

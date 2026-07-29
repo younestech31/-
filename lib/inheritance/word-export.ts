@@ -69,16 +69,21 @@ export async function exportToWord(
     bold = false,
     size = 22,
     color?: string
-  ): TextRun => new TextRun({
-    text: text.toString(),
-    rightToLeft: /[\u0600-\u06FF]/.test(text),
-    font: { name: EXPORT_FONT_FAMILY, cs: EXPORT_FONT_FAMILY, ascii: EXPORT_FONT_FAMILY, hAnsi: EXPORT_FONT_FAMILY },
-    bold,
-    size,
-    sizeComplexScript: size,
-    color,
-    language: { bidirectional: 'ar-DZ' },
-  });
+  ): TextRun => {
+    const str = text != null ? text.toString() : '';
+    const isPureLatin = str.length > 0 && !/[\u0600-\u06FF]/.test(str);
+    const finalText = isPureLatin ? `\u2066${str}\u2069` : str;
+    return new TextRun({
+      text: finalText,
+      rightToLeft: true,
+      font: { name: EXPORT_FONT_FAMILY, cs: EXPORT_FONT_FAMILY, ascii: EXPORT_FONT_FAMILY, hAnsi: EXPORT_FONT_FAMILY },
+      bold,
+      size,
+      sizeComplexScript: size,
+      color,
+      language: { bidirectional: 'ar-DZ' },
+    });
+  };
 
   const rtlPara = (
     text: string,
@@ -373,8 +378,9 @@ export async function exportToWord(
         if (isBlocked) continue;
 
         const customName = customNames?.[i];
+        const isolatedCustom = customName && !/[\u0600-\u06FF]/.test(customName) ? `\u2066${customName}\u2069` : customName;
         const baseName = r.count > 1 ? `${r.nameAr} (${i + 1})` : r.nameAr;
-        const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
+        const displayName = isolatedCustom ? `${isolatedCustom} (${r.nameAr})` : baseName;
 
         const individualAmt = indResult ? indResult.amount : (r.amount / r.count);
         const indShare = indResult ? indResult.share : (r.count > 1 && r.shareFraction ? r.shareFraction.div(r.count).toFraction(true) : r.share);
@@ -478,8 +484,9 @@ export async function exportToWord(
         if (!isBlocked) continue;
 
         const customName = customNames?.[i];
+        const isolatedCustom = customName && !/[\u0600-\u06FF]/.test(customName) ? `\u2066${customName}\u2069` : customName;
         const baseName = bh.count > 1 ? `${bh.nameAr} (${i + 1})` : bh.nameAr;
-        const displayName = customName ? `${customName} (${bh.nameAr})` : baseName;
+        const displayName = isolatedCustom ? `${isolatedCustom} (${bh.nameAr})` : baseName;
 
         blockedRows.push(
           new TableRow({

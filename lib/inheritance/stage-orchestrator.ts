@@ -44,7 +44,7 @@ export function runInheritanceOrchestration(
     // Second pass: filter the presence list, keeping acknowledged exclusions or those bypassed by other unions
     const sanitizedPresence = Object.values(stage.heirPresence)
       .filter(h => {
-        if (index === 0 || !stage.parentHeirId) return true; // م.171 — root stage: no exclusion
+        if (index === 0 || !stage.parentHeirId) return true; // قواعد فقهية عامة في المناسخات — لا يستند إلى مادة رقم محددة في قانون الأسرة الجزائري — root stage: no exclusion
 
         const { excluded } = isHeirExcludedInMunasakhat(
           h.heirId,

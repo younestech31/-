@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import './globals.css';
 import { SITE_URL } from '@/lib/config';
 import type { Viewport } from 'next';
+import { FAQ_ITEMS } from '@/data/faq';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -91,32 +92,14 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     {
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      'mainEntity': [
-        {
-          '@type': 'Question',
-          'name': 'ما هو الأساس القانوني لحساب المواريث في الجزائر؟',
-          'acceptedAnswer': {
-            '@type': 'Answer',
-            'text': 'يتم حساب المواريث في الجزائر وفقاً للمواد من 126 إلى 183 من قانون الأسرة الجزائري (الأمر رقم 84-11)، والمستمدة من أحكام الشريعة الإسلامية والفقه المالكي.'
-          }
-        },
-        {
-          '@type': 'Question',
-          'name': 'ما هي الوصية الواجبة في قانون الأسرة الجزائري؟',
-          'acceptedAnswer': {
-            '@type': 'Answer',
-            'text': 'تنص المادة 169 وما بعدها من قانون الأسرة الجزائري على الوصية الواجبة لصالح الأحفاد من الابن أو البنت الذين توفوا قبل مورثهم، بشرط ألا يتجاوز ذلك ثلث التركة.'
-          }
-        },
-        {
-          '@type': 'Question',
-          'name': 'ما المقصود بالمناسخات في التركات؟',
-          'acceptedAnswer': {
-            '@type': 'Answer',
-            'text': 'المناسخات هي وفاة وارث أو أكثر قبل قسمة التركة الأولى، مما يستوجب دمج وتصحيح عدة مسائل ميت متتابع لتوزيع الأنصبة على الورثة الأحياء النهائيين.'
-          }
+      'mainEntity': FAQ_ITEMS.map(faq => ({
+        '@type': 'Question',
+        'name': faq.question,
+        'acceptedAnswer': {
+          '@type': 'Answer',
+          'text': faq.answer
         }
-      ]
+      }))
     },
     {
       '@context': 'https://schema.org',

@@ -54,7 +54,9 @@ export function fixArabicRtl(text: string | number | null | undefined): string {
   if (text === null || text === undefined) return '';
   const str = String(text);
   if (!str.trim()) return '';
-
+  if (!/[\u0600-\u06FF]/.test(str)) {
+    return `\u2066${str}\u2069`;
+  }
   return ArabicShaper.convertArabic(str);
 }
 
@@ -682,8 +684,9 @@ function renderStageVectorPDF(
       if (isBlocked) continue;
 
       const customName = customNames?.[i];
+      const isolatedCustom = customName && !/[\u0600-\u06FF]/.test(customName) ? `\u2066${customName}\u2069` : customName;
       const baseName = r.count > 1 ? `${r.nameAr} (${i + 1})` : r.nameAr;
-      const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
+      const displayName = isolatedCustom ? `${isolatedCustom} (${r.nameAr})` : baseName;
 
       const individualAmt = indResult ? indResult.amount : r.amount / r.count;
       const indShare = indResult ? indResult.share : r.share;
@@ -795,8 +798,9 @@ function renderStageVectorPDF(
       if (!isBlocked) continue;
 
       const customName = customNames?.[i];
+      const isolatedCustom = customName && !/[\u0600-\u06FF]/.test(customName) ? `\u2066${customName}\u2069` : customName;
       const baseName = bh.count > 1 ? `${bh.nameAr} (${i + 1})` : bh.nameAr;
-      const displayName = customName ? `${customName} (${bh.nameAr})` : baseName;
+      const displayName = isolatedCustom ? `${isolatedCustom} (${bh.nameAr})` : baseName;
       const reason = indResult ? indResult.reason : bh.reason || 'محجوب لتواجد وارث أقرب أحق بفرض الحجب';
       const artText = bh.article ? `م ${bh.article}` : '-';
 
