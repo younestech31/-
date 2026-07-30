@@ -66,9 +66,20 @@ export default function InheritanceCalculator({
   const state = useInheritanceState();
 
   const [mobileTab, setMobileTab] = useState<'estate' | 'heirs' | 'results'>('heirs');
+  const [expandedSection, setExpandedSection] = useState<'estate' | 'heirs' | 'results' | null>(null);
   const [isOfficeSettingsOpen, setIsOfficeSettingsOpen] = useState(false);
   const [formattedDate, setFormattedDate] = useState<string>('');
   const [isExclusionModalOpen, setIsExclusionModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && expandedSection !== null) {
+        setExpandedSection(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [expandedSection]);
 
   useEffect(() => {
     setFormattedDate(new Date().toLocaleDateString('ar-DZ', { year: 'numeric', month: 'long', day: 'numeric' }));
@@ -411,6 +422,8 @@ export default function InheritanceCalculator({
           <EstatePanel
             isOpen={isEstatePanelOpen}
             onToggle={() => setIsEstatePanelOpen(!isEstatePanelOpen)}
+            isExpanded={expandedSection === 'estate'}
+            onToggleExpand={() => setExpandedSection(prev => prev === 'estate' ? null : 'estate')}
             currentStage={currentStage}
             currentStageIndex={currentStageIndex}
             currentNetEstate={currentNetEstate}
@@ -428,6 +441,8 @@ export default function InheritanceCalculator({
 
           <HeirsPanel
             isEstatePanelOpen={isEstatePanelOpen}
+            isExpanded={expandedSection === 'heirs'}
+            onToggleExpand={() => setExpandedSection(prev => prev === 'heirs' ? null : 'heirs')}
             currentStage={currentStage}
             currentStageIndex={currentStageIndex}
             currentGender={currentGender}
@@ -438,6 +453,8 @@ export default function InheritanceCalculator({
 
           <ResultsTable
             isEstatePanelOpen={isEstatePanelOpen}
+            isExpanded={expandedSection === 'results'}
+            onToggleExpand={() => setExpandedSection(prev => prev === 'results' ? null : 'results')}
             viewMode={viewMode} setViewMode={setViewMode}
             currentStageIndex={currentStageIndex} setCurrentStageIndex={setCurrentStageIndex}
             munasakhatStages={munasakhatStages}

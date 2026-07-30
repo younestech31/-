@@ -1,13 +1,15 @@
 'use client';
 
 import React, { memo } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Maximize2, Minimize2 } from 'lucide-react';
 import { MunasakhatStage } from './InheritanceCalculator';
 import { TANZEEL_RULES } from '@/data/tanzeel';
 
 interface EstatePanelProps {
   isOpen: boolean;
   onToggle: () => void;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
   className?: string;
 
   // Stage
@@ -42,6 +44,8 @@ interface EstatePanelProps {
 const EstatePanel = memo(function EstatePanel({
   isOpen,
   onToggle,
+  isExpanded,
+  onToggleExpand,
   className,
   currentStage,
   currentStageIndex,
@@ -68,7 +72,9 @@ const EstatePanel = memo(function EstatePanel({
     <div
       data-panel="estate"
       className={`bg-white rounded-lg border border-[#e2e8f0] flex flex-col overflow-hidden transition-all duration-300 no-print ${
-        isOpen ? 'lg:h-full' : 'h-[46px] shrink-0 lg:col-span-2'
+        isExpanded
+          ? 'fixed inset-2 md:inset-4 z-50 bg-white rounded-xl shadow-2xl border-2 border-[#0a5d38] flex flex-col h-[calc(100vh-1rem)] md:h-[calc(100vh-2rem)]'
+          : isOpen ? 'lg:h-full' : 'h-[46px] shrink-0 lg:col-span-2'
       } ${className || ''}`}
     >
       {/* Header */}
@@ -76,16 +82,40 @@ const EstatePanel = memo(function EstatePanel({
         className="px-4 py-3 border-b border-[#e2e8f0] bg-[#fdfdfd] flex items-center justify-between shrink-0 cursor-pointer hover:bg-[#f8fafc] transition-colors"
         onClick={onToggle}
       >
-        <span className="text-sm font-bold text-[#0a5d38]">بيانات المتوفى والتركة</span>
-        {isOpen
-          ? <ChevronUp size={16} className="text-[#64748b]" />
-          : <ChevronDown size={16} className="text-[#64748b]" />
-        }
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-[#0a5d38]">بيانات المتوفى والتركة</span>
+          {isExpanded && (
+            <span className="text-[10px] bg-[#0a5d38] text-white px-2 py-0.5 rounded-full font-bold">
+              الشاشة الكاملة
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+          {onToggleExpand && (
+            <button
+              onClick={onToggleExpand}
+              className="p-1 text-[#64748b] hover:text-[#0a5d38] hover:bg-slate-100 rounded-md transition-colors"
+              title={isExpanded ? 'تصغير الشاشة' : 'توسيع للشاشة الكاملة'}
+              aria-label={isExpanded ? 'تصغير الشاشة' : 'توسيع للشاشة الكاملة'}
+            >
+              {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          )}
+          <button
+            onClick={onToggle}
+            className="p-1 text-[#64748b] hover:text-[#0a5d38] hover:bg-slate-100 rounded-md transition-colors"
+          >
+            {isOpen || isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+        </div>
       </div>
 
       {/* Body */}
       <div
-        className={`p-4 overflow-y-auto flex-grow transition-opacity duration-300 h-full ${isOpen ? 'opacity-100' : 'opacity-0 hidden'}`}
+        className={`p-4 overflow-y-auto flex-grow transition-opacity duration-300 h-full ${
+          (isOpen || isExpanded) ? 'opacity-100' : 'opacity-0 hidden'
+        }`}
       >
         {/* Deceased name */}
         <div className="mb-4">

@@ -1,11 +1,14 @@
 'use client';
 
 import React, { memo } from 'react';
+import { Maximize2, Minimize2 } from 'lucide-react';
 import FamilyTreeInput from './FamilyTreeInput';
 import { MunasakhatStage } from './InheritanceCalculator';
 
 interface HeirsPanelProps {
   isEstatePanelOpen: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
   currentStage: MunasakhatStage;
   currentStageIndex: number;
   currentGender: 'male' | 'female' | null;
@@ -19,6 +22,8 @@ interface HeirsPanelProps {
 
 const HeirsPanel = memo(function HeirsPanel({
   isEstatePanelOpen,
+  isExpanded,
+  onToggleExpand,
   currentStage,
   currentStageIndex,
   currentGender,
@@ -32,16 +37,37 @@ const HeirsPanel = memo(function HeirsPanel({
   return (
     <div
       data-panel="heirs"
-      className={`bg-white rounded-lg border border-[#e2e8f0] flex flex-col overflow-hidden transition-all duration-300 min-h-0 lg:h-full no-print ${
-        isEstatePanelOpen ? 'lg:col-start-2 lg:row-start-1' : 'lg:col-start-1 lg:row-start-2'
+      className={`bg-white rounded-lg border border-[#e2e8f0] flex flex-col overflow-hidden transition-all duration-300 no-print ${
+        isExpanded
+          ? 'fixed inset-2 md:inset-4 z-50 bg-white rounded-xl shadow-2xl border-2 border-[#0a5d38] flex flex-col h-[calc(100vh-1rem)] md:h-[calc(100vh-2rem)]'
+          : isEstatePanelOpen ? 'lg:col-start-2 lg:row-start-1 min-h-0 lg:h-full' : 'lg:col-start-1 lg:row-start-2 min-h-0 lg:h-full'
       } ${className || ''}`}
     >
       {/* Header */}
       <div className="px-4 py-3 border-b border-[#e2e8f0] bg-[#fdfdfd] flex items-center justify-between shrink-0">
-        <span className="text-sm font-bold text-[#0a5d38]">
-          تحديد ورثة {currentStage.deceasedName}
-        </span>
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eee] ms-1">المواد 126-183</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-[#0a5d38]">
+            تحديد ورثة {currentStage.deceasedName}
+          </span>
+          {isExpanded && (
+            <span className="text-[10px] bg-[#0a5d38] text-white px-2 py-0.5 rounded-full font-bold">
+              الشاشة الكاملة
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eee] ms-1">المواد 126-183</span>
+          {onToggleExpand && (
+            <button
+              onClick={onToggleExpand}
+              className="p-1 text-[#64748b] hover:text-[#0a5d38] hover:bg-slate-100 rounded-md transition-colors"
+              title={isExpanded ? 'تصغير الشاشة' : 'توسيع للشاشة الكاملة'}
+              aria-label={isExpanded ? 'تصغير الشاشة' : 'توسيع للشاشة الكاملة'}
+            >
+              {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* FamilyTreeInput */}

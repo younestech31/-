@@ -1,7 +1,7 @@
 'use client';
 
 import React, { memo, useMemo } from 'react';
-import { Info } from 'lucide-react';
+import { Info, Maximize2, Minimize2 } from 'lucide-react';
 import Fraction from 'fraction.js';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -43,6 +43,8 @@ export interface StageResult {
 
 interface ResultsTableProps {
   isEstatePanelOpen: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
   viewMode: 'table' | 'tree';
   setViewMode: (m: 'table' | 'tree') => void;
   currentStageIndex: number;
@@ -69,6 +71,8 @@ interface ResultsTableProps {
 
 const ResultsTable = memo(function ResultsTable({
   isEstatePanelOpen,
+  isExpanded,
+  onToggleExpand,
   viewMode,
   setViewMode,
   currentStageIndex,
@@ -95,8 +99,10 @@ const ResultsTable = memo(function ResultsTable({
   return (
     <div
       data-panel="results"
-      className={`bg-white rounded-lg border border-[#e2e8f0] flex flex-col overflow-hidden transition-all duration-300 min-h-0 lg:h-full ${
-        isEstatePanelOpen ? 'lg:col-start-3 lg:row-start-1' : 'lg:col-start-2 lg:row-start-2'
+      className={`bg-white rounded-lg border border-[#e2e8f0] flex flex-col overflow-hidden transition-all duration-300 ${
+        isExpanded
+          ? 'fixed inset-2 md:inset-4 z-50 bg-white rounded-xl shadow-2xl border-2 border-[#0a5d38] flex flex-col h-[calc(100vh-1rem)] md:h-[calc(100vh-2rem)]'
+          : isEstatePanelOpen ? 'lg:col-start-3 lg:row-start-1 min-h-0 lg:h-full' : 'lg:col-start-2 lg:row-start-2 min-h-0 lg:h-full'
       } ${isCalculating ? 'opacity-50 pointer-events-none' : ''} ${className || ''}`}
     >
       {/* ── Panel header ─────────────────────────────────────────────── */}
@@ -238,6 +244,19 @@ const ResultsTable = memo(function ResultsTable({
           >
             شجرة
           </button>
+          {onToggleExpand && (
+            <>
+              <div className="w-px h-4 bg-[#cbd5e1] self-center mx-1"></div>
+              <button
+                onClick={onToggleExpand}
+                className="p-1 text-[#64748b] hover:text-[#0a5d38] hover:bg-white rounded-md transition-colors shrink-0"
+                title={isExpanded ? 'تصغير الشاشة' : 'توسيع للشاشة الكاملة'}
+                aria-label={isExpanded ? 'تصغير الشاشة' : 'توسيع للشاشة الكاملة'}
+              >
+                {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
