@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Cairo, Amiri } from 'next/font/google';
 import { Suspense } from 'react';
 import './globals.css';
-import { SITE_URL } from '@/lib/config';
+import { SITE_URL, OFFICE_INFO } from '@/lib/config';
 import type { Viewport } from 'next';
 import { FAQ_ITEMS } from '@/data/faq';
 
@@ -125,6 +125,29 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
           'text': 'يقوم النظام بحساب المسألة تلقائياً وإجراء عمليات العول أو الرد والوصية الواجبة وعرض جدول الورثة والأنصبة الإرثية بالأسهم والنسبة المئوية والكسور والمبالغ المالية بالتفصيل.',
           'url': `${SITE_URL}/how-to#step3`
         }
+      ]
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Notary',
+      'name': `${OFFICE_INFO.officialDesignation} — ${OFFICE_INFO.notaryFullName}`,
+      'description': `${OFFICE_INFO.title}. متخصص في حساب المواريث والتركات وفق أحكام قانون الأسرة الجزائري والشريعة الإسلامية.`,
+      'url': SITE_URL,
+      'telephone': OFFICE_INFO.phone.number,
+      'email': OFFICE_INFO.email,
+      'areaServed': 'DZ',
+      'address': {
+        '@type': 'PostalAddress',
+        'addressLocality': 'Oran',
+        'addressRegion': 'Oran Province',
+        'addressCountry': 'DZ'
+      },
+      'knowsAbout': [
+        'قانون الأسرة الجزائري',
+        'حساب المواريث الشرعية',
+        'تقسيم التركات والمقاسمة',
+        'المناسخات والوصية الواجبة',
+        'توثيق العقود العقارية والفرائض'
       ]
     }
   ];
