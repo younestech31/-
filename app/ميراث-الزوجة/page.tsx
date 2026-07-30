@@ -13,6 +13,7 @@ export default function WifeInheritancePage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
+    'url': pageUrl,
     'mainEntity': [
       {
         '@type': 'Question',

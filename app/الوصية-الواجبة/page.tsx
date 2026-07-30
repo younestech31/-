@@ -13,6 +13,7 @@ export default function MandatoryBequestPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
+    'url': pageUrl,
     'mainEntity': [
       {
         '@type': 'Question',
@@ -95,9 +96,9 @@ export default function MandatoryBequestPage() {
                   <span className="font-bold text-slate-800">وفاة الواسطة:</span> أن يتوفى الابن أو البنت قبل وفاة أصله (الجد/الجدة) أو معه (مثل الموت الجماعي في الحوادث).
                 </li>
                 <li>
-                  <li>
-                    <span className="font-bold text-slate-800">عدم الإرث المباشر:</span> ألا يكون الأحفاد وارثين من الجد أو الجدة فرضاً أو تعصيباً (أي أن يحجبهم وارث أقرب كالأبناء الذكور).
-                  </li>
+                  <span className="font-bold text-slate-800">عدم الإرث المباشر:</span> ألا يكون الأحفاد وارثين من الجد أو الجدة فرضاً أو تعصيباً (أي أن يحجبهم وارث أقرب كالأبناء الذكور).
+                </li>
+                <li>
                   <span className="font-bold text-slate-800">حد الثلث:</span> ألا يتجاوز إجمالي حصة أولاد الابن أو البنت ثلث التركة بأي حال من الأحوال.
                 </li>
                 <li>
