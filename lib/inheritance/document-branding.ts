@@ -1,5 +1,7 @@
 import { OFFICE_INFO } from '../config';
 import QRCode from 'qrcode';
+import { formatBilingualDate } from '../datetime/hijri';
+import { CalculationAuditRecord } from './calculation-audit';
 
 /**
  * Unified, professional color palette for inheritance exports.
@@ -47,7 +49,9 @@ export interface OfficeSettings {
   email: string;
   isOfficialMode?: boolean;      // Toggle for Official Notary Document Mode
   showDisclaimer?: boolean;      // Show disclaimer box or notary stamp
-  documentRefNumber?: string;   // Unique document reference number
+  documentRefNumber?: string;    // Unique document reference number
+  exportLanguage?: 'ar' | 'fr';  // Language toggle for export documents
+  digitFormat?: 'western' | 'arabic-indic'; // Numeral formatting toggle
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
@@ -60,6 +64,8 @@ export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
   isOfficialMode: false,
   showDisclaimer: true,
   documentRefNumber: '',
+  exportLanguage: 'ar',
+  digitFormat: 'western',
 };
 
 // Unified Arabic font family for all documents
@@ -82,20 +88,49 @@ export const EXPORT_OFFICE_INFO = {
   footerPageLabelAr: (page: number, total: number) => `الأستاذ الموثق لعطب محمد بوهران | صفحة ${page} من ${total}`,
 } as const;
 
-// Format currency as Algerian/French standard: 50.000.000,00 دج or 2.430.556,00 دج
-export function formatDocumentCurrency(n: number, showCents = true): string {
-  if (isNaN(n) || n === null || n === undefined) return '0,00 دج';
+/**
+ * Converts Western numerals (0-9) to Arabic-Indic numerals (٠-٩)
+ */
+export function toArabicIndicDigits(str: string): string {
+  const westernToIndic: Record<string, string> = {
+    '0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤',
+    '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩'
+  };
+  return String(str).replace(/[0-9]/g, w => westernToIndic[w] || w);
+}
+
+/**
+ * Formats currency as Algerian/French standard with numeral option:
+ * e.g. 50.000.000,00 دج or 50.000.000,00 DZD
+ */
+export function formatDocumentCurrency(
+  n: number,
+  showCents = true,
+  digitFormat: 'western' | 'arabic-indic' = 'western',
+  lang: 'ar' | 'fr' = 'ar'
+): string {
+  if (isNaN(n) || n === null || n === undefined) {
+    const zeroStr = lang === 'fr' ? '0,00 DZD' : '0,00 دج';
+    return digitFormat === 'arabic-indic' ? toArabicIndicDigits(zeroStr) : zeroStr;
+  }
   const parts = Math.abs(n).toFixed(2).split('.');
   const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   const decPart = parts[1];
-  const formatted = showCents ? `${intPart},${decPart}` : intPart;
-  return n < 0 ? `-${formatted} دج` : `${formatted} دج`;
+  const unit = lang === 'fr' ? 'DZD' : 'دج';
+  const formatted = showCents ? `${intPart},${decPart} ${unit}` : `${intPart} ${unit}`;
+  const finalStr = n < 0 ? `-${formatted}` : formatted;
+
+  return digitFormat === 'arabic-indic' ? toArabicIndicDigits(finalStr) : finalStr;
 }
 
 // Format percentage consistently
-export function formatDocumentPercentage(p: number): string {
-  if (isNaN(p) || p === null || p === undefined) return '0,00%';
-  return `${p.toFixed(2).replace('.', ',')}%`;
+export function formatDocumentPercentage(
+  p: number,
+  digitFormat: 'western' | 'arabic-indic' = 'western'
+): string {
+  if (isNaN(p) || p === null || p === undefined) return digitFormat === 'arabic-indic' ? '٠,٠٠%' : '0,00%';
+  const str = `${p.toFixed(2).replace('.', ',')}%`;
+  return digitFormat === 'arabic-indic' ? toArabicIndicDigits(str) : str;
 }
 
 // Generate unique Document Reference Number
@@ -137,9 +172,55 @@ export const EXPORT_TABLE_COLUMNS = [
 ] as const;
 
 // Canonical filename patterns
-export function EXPORT_FILENAME(name: string, ext: string, notaryName?: string): string {
-  const cleanName = name.replace(/[\s\/:*?"<>|]+/g, '_') || 'تركة';
+export function EXPORT_FILENAME(name: string, ext: string, notaryName?: string, lang: 'ar' | 'fr' = 'ar'): string {
+  const cleanName = name.replace(/[\s\/:*?"<>|]+/g, '_') || (lang === 'fr' ? 'Succession' : 'تركة');
   const cleanNotary = notaryName ? notaryName.replace(/[\s\/:*?"<>|]+/g, '_') : 'Notaire_Lattab';
   const dateStr = new Date().toISOString().split('T')[0];
-  return `${cleanNotary}_Succes_Faritha_${cleanName}_${dateStr}.${ext}`;
+  return `${cleanNotary}_Succes_Faritha_${cleanName}_${lang.toUpperCase()}_${dateStr}.${ext}`;
+}
+
+/**
+ * Notarial Attestation Block Content Generator
+ */
+export interface NotarialAttestationBlockData {
+  title: string;
+  attestationText: string;
+  notaryName: string;
+  caseRef: string;
+  formattedDate: string;
+  auditHash: string;
+  auditQrUrl?: string;
+  signatureBoxTitle: string;
+}
+
+export function getNotarialAttestationData(
+  settings: OfficeSettings,
+  auditRecord?: CalculationAuditRecord | null,
+  lang: 'ar' | 'fr' = 'ar'
+): NotarialAttestationBlockData {
+  const caseRef = settings.documentRefNumber || auditRecord?.caseRef || generateDocumentRefNumber();
+  const dateStr = formatBilingualDate(new Date(), lang);
+  const auditHash = auditRecord?.combinedHash || 'SHA256-PENDING-NOTARIAL-SEAL';
+
+  if (lang === 'fr') {
+    return {
+      title: 'ATTESTATION DE CONFORMITÉ ET EMPREINTE NUMÉRIQUE',
+      attestationText: `Je soussigné, ${settings.notaryNameAr || 'Maître Notaire'}, titulaire de l'office notarial, certifie la conformité légale des calculs de dévolution successorale ci-dessus établis conformément aux Articles 139 à 180 du Code de la Famille Algérien. Le présent acte comporte une empreinte numérique SHA-256 infalsifiable vérifiable en scannant le code QR ci-contre.`,
+      notaryName: settings.notaryNameAr || 'Maître Lattab Mohamed - Notaire',
+      caseRef: `Réf. Acte: ${caseRef}`,
+      formattedDate: `Date d'établissement: ${dateStr}`,
+      auditHash,
+      signatureBoxTitle: 'Sceau et Signature du Notaire',
+    };
+  } else {
+    return {
+      title: 'إشهاد المصادقة التوثيقية والبصمة الرقمية الجنائية',
+      attestationText: `أشهد أنا الموثق الموقّع أدناه، صاحب الديوان العمومي للتوثيق، بصحة ومطابقة عملية تصفية التركة المرفقة للأنصبة الشرعية والمواد 139 إلى 180 من قانون الأسرة الجزائري. تحمل هذه الوثيقة بصمة رقمية مشفرة بـ SHA-256 لمنع أي تغيير يدوياً في السهام.`,
+      notaryName: settings.notaryNameAr || 'الأستاذ لعطب محمد — موثق',
+      caseRef: `رقم مرجع الفريضة: ${caseRef}`,
+      formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
+      auditHash,
+      signatureBoxTitle: 'توقيع وخاتم الموثق',
+    };
+  }
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Settings, RotateCcw } from 'lucide-react';
+import { X, Settings, RotateCcw, Languages, Hash } from 'lucide-react';
 import { OfficeSettings } from '@/lib/inheritance/document-branding';
 
 interface OfficeSettingsModalProps {
@@ -27,6 +27,8 @@ export default function OfficeSettingsModal({
   const [email, setEmail] = useState(settings.email);
   const [isOfficialMode, setIsOfficialMode] = useState(settings.isOfficialMode ?? false);
   const [showDisclaimer, setShowDisclaimer] = useState(settings.showDisclaimer ?? true);
+  const [exportLanguage, setExportLanguage] = useState<'ar' | 'fr'>(settings.exportLanguage || 'ar');
+  const [digitFormat, setDigitFormat] = useState<'western' | 'arabic-indic'>(settings.digitFormat || 'western');
 
   // Sync state with props when modal opens or settings change
   useEffect(() => {
@@ -39,6 +41,8 @@ export default function OfficeSettingsModal({
       setEmail(settings.email);
       setIsOfficialMode(settings.isOfficialMode ?? false);
       setShowDisclaimer(settings.showDisclaimer ?? true);
+      setExportLanguage(settings.exportLanguage || 'ar');
+      setDigitFormat(settings.digitFormat || 'western');
     }
   }, [isOpen, settings]);
 
@@ -53,7 +57,9 @@ export default function OfficeSettingsModal({
       phone: phone.trim(),
       email: email.trim(),
       isOfficialMode,
-      showDisclaimer
+      showDisclaimer,
+      exportLanguage,
+      digitFormat,
     });
     onClose();
   };
@@ -85,11 +91,44 @@ export default function OfficeSettingsModal({
         {/* Content */}
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto no-scrollbar">
           <p className="text-xs text-[#64748b] leading-relaxed mb-4">
-            تتيح لك هذه الإعدادات تخصيص إسم الموثق والعنوان والبيانات الرسمية على جميع المستندات المصدرة (PDF و Word و Excel). سيتم حفظ هذه التغييرات في متصفحك بشكل دائم لتتمكن من استخدامها في كل زيارة.
+            تتيح لك هذه الإعدادات تخصيص لغة التصدير (العربية/الفرنسية)، تنسيق الأرقام، وإسم الموثق والبيانات الرسمية على جميع المستندات المصدرة (PDF و Word و Excel).
           </p>
 
           <div className="grid grid-cols-1 gap-4">
             
+            {/* Language and Numeral Toggles */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div>
+                <label className="block text-xs font-bold text-[#1e293b] mb-1.5 flex items-center gap-1">
+                  <Languages size={14} className="text-[#0a5d38]" />
+                  <span>لغة المستندات المصدرة:</span>
+                </label>
+                <select
+                  value={exportLanguage}
+                  onChange={(e) => setExportLanguage(e.target.value as 'ar' | 'fr')}
+                  className="w-full p-2 border border-[#cbd5e1] rounded-lg text-xs font-semibold bg-white focus:outline-none focus:border-[#0a5d38]"
+                >
+                  <option value="ar">العربية (الأصلية - Acte Arabe)</option>
+                  <option value="fr">الفرنسية (Traduite - Acte Français)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#1e293b] mb-1.5 flex items-center gap-1">
+                  <Hash size={14} className="text-[#0a5d38]" />
+                  <span>تنسيق رسم الأرقام:</span>
+                </label>
+                <select
+                  value={digitFormat}
+                  onChange={(e) => setDigitFormat(e.target.value as 'western' | 'arabic-indic')}
+                  className="w-full p-2 border border-[#cbd5e1] rounded-lg text-xs font-semibold bg-white focus:outline-none focus:border-[#0a5d38]"
+                >
+                  <option value="western">غربية (1, 2, 3...)</option>
+                  <option value="arabic-indic">مشرقية / أرقام هندية (١، ٢، ٣...)</option>
+                </select>
+              </div>
+            </div>
+
             {/* Notary Name */}
             <div>
               <label className="block text-xs font-bold text-[#475569] mb-1.5">إسم الموثق أو الموثقة (بالعربية) <span className="text-red-500">*</span></label>

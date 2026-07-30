@@ -26,6 +26,7 @@
     "clsx": "^2.1.1",
     "dagre": "^0.8.5",
     "docx": "^9.0.3",
+    "drizzle-orm": "^0.45.2",
     "exceljs": "^4.4.0",
     "fraction.js": "^5.0.3",
     "html-to-image": "^1.11.13",
@@ -39,6 +40,7 @@
     "react": "19.2.1",
     "react-dom": "19.2.1",
     "server-only": "^0.0.1",
+    "stripe": "^22.4.0",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.4.3"
   },

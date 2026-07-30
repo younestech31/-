@@ -19,13 +19,13 @@ export function runInheritanceOrchestration(
     const stageBequest = index === 0 ? debouncedBequest      : (stage.bequest || 0);
 
     // First pass: identify all present heirs that would be excluded by default
-    const excludedHeirWarnings: Array<{ heirId: string; heirNameAr: string; reason: string }> = [];
+    const excludedHeirWarnings: Array<{ heirId: string; heirNameAr: string; reason: string; source?: string }> = [];
     const heirsToCheck = Object.values(stage.heirPresence).filter(h => h.isPresent && h.count > 0 && !h.isImpeded);
 
     for (const h of heirsToCheck) {
       if (index === 0 || !stage.parentHeirId) continue;
       
-      const { excluded, reason } = isHeirExcludedInMunasakhat(
+      const { excluded, reason, source } = isHeirExcludedInMunasakhat(
         h.heirId,
         stage.parentHeirId,
         stage.secondDeceasedHasChildrenFromOtherUnion
@@ -37,6 +37,7 @@ export function runInheritanceOrchestration(
           heirId: h.heirId,
           heirNameAr: heirDetails?.nameAr || h.heirId,
           reason,
+          source,
         });
       }
     }
@@ -44,7 +45,7 @@ export function runInheritanceOrchestration(
     // Second pass: filter the presence list, keeping acknowledged exclusions or those bypassed by other unions
     const sanitizedPresence = Object.values(stage.heirPresence)
       .filter(h => {
-        if (index === 0 || !stage.parentHeirId) return true; // قواعد فقهية عامة في المناسخات — لا يستند إلى مادة رقم محددة في قانون الأسرة الجزائري — root stage: no exclusion
+        if (index === 0 || !stage.parentHeirId) return true;
 
         const { excluded } = isHeirExcludedInMunasakhat(
           h.heirId,
