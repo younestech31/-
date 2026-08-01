@@ -182,7 +182,7 @@ export default function InheritanceCalculator({
     >
 
       {/* Sticky Top Bar and Mobile Navigation Wrapper */}
-      <div className="sticky top-0 z-30 flex flex-col shrink-0 no-print shadow-sm md:shadow-none bg-[#f8f9fa]">
+      <div className="sticky top-0 z-50 flex flex-col shrink-0 no-print shadow-sm md:shadow-none bg-[#f8f9fa]">
         {/* Header */}
         <div className="bg-[#1F3D2E] text-white px-3 md:px-6 py-1 flex flex-col md:flex-row justify-between items-center border-b-2 border-[#B8894A] shrink-0 gap-1.5 md:gap-3 text-center md:text-right">
           <div className="flex flex-row items-center gap-2.5 w-full md:w-auto justify-between md:justify-start">
@@ -436,7 +436,7 @@ export default function InheritanceCalculator({
             updateStageFinancialField={updateStageFinancialField}
             updateStageChildrenFromOtherUnion={updateStageChildrenFromOtherUnion}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}
-            className={mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
+            className={expandedSection === 'estate' || mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
           />
 
           <HeirsPanel
@@ -448,7 +448,7 @@ export default function InheritanceCalculator({
             currentGender={currentGender}
             deceasedGender={deceasedGender}
             toggleHeir={toggleHeir} updateCount={updateCount} updateCustomName={updateCustomName} updateMissingPersonStatus={updateMissingPersonStatus}
-            className={mobileTab === 'heirs' ? 'flex h-full' : 'hidden lg:flex'}
+            className={expandedSection === 'heirs' || mobileTab === 'heirs' ? 'flex h-full' : 'hidden lg:flex'}
           />
 
           <ResultsTable
@@ -472,7 +472,7 @@ export default function InheritanceCalculator({
             isCalculating={isWorkerCalculating}
             handleCopyFullSummary={handleCopyFullSummary}
             estate={estate}
-            className={mobileTab === 'results' ? 'flex h-full' : 'hidden lg:flex'}
+            className={expandedSection === 'results' || mobileTab === 'results' ? 'flex h-full' : 'hidden lg:flex'}
           />
         </div>
       </>

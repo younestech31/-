@@ -73,7 +73,7 @@ const EstatePanel = memo(function EstatePanel({
       data-panel="estate"
       className={`bg-white rounded-lg border border-[#e2e8f0] flex flex-col overflow-hidden transition-all duration-300 no-print ${
         isExpanded
-          ? 'fixed inset-2 md:inset-4 z-50 bg-white rounded-xl shadow-2xl border-2 border-[#0a5d38] flex flex-col h-[calc(100vh-1rem)] md:h-[calc(100vh-2rem)]'
+          ? 'fixed top-[135px] md:top-[85px] inset-x-2 md:inset-x-4 bottom-2 md:bottom-4 z-40 bg-white rounded-xl shadow-2xl border-2 border-[#0a5d38] flex flex-col h-[calc(100vh-143px)] md:h-[calc(100vh-95px)]'
           : isOpen ? 'lg:h-full' : 'h-[46px] shrink-0 lg:col-span-2'
       } ${className || ''}`}
     >
@@ -113,9 +113,7 @@ const EstatePanel = memo(function EstatePanel({
 
       {/* Body */}
       <div
-        className={`p-4 overflow-y-auto flex-grow transition-opacity duration-300 h-full ${
-          (isOpen || isExpanded) ? 'opacity-100' : 'opacity-0 hidden'
-        }`}
+        className={`p-4 overflow-y-auto flex-grow transition-opacity duration-300 h-full ${isOpen ? 'opacity-100' : 'opacity-0 hidden'}`}
       >
         {/* Deceased name */}
         <div className="mb-4">

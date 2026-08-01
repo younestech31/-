@@ -101,7 +101,7 @@ const ResultsTable = memo(function ResultsTable({
       data-panel="results"
       className={`bg-white rounded-lg border border-[#e2e8f0] flex flex-col overflow-hidden transition-all duration-300 ${
         isExpanded
-          ? 'fixed inset-2 md:inset-4 z-50 bg-white rounded-xl shadow-2xl border-2 border-[#0a5d38] flex flex-col h-[calc(100vh-1rem)] md:h-[calc(100vh-2rem)]'
+          ? 'fixed top-[135px] md:top-[85px] inset-x-2 md:inset-x-4 bottom-2 md:bottom-4 z-40 bg-white rounded-xl shadow-2xl border-2 border-[#0a5d38] flex flex-col h-[calc(100vh-143px)] md:h-[calc(100vh-95px)]'
           : isEstatePanelOpen ? 'lg:col-start-3 lg:row-start-1 min-h-0 lg:h-full' : 'lg:col-start-2 lg:row-start-2 min-h-0 lg:h-full'
       } ${isCalculating ? 'opacity-50 pointer-events-none' : ''} ${className || ''}`}
     >
