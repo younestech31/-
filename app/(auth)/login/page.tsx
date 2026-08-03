@@ -1,33 +1,92 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Shield, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
+import bcrypt from 'bcryptjs';
+import { eq } from 'drizzle-orm';
 import { setSessionCookie } from '@/lib/auth/session';
+import { getDb } from '@/lib/db/client';
+import { users, organizations } from '@/lib/db/schema';
+import { checkRateLimit, resetRateLimit } from '@/lib/auth/rate-limit';
 
 async function handleLoginAction(formData: FormData) {
   'use server';
 
-  const email = formData.get('email')?.toString().trim();
+  const email = formData.get('email')?.toString().trim().toLowerCase();
   const password = formData.get('password')?.toString();
 
   if (!email || !password) {
-    throw new Error('البريد الإلكتروني وكلمة المرور مطلوبان');
+    redirect('/login?error=missing_fields');
   }
 
-  // Authenticate user & retrieve organization plan
+  // Rate limiting check to prevent credential stuffing
+  const rateLimit = checkRateLimit(email);
+  if (!rateLimit.success) {
+    redirect('/login?error=rate_limited');
+  }
+
+  // Reject login when DATABASE_URL is unset instead of silently faking success
+  if (!process.env.DATABASE_URL) {
+    redirect('/login?error=db_unset');
+  }
+
+  const db = getDb();
+  if (!db) {
+    redirect('/login?error=db_unset');
+  }
+
+  // Real credential verification against users table
+  const foundUsers = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  if (foundUsers.length === 0) {
+    redirect('/login?error=invalid_credentials');
+  }
+
+  const user = foundUsers[0];
+  if (!user.passwordHash) {
+    redirect('/login?error=invalid_credentials');
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+  if (!isPasswordValid) {
+    redirect('/login?error=invalid_credentials');
+  }
+
+  // Fetch organization plan if organization exists
+  let plan: 'free' | 'paid' = 'free';
+  let orgId = user.organizationId || 'org_default';
+
+  if (user.organizationId) {
+    const orgs = await db.select().from(organizations).where(eq(organizations.id, user.organizationId)).limit(1);
+    if (orgs.length > 0) {
+      plan = (orgs[0].plan === 'paid' ? 'paid' : 'free');
+      orgId = orgs[0].id;
+    }
+  }
+
+  // Reset rate limit counter on successful login
+  resetRateLimit(email);
+
+  // Set signed JWT session cookie
   await setSessionCookie({
-    userId: 'usr_' + Math.random().toString(36).substring(2, 9),
-    email,
-    name: 'الأستاذ الموثق',
-    organizationId: 'org_' + Math.random().toString(36).substring(2, 9),
-    plan: 'free',
-    role: 'notary',
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    organizationId: orgId,
+    plan,
+    role: (user.role as 'notary' | 'admin' | 'clerk') || 'notary',
   });
 
   redirect('/');
 }
 
-export default function LoginPage() {
+interface LoginPageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function LoginPage(props: LoginPageProps) {
+  const searchParams = await props.searchParams;
+  const error = searchParams?.error;
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4 font-sans" dir="rtl">
       <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-8 shadow-2xl space-y-6">
@@ -39,6 +98,26 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-white tracking-wide">تسجيل الدخول للموثقين</h1>
           <p className="text-xs text-slate-400">الديوان العمومي للتوثيق — منصة تصفية التركات الرسمية</p>
         </div>
+
+        {error && (
+          <div className="p-3 bg-rose-950/80 border border-rose-500/50 rounded-xl text-rose-200 text-xs flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              {error === 'db_unset' && (
+                <span>خطأ في النظام: قاعدة البيانات غير متصلة (DATABASE_URL غير محدد). يتعذر تحقق الحسابات.</span>
+              )}
+              {error === 'rate_limited' && (
+                <span>تنبيه أمني: تم تجاوز عدد محاولات الدخول المسموح بها. يرجى الانتظار قبل إعادة المحاولة.</span>
+              )}
+              {error === 'invalid_credentials' && (
+                <span>البريد الإلكتروني المهني أو كلمة المرور غير صحيحة.</span>
+              )}
+              {error === 'missing_fields' && (
+                <span>يرجى إدخال جميع الحقول المطلوبة.</span>
+              )}
+            </div>
+          </div>
+        )}
 
         <form action={handleLoginAction} className="space-y-4">
           <div>

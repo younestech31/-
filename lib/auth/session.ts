@@ -1,4 +1,8 @@
 import { cookies } from 'next/headers';
+import { SignJWT, jwtVerify } from 'jose';
+import { eq } from 'drizzle-orm';
+import { getDb } from '@/lib/db/client';
+import { organizations } from '@/lib/db/schema';
 
 export interface UserSession {
   userId: string;
@@ -11,8 +15,13 @@ export interface UserSession {
 
 const SESSION_COOKIE_NAME = 'notary_session_token';
 
+function getJwtSecretKey(): Uint8Array {
+  const secret = process.env.SESSION_SECRET || 'default_notary_session_secret_jwt_hs256_key_32chars!';
+  return new TextEncoder().encode(secret);
+}
+
 /**
- * Reads and verifies current user session from request cookies.
+ * Reads and verifies current user session from request cookies using signed JWT (HS256).
  */
 export async function getSession(): Promise<UserSession | null> {
   try {
@@ -20,17 +29,19 @@ export async function getSession(): Promise<UserSession | null> {
     const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
     if (!token) return null;
 
-    // Decode mock JWT/session token payload safely
-    const decoded = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
-    if (!decoded.userId || !decoded.organizationId) return null;
+    const { payload } = await jwtVerify(token, getJwtSecretKey(), {
+      algorithms: ['HS256'],
+    });
+
+    if (!payload.userId || !payload.organizationId) return null;
 
     return {
-      userId: decoded.userId,
-      email: decoded.email,
-      name: decoded.name || 'الأستاذ الموثق',
-      organizationId: decoded.organizationId,
-      plan: decoded.plan || 'free',
-      role: decoded.role || 'notary',
+      userId: payload.userId as string,
+      email: payload.email as string,
+      name: (payload.name as string) || 'الأستاذ الموثق',
+      organizationId: payload.organizationId as string,
+      plan: (payload.plan as 'free' | 'paid') || 'free',
+      role: (payload.role as 'notary' | 'admin' | 'clerk') || 'notary',
     };
   } catch {
     return null;
@@ -38,12 +49,17 @@ export async function getSession(): Promise<UserSession | null> {
 }
 
 /**
- * Creates and sets a session cookie for authenticated notary/user.
+ * Creates and sets a signed JWT session cookie for authenticated notary/user.
  */
 export async function setSessionCookie(session: UserSession): Promise<void> {
   const cookieStore = await cookies();
-  const serialized = Buffer.from(JSON.stringify(session)).toString('base64');
-  cookieStore.set(SESSION_COOKIE_NAME, serialized, {
+  const token = await new SignJWT({ ...session })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(getJwtSecretKey());
+
+  cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -62,11 +78,28 @@ export async function clearSessionCookie(): Promise<void> {
 
 /**
  * Guard for billing-gated features (e.g. Cloud Sync, Unlimited Munasakhat Stages, Watermark Removal).
+ * Re-checks DB plan status to prevent stale cookie or client forgery.
  */
 export async function verifyPaidSubscription(): Promise<{ isPaid: boolean; session: UserSession | null }> {
   const session = await getSession();
   if (!session) {
     return { isPaid: false, session: null };
   }
+
+  // Re-verify against database if available
+  const db = getDb();
+  if (db && session.organizationId) {
+    try {
+      const orgs = await db.select().from(organizations).where(eq(organizations.id, session.organizationId)).limit(1);
+      if (orgs.length > 0) {
+        const dbPlan = (orgs[0].plan === 'paid' ? 'paid' : 'free') as 'free' | 'paid';
+        const isPaid = dbPlan === 'paid';
+        return { isPaid, session: { ...session, plan: dbPlan } };
+      }
+    } catch (err) {
+      console.error('[verifyPaidSubscription] DB re-check failed:', err);
+    }
+  }
+
   return { isPaid: session.plan === 'paid', session };
 }

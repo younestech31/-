@@ -27,4 +27,17 @@ export const SITE_CONFIG = {
   version: '1.2',
 } as const;
 
-
+export const PRODUCT_MODES = {
+  LOCAL: {
+    id: 'local',
+    nameAr: 'الوضع المحلي بالكامل (Zero-Network)',
+    descriptionAr: 'حسابات وتصفية التركات تتم 100% داخل المتصفح دون إنشاء حساب ودون إرسال أي بيانات أسماء أو أرقام إلى خوادم خارجية. يتم تشفير البيانات المحفوظة محلياً بمفتاح عشوائي يُولّد لكل جهاز على حدة ويُحفظ في IndexedDB.',
+    zeroNetwork: true,
+  },
+  CLOUD: {
+    id: 'cloud',
+    nameAr: 'وضع المكتب السحابي للموثقين (Cloud Sync)',
+    descriptionAr: 'يتطلب حساب ديوان توثيق موثق بـ JWT. يتيح للمكتب مزامنة سجلات التركات والمسائل بين عدة أجهزة مشفرة من جانب العميل مع حفظ البيانات المشفرة فقط في قاعدة بيانات المنصة بموافقة صريحة.',
+    zeroNetwork: false,
+  },
+} as const;

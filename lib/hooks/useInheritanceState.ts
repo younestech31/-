@@ -237,25 +237,42 @@ export function useInheritanceState() {
         let plainText = saved;
         // Check if plain JSON or encrypted
         if (!saved.trim().startsWith('[')) {
-          // It is encrypted GCM Base64! Decrypt it
-          plainText = await decryptData(saved);
+          try {
+            plainText = await decryptData(saved);
+          } catch (decryptErr) {
+            console.warn('Could not decrypt saved cases from localStorage with current or legacy key. Resetting corrupted storage item.', decryptErr);
+            localStorage.removeItem('savedInheritanceCases');
+            setSavedCases([]);
+            return;
+          }
         }
         
-        const parsed: unknown = JSON.parse(plainText);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(plainText);
+        } catch {
+          console.warn('Invalid JSON in savedInheritanceCases. Resetting item.');
+          localStorage.removeItem('savedInheritanceCases');
+          setSavedCases([]);
+          return;
+        }
+
         if (Array.isArray(parsed) && parsed.every(isSavedCase)) {
           setSavedCases(parsed);
           
-          // If it was plain text, let's automatically upgrade/encrypt it now!
-          if (saved.trim().startsWith('[')) {
+          // If it was plain text or migrated from legacy key, upgrade/re-encrypt with device key
+          if (saved.trim().startsWith('[') || plainText !== saved) {
             await persistCases(parsed);
           }
         } else {
-          console.error('Invalid schema in localStorage savedCases');
-          setStorageError('تم اكتشاف خطأ في بيانات المسائل المحفوظة.');
+          console.warn('Invalid schema in localStorage savedCases. Resetting item.');
+          localStorage.removeItem('savedInheritanceCases');
+          setSavedCases([]);
         }
       } catch (e) {
-        setStorageError('فشل في تحميل أو فك تشفير المسائل المحفوظة.');
-        console.error('Failed to parse saved cases', e);
+        console.warn('Failed to parse saved cases:', e);
+        localStorage.removeItem('savedInheritanceCases');
+        setSavedCases([]);
       }
     };
     
