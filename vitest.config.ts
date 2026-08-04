@@ -6,6 +6,9 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     exclude: ['**/node_modules/**', '**/dist/**', '**/*.spec.ts'],
+    env: {
+      SESSION_SECRET: '01234567890123456789012345678901',
+    },
   },
   resolve: {
     alias: {

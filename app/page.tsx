@@ -8,6 +8,8 @@ import GharawainExplainer from '@/components/inheritance/content/GharawainExplai
 import MusharrakahExplainer from '@/components/inheritance/content/MusharrakahExplainer';
 import OnboardingGuideIntroContent from '@/components/inheritance/content/OnboardingGuideIntroContent';
 
+export const dynamic = 'force-dynamic';
+
 export default function Home() {
   const classicCasesExplainers = {
     minbariyya: <MinbariyyaExplainer />,

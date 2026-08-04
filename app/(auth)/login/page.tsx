@@ -1,7 +1,8 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Lock, Mail, ArrowRight, AlertTriangle } from 'lucide-react';
+import { headers } from 'next/headers';
+import { Shield, Lock, Mail, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { setSessionCookie } from '@/lib/auth/session';
@@ -19,13 +20,16 @@ async function handleLoginAction(formData: FormData) {
     redirect('/login?error=missing_fields');
   }
 
-  // Rate limiting check to prevent credential stuffing
-  const rateLimit = checkRateLimit(email);
+  // Rate limiting check to prevent credential stuffing keyed by email and IP
+  const headerList = await headers();
+  const ip = headerList.get('x-forwarded-for')?.split(',')[0].trim() || headerList.get('x-real-ip') || '127.0.0.1';
+  const rateLimitKey = `login:${email}:${ip}`;
+  const rateLimit = await checkRateLimit(rateLimitKey);
   if (!rateLimit.success) {
     redirect('/login?error=rate_limited');
   }
 
-  // Reject login when DATABASE_URL is unset instead of silently faking success
+  // Reject login when DATABASE_URL is unset
   if (!process.env.DATABASE_URL) {
     redirect('/login?error=db_unset');
   }
@@ -51,6 +55,11 @@ async function handleLoginAction(formData: FormData) {
     redirect('/login?error=invalid_credentials');
   }
 
+  // Email verification enforcement
+  if (!user.emailVerified) {
+    redirect('/login?error=unverified_email');
+  }
+
   // Fetch organization plan if organization exists
   let plan: 'free' | 'paid' = 'free';
   let orgId = user.organizationId || 'org_default';
@@ -64,7 +73,7 @@ async function handleLoginAction(formData: FormData) {
   }
 
   // Reset rate limit counter on successful login
-  resetRateLimit(email);
+  await resetRateLimit(rateLimitKey);
 
   // Set signed JWT session cookie
   await setSessionCookie({
@@ -80,12 +89,13 @@ async function handleLoginAction(formData: FormData) {
 }
 
 interface LoginPageProps {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; info?: string }>;
 }
 
 export default async function LoginPage(props: LoginPageProps) {
   const searchParams = await props.searchParams;
   const error = searchParams?.error;
+  const info = searchParams?.info;
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4 font-sans" dir="rtl">
@@ -99,6 +109,15 @@ export default async function LoginPage(props: LoginPageProps) {
           <p className="text-xs text-slate-400">الديوان العمومي للتوثيق — منصة تصفية التركات الرسمية</p>
         </div>
 
+        {info === 'email_verified' && (
+          <div className="p-3 bg-emerald-950/80 border border-emerald-500/50 rounded-xl text-emerald-200 text-xs flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <span>تم تأكيد بريدك الإلكتروني بنجاح! يمكنك الآن تسجيل الدخول إلى حسابك.</span>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="p-3 bg-rose-950/80 border border-rose-500/50 rounded-xl text-rose-200 text-xs flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
@@ -109,8 +128,14 @@ export default async function LoginPage(props: LoginPageProps) {
               {error === 'rate_limited' && (
                 <span>تنبيه أمني: تم تجاوز عدد محاولات الدخول المسموح بها. يرجى الانتظار قبل إعادة المحاولة.</span>
               )}
+              {error === 'unverified_email' && (
+                <span>يرجى تأكيد بريدك الإلكتروني المهني عبر الرابط المرسل إليك قبل تسجيل الدخول.</span>
+              )}
               {error === 'invalid_credentials' && (
                 <span>البريد الإلكتروني المهني أو كلمة المرور غير صحيحة.</span>
+              )}
+              {error === 'invalid_token' && (
+                <span>رابط التفعيل غير صالح أو انتهت صلاحيته.</span>
               )}
               {error === 'missing_fields' && (
                 <span>يرجى إدخال جميع الحقول المطلوبة.</span>

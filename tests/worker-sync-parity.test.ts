@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { runInheritanceOrchestration } from '../lib/inheritance/stage-orchestrator';
 import { WorkerInputSchema } from '../workers/schema';
 import type { MunasakhatStage } from '../components/inheritance/InheritanceCalculator';
+import { hydrateStageResults } from '../lib/hooks/useInheritanceWorker';
+import { handleWorkerMessage } from '../workers/inheritance.worker';
+import Fraction from 'fraction.js';
 
 describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
   const sampleStages: MunasakhatStage[] = [
@@ -19,6 +22,7 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
       deceasedSonsCount: 0,
       deceasedDaughtersCount: 0,
       hasMandatoryBequest: false,
+      ownSeparateAssets: 0,
       debts: 100000,
       funeralCosts: 20000,
       bequest: 80000,
@@ -38,6 +42,7 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
       deceasedSonsCount: 0,
       deceasedDaughtersCount: 0,
       hasMandatoryBequest: false,
+      ownSeparateAssets: 0,
       debts: 0,
       funeralCosts: 0,
       bequest: 0,
@@ -54,20 +59,55 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
     expect(parseResult.success).toBe(true);
   });
 
-  it('produces byte-for-byte identical output when orchestrator is called with validated worker input args', () => {
-    const parseResult = WorkerInputSchema.safeParse(payload);
-    expect(parseResult.success).toBe(true);
+  it('proves CalculationResult shareFraction values survive postMessage boundary and are correctly restored by hydrateStageResults', async () => {
+    const originalSelf = globalThis.self;
+    let workerResponse: Record<string, unknown> | null = null;
 
-    if (parseResult.success) {
-      const args = parseResult.data.args as [MunasakhatStage[], number, number, number, number];
-      
-      const directOrchestrationResult = runInheritanceOrchestration([
-        sampleStages, 1200000, 100000, 20000, 80000
-      ]);
-      const workerArgsOrchestrationResult = runInheritanceOrchestration(args);
+    const mockSelf = {
+      postMessage: (msg: Record<string, unknown>) => {
+        // Simulate postMessage structuredClone serialization across thread boundary
+        workerResponse = structuredClone(msg);
+      },
+      onmessage: null as unknown
+    };
+    (globalThis as unknown as Record<string, unknown>).self = mockSelf as unknown as Window & typeof globalThis;
 
-      expect(workerArgsOrchestrationResult).toEqual(directOrchestrationResult);
-    }
+    handleWorkerMessage({ data: payload } as MessageEvent);
+
+    expect(workerResponse).toBeDefined();
+    expect(workerResponse?.id).toBe(101);
+
+    const rawWorkerOutput = workerResponse?.data as Parameters<typeof hydrateStageResults>[0];
+    expect(Array.isArray(rawWorkerOutput)).toBe(true);
+
+    // Verify raw worker output lost prototype methods on postMessage boundary
+    const rawResult0 = rawWorkerOutput[0]?.results[0];
+    expect(rawResult0?.shareFraction instanceof Fraction).toBe(false);
+
+    // Hydrate stage results
+    const hydratedOutput = hydrateStageResults(rawWorkerOutput);
+    const hydratedResult0 = hydratedOutput[0]?.results[0];
+
+    // Prove shareFraction is restored to a functional Fraction instance
+    expect(hydratedResult0?.shareFraction instanceof Fraction).toBe(true);
+    expect(typeof hydratedResult0?.shareFraction.toFraction).toBe('function');
+
+    // Compare with direct orchestration results
+    const directResults = runInheritanceOrchestration([
+      sampleStages, 1200000, 100000, 20000, 80000
+    ]);
+    const hydratedDirect = hydrateStageResults(directResults);
+
+    expect(hydratedOutput.length).toEqual(hydratedDirect.length);
+    hydratedOutput.forEach((stage, sIdx) => {
+      stage.results.forEach((res, rIdx) => {
+        const expectedRes = hydratedDirect[sIdx].results[rIdx];
+        expect(res.shareFraction.toFraction()).toEqual(expectedRes.shareFraction.toFraction());
+        expect(res.finalShareAmount).toEqual(expectedRes.finalShareAmount);
+      });
+    });
+
+    (globalThis as unknown as Record<string, unknown>).self = originalSelf;
   });
 
   it('rejects malformed payloads and returns structured errors on safeParse failure', async () => {
@@ -83,7 +123,6 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
       expect(parsed.success).toBe(false);
     });
 
-    // Mock globalThis.self to capture the message sent back by worker
     const originalSelf = globalThis.self;
     const messages: unknown[] = [];
     const mockSelf = {
@@ -94,14 +133,7 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
     };
     (globalThis as unknown as Record<string, unknown>).self = mockSelf as unknown as Window & typeof globalThis;
 
-    // Load the worker to run its registration
-    await import('../workers/inheritance.worker');
-
-    expect(mockSelf.onmessage).toBeTypeOf('function');
-
-    // Test rejection of malformed payload
-    const onMsgFn = mockSelf.onmessage as (e: MessageEvent) => void;
-    onMsgFn({ data: { id: 105, args: ["invalid"] } } as MessageEvent);
+    handleWorkerMessage({ data: { id: 105, args: ["invalid"] } } as MessageEvent);
     expect(messages.length).toBe(1);
     
     const responseMsg = messages[0] as Record<string, unknown>;
@@ -109,8 +141,8 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
     expect(responseMsg.error).toBe('invalid_worker_input');
     expect(responseMsg.details).toBeDefined();
 
-    // Clean up
     (globalThis as unknown as Record<string, unknown>).self = originalSelf;
   });
 });
+
 

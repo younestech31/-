@@ -21,7 +21,8 @@ export function usePdfExport() {
   const exportToPDFClient = useCallback(async (
     allStagesResults: StageResult[],
     params: PDFExportParams,
-    officeSettings?: OfficeSettings
+    officeSettings?: OfficeSettings,
+    isPaid?: boolean
   ): Promise<boolean> => {
     setIsExportingPDF(true);
     setExportError(null);
@@ -29,7 +30,7 @@ export function usePdfExport() {
     try {
       // Highly reliable, instant, offline-capable client-side canvas-to-PDF engine
       // to avoid serverless timeouts, Chromium launch issues, and proxy errors on Cloud Run.
-      await exportToPDF(allStagesResults, params, officeSettings);
+      await exportToPDF(allStagesResults, params, officeSettings, isPaid);
       return true;
     } catch (err) {
       console.error('PDF Generation Error:', err);

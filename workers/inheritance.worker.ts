@@ -13,7 +13,7 @@ export interface WorkerOutput {
   data: StageResult[];
 }
 
-self.onmessage = (e: MessageEvent) => {
+export const handleWorkerMessage = (e: MessageEvent) => {
   try {
     const parsed = WorkerInputSchema.safeParse(e.data);
 
@@ -46,4 +46,8 @@ self.onmessage = (e: MessageEvent) => {
     self.postMessage({ id: e.data?.id, error: errorMsg });
   }
 };
+
+if (typeof self !== 'undefined') {
+  self.onmessage = handleWorkerMessage;
+}
 

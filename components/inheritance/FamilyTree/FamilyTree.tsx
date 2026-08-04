@@ -136,11 +136,12 @@ export interface HeirPresence {
 export interface StageResult {
   stage: {
     id: string;
-    deceasedName: string;
-    parentHeirId: string;
-    parentStageId: string;
+    deceasedName?: string;
+    parentHeirId?: string;
+    parentStageId?: string;
     parentHeirIndex?: number;
-    heirPresence: Record<string, HeirPresence>;
+    heirPresence?: Record<string, HeirPresence>;
+    heirs?: HeirPresence[];
   };
   results: CalculationResult[];
   netEstate: number;
@@ -419,7 +420,7 @@ export default function FamilyTree({ allStages }: FamilyTreeProps) {
           type: 'familyNode',
           position: { x: 0, y: 0 },
           data: {
-            name: stage.deceasedName,
+            name: stage.deceasedName || '',
             gender: 'male',
             relation: 'deceased',
             isAlive: false,
@@ -429,8 +430,8 @@ export default function FamilyTree({ allStages }: FamilyTreeProps) {
         deceasedNodesMap.set(stage.id, deceasedNodeId);
       } else {
         // Find the parent node in the parent stage
-        const parentStageId = stage.parentStageId;
-        const parentHeirId = stage.parentHeirId;
+        const parentStageId = stage.parentStageId || '';
+        const parentHeirId = stage.parentHeirId || '';
         const parentHeirIndex = stage.parentHeirIndex ?? 0;
         
         const allParentNodesOfType = initialNodes.filter(n => 
@@ -457,8 +458,12 @@ export default function FamilyTree({ allStages }: FamilyTreeProps) {
 
       // 1. Identify all required heirs (winners + their logical ancestors)
       const requiredHeirs = new Set<string>();
-      Object.keys(stage.heirPresence).forEach(heirId => {
-        const presence = stage.heirPresence[heirId];
+      const stagePresenceMap = stage.heirPresence || (stage.heirs ? stage.heirs.reduce((acc: Record<string, HeirPresence>, h: HeirPresence) => {
+        acc[h.heirId] = h;
+        return acc;
+      }, {} as Record<string, HeirPresence>) : {});
+      Object.keys(stagePresenceMap).forEach(heirId => {
+        const presence = stagePresenceMap[heirId];
         if (presence.isPresent && presence.count > 0) {
           requiredHeirs.add(heirId);
           let curr = getLogicalParent(heirId);
@@ -476,7 +481,7 @@ export default function FamilyTree({ allStages }: FamilyTreeProps) {
       requiredHeirs.forEach((heirId) => {
         const result = results.find(r => r.heirId === heirId);
         const meta = getHeirMeta(heirId);
-        const presence = stage.heirPresence[heirId];
+        const presence = stagePresenceMap[heirId];
         
         // If they are explicitly in results and not blocked, use their full data
         const isWinning = result && !result.isBlocked && (netEstate > 0 ? result.amount > 0 : getFrac(result.shareFraction).compare(0) > 0);

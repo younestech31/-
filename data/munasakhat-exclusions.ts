@@ -126,3 +126,50 @@ export const isHeirExcludedInMunasakhat = (
 
   return { excluded: false, reason: '', source: '' };
 };
+
+export function validateMunasakhatStageExclusions(
+  stage: { deceasedHeirId?: string; acknowledgedExclusions?: string[]; heirs?: { heirId: string; isPresent?: boolean; count?: number }[]; hasChildrenFromOtherUnion?: boolean },
+  _prevRes: unknown,
+  stageIndex: number
+) {
+  if (stageIndex === 0 || !stage.deceasedHeirId) {
+    return {
+      unacknowledgedExclusions: [],
+      acknowledgedExclusions: [],
+      hasUnacknowledgedExclusions: false,
+    };
+  }
+
+  const parentHeirId = stage.deceasedHeirId;
+  const acknowledged = stage.acknowledgedExclusions || [];
+
+  const unacknowledgedExclusions: { heirId: string; reason: string; source: string }[] = [];
+  const acknowledgedExclusionsList: { heirId: string; reason: string; source: string }[] = [];
+
+  if (Array.isArray(stage.heirs)) {
+    stage.heirs.forEach((h) => {
+      if (h.isPresent && h.count && h.count > 0) {
+        const exclusion = isHeirExcludedInMunasakhat(
+          h.heirId,
+          parentHeirId,
+          stage.hasChildrenFromOtherUnion ?? false
+        );
+        if (exclusion.excluded) {
+          const item = { heirId: h.heirId, reason: exclusion.reason, source: exclusion.source };
+          if (acknowledged.includes(h.heirId)) {
+            acknowledgedExclusionsList.push(item);
+          } else {
+            unacknowledgedExclusions.push(item);
+          }
+        }
+      }
+    });
+  }
+
+  return {
+    unacknowledgedExclusions,
+    acknowledgedExclusions: acknowledgedExclusionsList,
+    hasUnacknowledgedExclusions: unacknowledgedExclusions.length > 0,
+  };
+}
+

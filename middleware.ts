@@ -17,6 +17,19 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(targetUrl, { status: 301 });
   }
 
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data: blob: https://picsum.photos;
+    font-src 'self' data:;
+    connect-src 'self' ws: wss:;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors *;
+  `.replace(/\s{2,}/g, ' ').trim();
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-lang', 'ar');
   requestHeaders.set('x-pathname', url.pathname);
@@ -28,6 +41,7 @@ export function middleware(request: NextRequest) {
   });
 
   response.headers.set('x-lang', 'ar');
+  response.headers.set('Content-Security-Policy', cspHeader);
 
   return response;
 }
@@ -35,3 +49,4 @@ export function middleware(request: NextRequest) {
 export const config = {
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:ico|png|jpg|jpeg|webp|svg|txt|xml|ttf|woff2?|webmanifest|json)).*)'],
 };
+

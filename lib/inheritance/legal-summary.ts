@@ -6,6 +6,7 @@ import { CalculationResult } from './inheritance-calculator';
 import { MunasakhatStage } from '@/components/inheritance/InheritanceCalculator';
 import { StageResult } from '@/components/inheritance/ResultsTable';
 import Fraction from 'fraction.js';
+import { formatDZDAmount } from './document-branding';
 
 interface StageSummaryInput {
   stage: MunasakhatStage;
@@ -21,7 +22,7 @@ interface StageSummaryInput {
 // ─── مساعدات الصياغة ───────────────────────────────────────────────────────
 
 function formatAmount(n: number): string {
-  return n.toLocaleString('ar-DZ') + ' دج';
+  return formatDZDAmount(n, 'western', true);
 }
 
 function deceasedLabel(gender: 'male' | 'female' | null, name: string): string {
@@ -322,7 +323,7 @@ export function generateFullLegalSummary(
         results,
         netEstate,
         deceasedGender: isFirst ? globalInputs.deceasedGender : null,
-        estate: isFirst ? globalInputs.estate : stage.estate,
+        estate: isFirst ? globalInputs.estate : (stage.estate ?? 0),
         debts: isFirst ? globalInputs.debts : 0,
         funeralCosts: isFirst ? globalInputs.funeralCosts : 0,
         bequest: isFirst ? globalInputs.bequest : 0,

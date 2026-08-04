@@ -436,5 +436,32 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
         expect(ind.amount).toBe(25000);
       });
     });
+
+    it('Mandatory Bequest (Tanzil - Article 172): prior-inheritance offset reduces entitlement', () => {
+      const presence: HeirPresence[] = [
+        { heirId: 'wife', count: 1, isPresent: true }
+      ];
+      const resultsWithOffset = calculateInheritance(
+        presence,
+        1200000, 0, 0, 0,
+        true,
+        [
+          { type: 'son', count: 1, alreadyInheritedFromParentAmount: 800000 }
+        ]
+      );
+      const mbResWithOffset = resultsWithOffset.find(r => r.heirId === 'mandatory_bequest');
+      
+      const resultsWithoutOffset = calculateInheritance(
+        presence,
+        1200000, 0, 0, 0,
+        true,
+        [
+          { type: 'son', count: 1, alreadyInheritedFromParentAmount: 0 }
+        ]
+      );
+      const mbResWithoutOffset = resultsWithoutOffset.find(r => r.heirId === 'mandatory_bequest');
+
+      expect(mbResWithOffset?.amount).toBeLessThan(mbResWithoutOffset?.amount || 0);
+    });
   });
 });

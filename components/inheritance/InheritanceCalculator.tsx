@@ -18,23 +18,31 @@ import ConfirmResetModal   from './ConfirmResetModal';
 import OnboardingGuide     from './OnboardingGuide';
 import OfficeSettingsModal from './OfficeSettingsModal';
 import { generateFullLegalSummary } from '@/lib/inheritance/legal-summary';
+import { formatDZDAmount } from '@/lib/inheritance/document-branding';
 
 export interface MunasakhatStage {
   id: string;
-  deceasedName: string;
-  estate: number;
-  parentHeirId: string;
-  parentStageId: string;
+  deceasedName?: string;
+  estate?: number;
+  parentHeirId?: string;
+  deceasedHeirId?: string;
+  parentStageId?: string;
   parentHeirIndex?: number;
-  heirPresence: Record<string, import('@/lib/inheritance-calculator').HeirPresence>;
-  deceasedSonsCount: number;
-  deceasedDaughtersCount: number;
+  heirPresence?: Record<string, import('@/lib/inheritance/inheritance-calculator').HeirPresence>;
+  deceasedSonsCount?: number;
+  deceasedDaughtersCount?: number;
+  deceasedChildren?: import('@/lib/inheritance/inheritance-calculator').DeceasedChildGroup[];
   hasMandatoryBequest: boolean;
+  alreadyInheritedFromParentAmount?: number;
+  inheritedFromParentAmount?: number;
+  ownSeparateAssets?: number;
   debts?: number;
   funeralCosts?: number;
   bequest?: number;
   secondDeceasedHasChildrenFromOtherUnion?: boolean;
+  hasChildrenFromOtherUnion?: boolean;
   acknowledgedExclusions?: string[];
+  heirs?: import('@/lib/inheritance/inheritance-calculator').HeirPresence[];
 }
 
 export interface SavedCase {
@@ -47,6 +55,9 @@ export interface SavedCase {
   funeralCosts: number;
   bequest: number;
   stages: MunasakhatStage[];
+  createdAt?: string;
+  updatedAt?: string;
+  munasakhatStages?: MunasakhatStage[];
 }
 
 import { ClassicCase } from '@/data/classic-cases';
@@ -70,6 +81,18 @@ export default function InheritanceCalculator({
   const [isOfficeSettingsOpen, setIsOfficeSettingsOpen] = useState(false);
   const [formattedDate, setFormattedDate] = useState<string>('');
   const [isExclusionModalOpen, setIsExclusionModalOpen] = useState(false);
+  const [isFirstUseWarningHidden, setIsFirstUseWarningHidden] = useState(false);
+
+  useEffect(() => {
+    const isDismissed = localStorage.getItem('mirath_warning_dismissed_first_use');
+    if (!isDismissed) {
+      const timer = setTimeout(() => {
+        setIsFirstUseWarningHidden(true);
+        localStorage.setItem('mirath_warning_dismissed_first_use', 'true');
+      }, 10000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -119,7 +142,7 @@ export default function InheritanceCalculator({
     savedCases,
     toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, updateImpediment,
     addMunasakhatStage, removeStage,
-    updateStageName, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageFinancialField,
+    updateStageName, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
     acknowledgeStageExclusion,
     resetCalculator, saveCurrentCase, updateSavedCase, loadCase,
@@ -133,7 +156,7 @@ export default function InheritanceCalculator({
     resetOfficeSettings,
   } = state;
 
-  const currentStageResult = allStagesResults[currentStageIndex];
+  const currentStageResult = allStagesResults?.[currentStageIndex] || allStagesResults?.[0];
   const currentWarnings = currentStageResult?.excludedHeirWarnings || [];
   const acknowledgedExclusions = currentStage?.acknowledgedExclusions || [];
   const activeWarningsCount = currentWarnings.filter(w => !acknowledgedExclusions.includes(w.heirId)).length;
@@ -379,7 +402,7 @@ export default function InheritanceCalculator({
       </div>
 
       <div className="shrink-0">
-        {inputWarnings.length > 0 && (
+        {inputWarnings.length > 0 && !isFirstUseWarningHidden && (
           <div className="bg-red-50 text-red-800 p-2.5 md:p-4 mx-4 md:mx-8 mt-2.5 md:mt-4 rounded-xl border border-red-200 text-xs md:text-sm shadow-sm transition-all duration-300">
             <div className="flex items-center gap-1.5 font-bold mb-1 text-red-900">
               <span className="w-1.5 h-1.5 rounded-full bg-red-600 shrink-0"></span>
@@ -411,7 +434,7 @@ export default function InheritanceCalculator({
           <div className="bg-red-50 p-8 rounded-lg border-2 border-red-200 text-center max-w-lg shadow-sm">
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><X size={32} /></div>
             <h2 className="text-xl font-bold text-red-800 mb-2">خطأ في قيمة التركة</h2>
-            <p className="text-red-600 leading-relaxed">القيمة المدخلة للتركة سالبة ({estate.toLocaleString('en-US')})، ولا يمكن إجراء حسابات الميراث على قيم سالبة. يرجى تصحيح المبلغ للمتابعة.</p>
+            <p className="text-red-600 leading-relaxed">القيمة المدخلة للتركة سالبة ({formatDZDAmount(estate)})، ولا يمكن إجراء حسابات الميراث على قيم سالبة. يرجى تصحيح المبلغ للمتابعة.</p>
           </div>
         </div>
       ) : (
@@ -433,6 +456,7 @@ export default function InheritanceCalculator({
             updateStageName={updateStageName}
             updateStageMandatoryBequest={updateStageMandatoryBequest}
             updateStageDeceasedChildren={updateStageDeceasedChildren}
+            updateStageAlreadyInherited={updateStageAlreadyInherited}
             updateStageFinancialField={updateStageFinancialField}
             updateStageChildrenFromOtherUnion={updateStageChildrenFromOtherUnion}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}

@@ -129,7 +129,8 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
     },
     {
       '@context': 'https://schema.org',
-      '@type': 'Notary',
+      '@type': 'LegalService',
+      'additionalType': 'https://schema.org/Notary',
       'name': `${OFFICE_INFO.officialDesignation} — ${OFFICE_INFO.notaryFullName}`,
       'description': `${OFFICE_INFO.title}. متخصص في حساب المواريث والتركات وفق أحكام قانون الأسرة الجزائري والشريعة الإسلامية.`,
       'url': SITE_URL,

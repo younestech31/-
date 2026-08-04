@@ -2,16 +2,26 @@ import { test, expect } from '@playwright/test';
 
 test('Privacy verification - zero data leaves the browser', async ({ page }) => {
   const interceptedRequests: Array<{ url: string; postData: string | null }> = [];
+  const interceptedWebSocketFrames: string[] = [];
 
-  // Intercept all requests
+  // Intercept all requests (capturing full URLs)
   page.on('request', (request) => {
-    const method = request.method();
-    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
-      interceptedRequests.push({
-        url: request.url(),
-        postData: request.postData(),
-      });
-    }
+    interceptedRequests.push({
+      url: request.url(),
+      postData: request.postData(),
+    });
+  });
+
+  // Intercept all WebSocket frames
+  page.on('websocket', (ws) => {
+    ws.on('framesent', (event) => {
+      const payload = typeof event.payload === 'string' ? event.payload : event.payload.toString();
+      interceptedWebSocketFrames.push(payload);
+    });
+    ws.on('framereceived', (event) => {
+      const payload = typeof event.payload === 'string' ? event.payload : event.payload.toString();
+      interceptedWebSocketFrames.push(payload);
+    });
   });
 
   // Load the calculator page
@@ -35,11 +45,14 @@ test('Privacy verification - zero data leaves the browser', async ({ page }) => 
   // Wait for React Flow nodes to render
   await page.waitForTimeout(500);
 
-  // Select some heirs and add custom names
-  // Find name inputs inside React Flow nodes and fill them
+  // Select some heirs and add custom names, including an impeded heir
   const nameInputs = page.locator('input[placeholder*="الاسم"]');
   const count = await nameInputs.count();
-  const sensitiveHeirNames = ['فاطمة الزهراء البشير', 'أحمد كمال الوريث'];
+  const sensitiveHeirNames = [
+    'فاطمة الزهراء البشير',
+    'أحمد كمال الوريث',
+    'خالد الممنوع القاتل' // Impeded heir sensitive-data fixture
+  ];
   
   for (let i = 0; i < Math.min(count, sensitiveHeirNames.length); i++) {
     const input = nameInputs.nth(i);
@@ -51,17 +64,42 @@ test('Privacy verification - zero data leaves the browser', async ({ page }) => 
   await page.click('text=بيانات المتوفى والتركة'); // collapse/expand panel
   await page.waitForTimeout(1000); // Wait for potential network events
 
-  // Assert that none of the intercepted request bodies contain the sensitive data
+  // Assert that none of the intercepted request bodies or WebSocket frames contain the sensitive data
   const sensitiveDataList = [
     sensitiveEstate,
     sensitiveDeceasedName,
     ...sensitiveHeirNames
   ];
 
+  // Check HTTP post data
   for (const req of interceptedRequests) {
     if (!req.postData) continue;
     for (const sensitiveString of sensitiveDataList) {
       expect(req.postData).not.toContain(sensitiveString);
     }
+  }
+
+  // Check WebSocket frames
+  for (const frame of interceptedWebSocketFrames) {
+    for (const sensitiveString of sensitiveDataList) {
+      expect(frame).not.toContain(sensitiveString);
+    }
+  }
+
+  // Allowlist-based assertions for same-origin requests
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://lattab.vercel.app',
+    'https://mawarith.dz'
+  ];
+
+  for (const req of interceptedRequests) {
+    // Skip standard internal protocols and chrome extension assets
+    if (req.url.startsWith('chrome-extension://') || req.url.startsWith('data:') || req.url.startsWith('blob:')) {
+      continue;
+    }
+    const isAllowed = allowedOrigins.some(origin => req.url.startsWith(origin));
+    expect(isAllowed).toBe(true);
   }
 });

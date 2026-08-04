@@ -310,7 +310,7 @@ const FamilyTreeInput = memo(function FamilyTreeInput({
         return { ...node, data: { ...node.data, deceasedName } };
       }
 
-      const presence = heirPresence[node.id];
+      const presence = heirPresence ? heirPresence[node.id] : undefined;
       return {
         ...node,
         data: {

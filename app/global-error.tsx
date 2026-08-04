@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportClientError } from '@/lib/error-monitoring';
 
 export default function GlobalError({
   error,
@@ -11,6 +12,11 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error);
+    reportClientError({
+      errorMessage: error.message || String(error),
+      componentStack: error.stack,
+      route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
   }, [error]);
 
   return (

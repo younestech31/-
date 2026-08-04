@@ -69,3 +69,8 @@ export const LEGAL_INTERPRETATIONS_REGISTRY: Record<string, LegalInterpretation>
     lastReviewedDate: '2026-01-15',
   },
 };
+
+export function getInterpretationSetting(id: string): boolean {
+  return LEGAL_INTERPRETATIONS_REGISTRY[id]?.defaultSetting ?? true;
+}
+

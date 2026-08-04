@@ -89,4 +89,43 @@ describe('Munasakhat Resolver Tests', () => {
     expect(result.amount).toBe(150000);
     expect(result.messageAr).toContain('تؤول تركة (أحمد المتوفى ثانيا) إلى الخزينة العامة');
   });
+
+  it('proves combined total (inheritedFromParentAmount + ownSeparateAssets) flows into stage calculateInheritance', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      {
+        id: 'root',
+        deceasedName: 'المتوفى الأول',
+        estate: 100000,
+        parentHeirId: '',
+        parentStageId: '',
+        heirPresence: {
+          son: { heirId: 'son', count: 1, isPresent: true },
+        },
+        deceasedSonsCount: 0,
+        deceasedDaughtersCount: 0,
+        hasMandatoryBequest: false,
+      },
+      {
+        id: 'stage-2',
+        deceasedName: 'الابن المتوفى ثانيا',
+        estate: 100000,
+        inheritedFromParentAmount: 100000,
+        ownSeparateAssets: 50000,
+        parentHeirId: 'son',
+        parentStageId: 'root',
+        heirPresence: {
+          wife: { heirId: 'wife', count: 1, isPresent: true },
+        },
+        deceasedSonsCount: 0,
+        deceasedDaughtersCount: 0,
+        hasMandatoryBequest: false,
+      },
+    ];
+
+    const results = runInheritanceOrchestration([stages, 100000, 0, 0, 0]);
+    expect(results.length).toBe(2);
+    // Stage 2 net estate must equal inherited (100000) + ownSeparateAssets (50000) = 150000
+    expect(results[1].netEstate).toBe(150000);
+  });
 });

@@ -6,6 +6,7 @@
 
 import { memo } from "react";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
+import { formatDZDAmount } from "@/lib/inheritance/document-branding";
 
 // ─── نموذج البيانات ───────────────────────────────────────────────────────────
 
@@ -318,7 +319,7 @@ function FamilyNode({ id, data, selected }: NodeProps<Node<FamilyNodeData>>) {
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                {shareAmount.toLocaleString("en-US")}
+                {formatDZDAmount(shareAmount, 'western', true)}
               </div>
             </div>
           )}
@@ -484,7 +485,7 @@ function FamilyNode({ id, data, selected }: NodeProps<Node<FamilyNodeData>>) {
                   fontVariantNumeric: "tabular-nums",
                 }}
               >
-                {shareAmount > 0 ? shareAmount.toLocaleString("en-US", { style: 'currency', currency: 'DZD' }) : '-'}
+                {shareAmount > 0 ? formatDZDAmount(shareAmount, 'western', true) : '-'}
               </div>
             )}
             {shareBasis && (

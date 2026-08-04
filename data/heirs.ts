@@ -608,3 +608,29 @@ export const HEIRS: Heir[] = [
     allowMultiple: false
   },
 ];
+
+export const MAX_COUNTS: Record<string, number> = {
+  husband: 1,
+  wife: 4,
+  father: 1,
+  mother: 1,
+  grandfather: 1,
+  maternal_grandmother: 1,
+  paternal_grandmother: 1,
+  maternal_grandfather: 1,
+  son: 99,
+  daughter: 99,
+  son_son: 99,
+  granddaughter: 99,
+  full_brother: 99,
+  full_sister: 99,
+  paternal_brother: 99,
+  paternal_sister: 99,
+  maternal_siblings: 99,
+  full_nephew: 99,
+  paternal_nephew: 99,
+  full_uncle: 99,
+  paternal_uncle: 99,
+  full_uncle_son: 99,
+  paternal_uncle_son: 99,
+};

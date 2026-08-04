@@ -73,13 +73,13 @@ const HeirsPanel = memo(function HeirsPanel({
       {/* FamilyTreeInput */}
       <div className="flex-grow relative">
         <FamilyTreeInput
-          heirPresence={currentStage.heirPresence}
+          heirPresence={currentStage?.heirPresence || {}}
           toggleHeir={toggleHeir}
           updateCount={updateCount}
           updateCustomName={updateCustomName}
           updateMissingPersonStatus={updateMissingPersonStatus}
           deceasedGender={currentStageIndex === 0 ? deceasedGender : currentGender}
-          deceasedName={currentStage.deceasedName}
+          deceasedName={currentStage.deceasedName || ''}
           parentHeirId={currentStageIndex > 0 ? currentStage.parentHeirId : undefined}
         />
       </div>

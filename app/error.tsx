@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { reportClientError } from '@/lib/error-monitoring';
 
 export default function ErrorPage({
   error,
@@ -12,6 +13,11 @@ export default function ErrorPage({
 }) {
   useEffect(() => {
     console.error(error);
+    reportClientError({
+      errorMessage: error.message || String(error),
+      componentStack: error.stack,
+      route: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
   }, [error]);
 
   return (

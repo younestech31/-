@@ -36,8 +36,35 @@ function VerifyContent() {
     setSearched(true);
 
     try {
-      const found = await getAuditRecordFromIndexedDB(cleanHash);
-      setRecord(found);
+      // 1. Try local IndexedDB store
+      const foundLocal = await getAuditRecordFromIndexedDB(cleanHash);
+      if (foundLocal) {
+        setRecord(foundLocal);
+        return;
+      }
+
+      // 2. Fallback to server-side audit ledger endpoint if local IndexedDB returns null
+      const res = await fetch(`/api/audit-records/${encodeURIComponent(cleanHash)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.record) {
+          const remoteRecord: CalculationAuditRecord = {
+            auditId: data.record.auditId,
+            inputHash: '',
+            sharesHash: '',
+            combinedHash: data.record.combinedHash,
+            registryVersion: data.record.registryVersion,
+            timestamp: data.record.timestamp,
+            buildId: data.record.buildId,
+            caseRef: 'REF-DZD-NOTARY',
+            summary: data.record.summary,
+          };
+          setRecord(remoteRecord);
+          return;
+        }
+      }
+
+      setRecord(null);
     } catch (err) {
       console.error('Verification query failed:', err);
       setRecord(null);
@@ -74,8 +101,8 @@ function VerifyContent() {
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 flex items-start space-x-4 space-x-reverse">
           <Lock className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
           <div className="text-sm text-slate-300 leading-relaxed">
-            <strong className="text-white block mb-1">خصوصية مطلقة معتمدة قضائياً:</strong>
-            عملية التحقق تتم بالكامل داخل متصفحكم محلياً دون نقل أي بيانات تركة أو أسماء ورثة إلى أي سيرفر خارجي. يتم استخدام خوارزمية التشفير القياسية <code className="bg-slate-950 px-2 py-0.5 rounded text-emerald-400">SHA-256</code> لمطابقة بصمة العقد الصادر من مكتب الموثق.
+            <strong className="text-white block mb-1">خصوصية مطلقة معتمدة قضائياً (Zero-Knowledge Audit Ledger):</strong>
+            عملية التحقق تجري عبر مطابقة البصمة الرقمية للوثائق الصادرة. لا يحتوي السجل المحفوظ على أي أسماء للورثة أو بيانات شخصية للمتوفى، بل يقتصر على البصمة الرقمية المعماة (<code className="bg-slate-950 px-2 py-0.5 rounded text-emerald-400">SHA-256</code>) والمجاميع الإحصائية المجمعة لغرض التحقق الشرعي والقانوني فقط.
           </div>
         </div>
 

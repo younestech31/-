@@ -15,11 +15,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
+
+      - name: Assert Node.js Version Matches Engines Constraint
+        run: |
+          NODE_VER=$(node -v)
+          echo "Current Node version: $NODE_VER"
+          if [[ "$NODE_VER" != v22* ]]; then
+            echo "Node version $NODE_VER does not match required engines.node (22.x)"
+            exit 1
+          fi
 
       - name: Install dependencies
         run: npm ci

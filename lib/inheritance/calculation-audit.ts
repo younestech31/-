@@ -54,8 +54,9 @@ export async function computeSha256(text: string): Promise<string> {
  */
 export async function createCalculationAuditRecord(
   inputState: Record<string, unknown>,
-  outputResults: Record<string, unknown>[],
-  caseRef: string = 'REF-DZD-NOTARY'
+  outputResults: unknown[],
+  caseRef: string = 'REF-DZD-NOTARY',
+  auditLedgerOptIn: boolean = false
 ): Promise<CalculationAuditRecord> {
   const auditId = 'AUDIT-' + Math.random().toString(36).substring(2, 9).toUpperCase();
   const timestamp = new Date().toISOString();
@@ -94,6 +95,21 @@ export async function createCalculationAuditRecord(
   // Asynchronously store in client IndexedDB if in browser
   if (typeof window !== 'undefined') {
     saveAuditRecordToIndexedDB(record).catch(err => console.warn('IndexedDB audit save warning:', err));
+
+    if (auditLedgerOptIn) {
+      fetch('/api/audit-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          combinedHash: record.combinedHash,
+          auditId: record.auditId,
+          registryVersion: record.registryVersion,
+          timestamp: record.timestamp,
+          buildId: record.buildId,
+          summary: record.summary,
+        }),
+      }).catch(err => console.warn('Server audit ledger sync warning:', err));
+    }
   }
 
   return record;
@@ -208,7 +224,7 @@ export async function getAllAuditRecordsFromIndexedDB(): Promise<CalculationAudi
  */
 export async function verifyAuditIntegrity(
   inputState: Record<string, unknown>,
-  outputResults: Record<string, unknown>[],
+  outputResults: unknown[],
   expectedCombinedHash: string,
   timestamp: string,
   caseRef: string

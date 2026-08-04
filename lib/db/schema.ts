@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, jsonb } from 'drizzle-orm/pg-core';
 
 /**
  * Organizations Table (Firm Seats / Tenants)
@@ -60,3 +60,29 @@ export const savedCases = pgTable('saved_cases', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
+
+/**
+ * Audit Records Table (Forensic Ledger)
+ * NON-IDENTIFYING SERVER-SIDE AUDIT LEDGER
+ * Stores ONLY combinedHash (primary key), auditId, registryVersion, timestamp, buildId, and summary object.
+ * NEVER stores raw heir names, personal identification, or serialized input.
+ */
+export const auditRecords = pgTable('audit_records', {
+  combinedHash: text('combined_hash').primaryKey(),
+  auditId: text('audit_id').notNull(),
+  registryVersion: text('registry_version').notNull(),
+  timestamp: text('timestamp').notNull(),
+  buildId: text('build_id').notNull(),
+  summary: jsonb('summary').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+/**
+ * Rate Limits Table (Durable Store for Auth Rate Limiting)
+ */
+export const rateLimits = pgTable('rate_limits', {
+  key: text('key').primaryKey(),
+  count: integer('count').notNull().default(1),
+  resetTime: timestamp('reset_time').notNull(),
+});
+

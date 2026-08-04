@@ -1,0 +1,271 @@
+// lib/hooks/useMunasakhatStages.ts
+
+import { useState, useCallback, useMemo } from 'react';
+import { HEIRS } from '@/data/heirs';
+import { HeirPresence, DeceasedChildGroup } from '@/lib/inheritance/inheritance-calculator';
+import { MunasakhatStage } from '@/lib/inheritance/munasakhat-types';
+
+export const DEFAULT_HEIRS_STAGE0: HeirPresence[] = HEIRS.map(h => ({
+  heirId: h.id,
+  count: h.id === 'son' || h.id === 'daughter' ? 0 : 1,
+  isPresent: ['husband', 'wife', 'father', 'mother', 'son', 'daughter'].includes(h.id),
+}));
+
+export const INITIAL_STAGES: MunasakhatStage[] = [
+  {
+    id: 'stage-0',
+    titleAr: 'المسألة الأولى (المتوفى الأصلي)',
+    deceasedNameAr: 'المتوفى الأصلي',
+    heirs: DEFAULT_HEIRS_STAGE0,
+    hasMandatoryBequest: false,
+    deceasedChildren: [],
+    unbornOutcome: 'stillborn',
+    hasUnbornHeir: false,
+    hasChildrenFromOtherUnion: false,
+  },
+];
+
+export function useMunasakhatStages(
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
+) {
+  const [munasakhatStages, setMunasakhatStages] = useState<MunasakhatStage[]>(INITIAL_STAGES);
+  const [currentStageIndex, setCurrentStageIndex] = useState<number>(0);
+
+  const currentStage = useMemo(() => {
+    const rawStage = munasakhatStages[currentStageIndex] || munasakhatStages[0] || INITIAL_STAGES[0];
+    const heirs = rawStage?.heirs || DEFAULT_HEIRS_STAGE0;
+    const heirPresence = (rawStage?.heirPresence && Object.keys(rawStage.heirPresence).length > 0)
+      ? rawStage.heirPresence
+      : heirs.reduce((acc, h) => {
+          acc[h.heirId] = h;
+          return acc;
+        }, {} as Record<string, HeirPresence>);
+
+    return {
+      ...rawStage,
+      heirs,
+      heirPresence,
+    };
+  }, [munasakhatStages, currentStageIndex]);
+
+  const addMunasakhatStage = useCallback((
+    heirName: string,
+    amount: number,
+    heirId: string,
+    _index: number
+  ) => {
+    const defaultHeirs: HeirPresence[] = HEIRS.map(h => {
+      if (h.id === 'father' || h.id === 'mother' || h.id === 'husband' || h.id === 'wife') {
+        return { heirId: h.id, count: 1, isPresent: false };
+      }
+      return { heirId: h.id, count: 0, isPresent: false };
+    });
+
+    const newStage: MunasakhatStage = {
+      id: `stage-${Date.now()}`,
+      titleAr: `مناسخة: وفاة ${heirName}`,
+      deceasedNameAr: heirName,
+      deceasedHeirId: heirId,
+      inheritedAmount: amount,
+      heirs: defaultHeirs,
+      hasMandatoryBequest: false,
+      deceasedChildren: [],
+      unbornOutcome: 'stillborn',
+      hasUnbornHeir: false,
+      hasChildrenFromOtherUnion: false,
+    };
+
+    setMunasakhatStages(prev => [...prev, newStage]);
+    setCurrentStageIndex(prev => prev + 1);
+    showToast(`تمت إضافة مرحلة مناسخة لـ: ${heirName}`, 'success');
+  }, [showToast]);
+
+  const removeStage = useCallback((index: number) => {
+    if (index === 0) {
+      showToast('لا يمكن حذف المسألة الأولى الأساسية.', 'error');
+      return;
+    }
+    setMunasakhatStages(prev => prev.filter((_, i) => i !== index));
+    setCurrentStageIndex(prev => Math.max(0, prev - 1));
+    showToast('تم حذف مرحلة المناسخة بنجاح.', 'info');
+  }, [showToast]);
+
+  const updateStageName = useCallback((name: string) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      if (next[currentStageIndex]) {
+        next[currentStageIndex] = {
+          ...next[currentStageIndex],
+          deceasedNameAr: name,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageMandatoryBequest = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      if (next[currentStageIndex]) {
+        next[currentStageIndex] = {
+          ...next[currentStageIndex],
+          hasMandatoryBequest: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageDeceasedChildren = useCallback((
+    field: 'type' | 'count' | 'hasOwnChildrenWhoAreAlsoDirectHeirs' | 'priorGiftOrBequestAmount' | 'alreadyInheritedFromParentAmount' | 'deceasedSonsCount' | 'deceasedDaughtersCount',
+    value: string | number | boolean
+  ) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (!stage) return prev;
+
+      if (field === 'deceasedSonsCount' || field === 'deceasedDaughtersCount') {
+        next[currentStageIndex] = {
+          ...stage,
+          [field]: Math.max(0, Number(value)),
+        };
+        return next;
+      }
+
+      let currentList = stage.deceasedChildren ? [...stage.deceasedChildren] : [];
+      if (currentList.length === 0) {
+        currentList = [{
+          type: 'son',
+          count: 1,
+          hasOwnChildrenWhoAreAlsoDirectHeirs: false,
+          priorGiftOrBequestAmount: 0,
+          alreadyInheritedFromParentAmount: 0
+        }];
+      }
+
+      const updatedFirst = { ...currentList[0] };
+      if (field === 'type') updatedFirst.type = value as 'son' | 'daughter';
+      else if (field === 'count') updatedFirst.count = Math.max(1, Number(value));
+      else if (field === 'hasOwnChildrenWhoAreAlsoDirectHeirs') updatedFirst.hasOwnChildrenWhoAreAlsoDirectHeirs = Boolean(value);
+      else if (field === 'priorGiftOrBequestAmount') updatedFirst.priorGiftOrBequestAmount = Math.max(0, Number(value));
+      else if (field === 'alreadyInheritedFromParentAmount') updatedFirst.alreadyInheritedFromParentAmount = Math.max(0, Number(value));
+
+      currentList[0] = updatedFirst;
+
+      next[currentStageIndex] = {
+        ...stage,
+        deceasedChildren: currentList as DeceasedChildGroup[],
+      };
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageAlreadyInherited = useCallback((value: number) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (!stage) return prev;
+
+      let currentList = stage.deceasedChildren ? [...stage.deceasedChildren] : [];
+      if (currentList.length === 0) {
+        currentList = [{
+          type: 'son',
+          count: 1,
+          hasOwnChildrenWhoAreAlsoDirectHeirs: false,
+          priorGiftOrBequestAmount: 0,
+          alreadyInheritedFromParentAmount: value
+        }];
+      } else {
+        currentList[0] = {
+          ...currentList[0],
+          alreadyInheritedFromParentAmount: value
+        };
+      }
+
+      next[currentStageIndex] = {
+        ...stage,
+        deceasedChildren: currentList as DeceasedChildGroup[],
+      };
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageFinancialField = useCallback((
+    field: 'estate' | 'debts' | 'funeralCosts' | 'bequest' | 'ownSeparateAssets',
+    value: number
+  ) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          [field]: Math.max(0, value),
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageChildrenFromOtherUnion = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          hasChildrenFromOtherUnion: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const acknowledgeStageExclusion = useCallback((heirId: string) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (!stage) return prev;
+      const current = stage.acknowledgedExclusions || [];
+      if (!current.includes(heirId)) {
+        next[currentStageIndex] = {
+          ...stage,
+          acknowledgedExclusions: [...current, heirId],
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const removeStageExclusionAcknowledgment = useCallback((heirId: string) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (!stage || !stage.acknowledgedExclusions) return prev;
+      next[currentStageIndex] = {
+        ...stage,
+        acknowledgedExclusions: stage.acknowledgedExclusions.filter(id => id !== heirId),
+      };
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  return {
+    munasakhatStages,
+    setMunasakhatStages,
+    currentStageIndex,
+    setCurrentStageIndex,
+    currentStage,
+    addMunasakhatStage,
+    removeStage,
+    updateStageName,
+    updateStageMandatoryBequest,
+    updateStageDeceasedChildren,
+    updateStageAlreadyInherited,
+    updateStageFinancialField,
+    updateStageChildrenFromOtherUnion,
+    acknowledgeStageExclusion,
+    removeStageExclusionAcknowledgment,
+  };
+}

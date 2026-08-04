@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { LEGAL_INTERPRETATIONS_REGISTRY } from '@/lib/inheritance/legal-interpretations-registry';
-import { IMPEDED_SIBLINGS_COUNT_TOWARDS_MOTHER_REDUCTION, AKDARIYYA_EXTENDS_TO_PATERNAL_SISTER } from '@/lib/inheritance/inheritance-calculator';
+import { LEGAL_INTERPRETATIONS_REGISTRY, getInterpretationSetting } from '@/lib/inheritance/legal-interpretations-registry';
 
 describe('Legal Interpretations Registry Tests', () => {
   it('should contain registry entries for all interpretive decisions in the calculation engine', () => {
@@ -23,8 +22,25 @@ describe('Legal Interpretations Registry Tests', () => {
     });
   });
 
-  it('should reference constants correctly', () => {
-    expect(typeof IMPEDED_SIBLINGS_COUNT_TOWARDS_MOTHER_REDUCTION).toBe('boolean');
-    expect(typeof AKDARIYYA_EXTENDS_TO_PATERNAL_SISTER).toBe('boolean');
+  it('should reference getInterpretationSetting correctly', () => {
+    expect(typeof getInterpretationSetting('IMPEDED_SIBLINGS_REDUCTION')).toBe('boolean');
+    expect(typeof getInterpretationSetting('AKDARIYYA_PATERNAL_SISTER')).toBe('boolean');
+  });
+
+  it('should measurably change getInterpretationSetting when flipping defaultSetting for every key', () => {
+    Object.keys(LEGAL_INTERPRETATIONS_REGISTRY).forEach(key => {
+      const entry = LEGAL_INTERPRETATIONS_REGISTRY[key];
+      const original = entry.defaultSetting;
+
+      entry.defaultSetting = true;
+      const outTrue = getInterpretationSetting(key);
+
+      entry.defaultSetting = false;
+      const outFalse = getInterpretationSetting(key);
+
+      entry.defaultSetting = original; // restore
+
+      expect(outTrue).not.toEqual(outFalse);
+    });
   });
 });

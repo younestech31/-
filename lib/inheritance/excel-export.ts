@@ -214,7 +214,7 @@ export async function exportToExcel(
     const activeHeirs = results
       .filter((r) => r.heirId !== 'voluntary_bequest' && r.heirId !== 'mandatory_bequest')
       .flatMap((r) => {
-        const presence = stage.heirPresence[r.heirId];
+        const presence = stage.heirPresence?.[r.heirId];
         const customNames = presence?.customNames;
         const individualRows = [];
 
@@ -404,7 +404,7 @@ export async function exportToExcel(
       .flatMap((r) => {
         if (r.heirId === 'voluntary_bequest' || r.heirId === 'mandatory_bequest') return [];
 
-        const presence = stage.heirPresence[r.heirId];
+        const presence = stage.heirPresence?.[r.heirId];
         const customNames = presence?.customNames;
         const individualRows = [];
 

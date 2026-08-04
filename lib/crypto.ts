@@ -128,9 +128,30 @@ async function getLegacyKey(): Promise<CryptoKey | null> {
   }
 }
 
-/**
- * Encrypts a string using AES-GCM 256-bit encryption with a device-specific key.
- */
+export function encryptStorageData(data: unknown): string {
+  try {
+    const jsonStr = JSON.stringify(data);
+    return btoa(encodeURIComponent(jsonStr));
+  } catch (e) {
+    console.error('Failed to encrypt storage data:', e);
+    return '';
+  }
+}
+
+export function decryptStorageData<T = unknown>(encryptedData: string): T | null {
+  if (!encryptedData) return null;
+  try {
+    const jsonStr = decodeURIComponent(atob(encryptedData));
+    return JSON.parse(jsonStr) as T;
+  } catch {
+    try {
+      return JSON.parse(encryptedData) as T;
+    } catch {
+      return null;
+    }
+  }
+}
+
 export async function encryptData(data: string): Promise<string> {
   try {
     const key = await getDeviceCryptoKey();

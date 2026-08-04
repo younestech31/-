@@ -95,7 +95,37 @@ describe('Classical Cases Golden Regression Fixtures (Articles 175-179)', () => 
     const results = calculateInheritance(heirs, 270000, 0, 0, 0, false, []);
     expect(results).toBeDefined();
     expect(results.length).toBeGreaterThan(0);
+
     const husband = results.find(r => r.heirId === 'husband');
+    const mother = results.find(r => r.heirId === 'mother');
+    const fullSister = results.find(r => r.heirId === 'full_sister');
+    const grandfather = results.find(r => r.heirId === 'grandfather');
+
     expect(husband?.amount).toBe(90000); // 9/27 of 270k = 90k
+    expect(mother?.amount).toBe(60000); // 6/27 of 270k = 60k
+    expect(fullSister?.amount).toBe(40000); // 4/27 of 270k = 40k
+    expect(grandfather?.amount).toBe(80000); // 8/27 of 270k = 80k
+  });
+
+  it('Akdariyya paternal-sister substitution (AKDARIYYA_EXTENDS_TO_PATERNAL_SISTER)', () => {
+    const heirs: HeirPresence[] = [
+      { heirId: 'husband', count: 1, isPresent: true },
+      { heirId: 'mother', count: 1, isPresent: true },
+      { heirId: 'grandfather', count: 1, isPresent: true },
+      { heirId: 'paternal_sister', count: 1, isPresent: true },
+    ];
+    const results = calculateInheritance(heirs, 270000, 0, 0, 0, false, []);
+    expect(results).toBeDefined();
+    expect(results.length).toBeGreaterThan(0);
+
+    const husband = results.find(r => r.heirId === 'husband');
+    const mother = results.find(r => r.heirId === 'mother');
+    const paternalSister = results.find(r => r.heirId === 'paternal_sister');
+    const grandfather = results.find(r => r.heirId === 'grandfather');
+
+    expect(husband?.amount).toBe(90000); // 9/27 of 270k = 90k
+    expect(mother?.amount).toBe(60000); // 6/27 of 270k = 60k
+    expect(paternalSister?.amount).toBe(40000); // 4/27 of 270k = 40k
+    expect(grandfather?.amount).toBe(80000); // 8/27 of 270k = 80k
   });
 });

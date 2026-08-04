@@ -15,9 +15,12 @@ export interface UserSession {
 
 const SESSION_COOKIE_NAME = 'notary_session_token';
 
+const DEFAULT_DEV_SESSION_SECRET = 'default-dev-session-secret-at-least-32-chars-long-notaire-lattab-2026';
+
 function getJwtSecretKey(): Uint8Array {
-  const secret = process.env.SESSION_SECRET || 'default_notary_session_secret_jwt_hs256_key_32chars!';
-  return new TextEncoder().encode(secret);
+  const secretEnv = process.env.SESSION_SECRET || DEFAULT_DEV_SESSION_SECRET;
+  const effectiveSecret = secretEnv.length >= 32 ? secretEnv : DEFAULT_DEV_SESSION_SECRET;
+  return new TextEncoder().encode(effectiveSecret);
 }
 
 /**
@@ -74,6 +77,37 @@ export async function setSessionCookie(session: UserSession): Promise<void> {
 export async function clearSessionCookie(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
+}
+
+/**
+ * Creates a signed JWT token for email verification expiring in 24 hours.
+ */
+export async function createEmailVerificationToken(userId: string, email: string): Promise<string> {
+  return new SignJWT({ userId, email, type: 'email_verify' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('24h')
+    .sign(getJwtSecretKey());
+}
+
+/**
+ * Verifies signed email verification token.
+ */
+export async function verifyEmailVerificationToken(token: string): Promise<{ userId: string; email: string } | null> {
+  try {
+    const { payload } = await jwtVerify(token, getJwtSecretKey(), {
+      algorithms: ['HS256'],
+    });
+    if (payload.type !== 'email_verify' || !payload.userId || !payload.email) {
+      return null;
+    }
+    return {
+      userId: payload.userId as string,
+      email: payload.email as string,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

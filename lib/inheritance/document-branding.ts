@@ -52,6 +52,7 @@ export interface OfficeSettings {
   documentRefNumber?: string;    // Unique document reference number
   exportLanguage?: 'ar' | 'fr';  // Language toggle for export documents
   digitFormat?: 'western' | 'arabic-indic'; // Numeral formatting toggle
+  auditLedgerOptIn?: boolean;   // Opt-in toggle for forensic server-side audit ledger
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
@@ -66,6 +67,7 @@ export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
   documentRefNumber: '',
   exportLanguage: 'ar',
   digitFormat: 'western',
+  auditLedgerOptIn: false,
 };
 
 // Unified Arabic font family for all documents
@@ -121,6 +123,28 @@ export function formatDocumentCurrency(
   const finalStr = n < 0 ? `-${formatted}` : formatted;
 
   return digitFormat === 'arabic-indic' ? toArabicIndicDigits(finalStr) : finalStr;
+}
+
+/**
+ * Unified helper for formatting currency amounts across interactive UI and exported documents.
+ * Defaults to Western digits with Algerian grouping (e.g., 1.234.567) or Arabic-Indic digits (١.٢٣٤.٥٦٧).
+ */
+export function formatDZDAmount(
+  amount: number,
+  digitStyle: 'western' | 'arabic-indic' = 'western',
+  includeCurrencySymbol: boolean = false
+): string {
+  if (isNaN(amount) || amount === null || amount === undefined) {
+    const zeroVal = '0';
+    const formattedZero = digitStyle === 'arabic-indic' ? toArabicIndicDigits(zeroVal) : zeroVal;
+    return includeCurrencySymbol ? `${formattedZero} دج` : formattedZero;
+  }
+  const hasCents = amount % 1 !== 0;
+  const formatted = formatDocumentCurrency(amount, hasCents, digitStyle, 'ar');
+  if (includeCurrencySymbol) {
+    return formatted;
+  }
+  return formatted.replace(/ دج$/, '').trim();
 }
 
 // Format percentage consistently

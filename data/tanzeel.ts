@@ -23,7 +23,8 @@ export const TANZEEL_RULES = {
     {
       id: 'not_inherited',
       conditionAr: 'ألا يكون الأحفاد قد ورثوا من أبيهم أو أمهم ما لا يقل عن مناب مورثهم',
-      article: 172
+      article: 172,
+      fieldKey: 'alreadyInheritedFromParentAmount'
     }
   ],
   distribution: 'للذكر مثل حظ الأنثيين'

@@ -10,7 +10,7 @@ export function validateAllStages(stages: MunasakhatStage[]): StageValidationRes
   return stages.map(stage => {
     const errors: string[] = [];
     
-    if (stage.estate < 0) {
+    if (stage.estate !== undefined && stage.estate < 0) {
       errors.push('قيمة التركة لا يمكن أن تكون سالبة');
     }
     
@@ -18,9 +18,9 @@ export function validateAllStages(stages: MunasakhatStage[]): StageValidationRes
       errors.push('اسم المتوفى مطلوب');
     }
     
-    const hasAnyHeir = Object.values(stage.heirPresence).some(h => h.isPresent && h.count > 0);
-    const hasSons = stage.deceasedSonsCount > 0;
-    const hasDaughters = stage.deceasedDaughtersCount > 0;
+    const hasAnyHeir = Object.values(stage.heirPresence || {}).some(h => h.isPresent && h.count > 0);
+    const hasSons = (stage.deceasedSonsCount || 0) > 0;
+    const hasDaughters = (stage.deceasedDaughtersCount || 0) > 0;
     
     if (!hasAnyHeir && !hasSons && !hasDaughters && stage.id !== 'root') {
       errors.push('يجب تحديد وارث واحد على الأقل');

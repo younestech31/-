@@ -1,12 +1,30 @@
 import React from 'react';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Lock, Mail, User, Building, ArrowRight, AlertTriangle } from 'lucide-react';
+import { headers } from 'next/headers';
+import { Shield, Lock, Mail, User, Building, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { setSessionCookie } from '@/lib/auth/session';
+import { setSessionCookie, createEmailVerificationToken } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/client';
 import { users, organizations } from '@/lib/db/schema';
+import { checkRateLimit } from '@/lib/auth/rate-limit';
+import { sendAccountAlreadyExistsNotice, sendVerificationEmail } from '@/lib/email';
+
+const COMMON_PASSWORDS = new Set([
+  '1234567890',
+  '12345678901',
+  '123456789012',
+  'password123',
+  'password1234',
+  '123456789',
+  'qwerty1234',
+  'notaire123',
+  'notaire1234',
+  'admin123456',
+  '12345678900',
+  '0123456789',
+]);
 
 async function handleRegisterAction(formData: FormData) {
   'use server';
@@ -20,7 +38,21 @@ async function handleRegisterAction(formData: FormData) {
     redirect('/register?error=missing_fields');
   }
 
-  // Reject registration when DATABASE_URL is unset instead of silently faking success
+  // Rate limiting check
+  const headerList = await headers();
+  const ip = headerList.get('x-forwarded-for')?.split(',')[0].trim() || headerList.get('x-real-ip') || '127.0.0.1';
+  const rateLimitKey = `register:${email}:${ip}`;
+  const rateLimit = await checkRateLimit(rateLimitKey, 5, 15 * 60 * 1000);
+  if (!rateLimit.success) {
+    redirect('/register?error=rate_limited');
+  }
+
+  // Password policy check
+  if (password.length < 10 || COMMON_PASSWORDS.has(password.toLowerCase())) {
+    redirect('/register?error=weak_password');
+  }
+
+  // Reject registration when DATABASE_URL is unset
   if (!process.env.DATABASE_URL) {
     redirect('/register?error=db_unset');
   }
@@ -30,18 +62,20 @@ async function handleRegisterAction(formData: FormData) {
     redirect('/register?error=db_unset');
   }
 
-  // Check if email already registered
+  // Check if email already registered (prevent enumeration by returning generic response)
   const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
   if (existing.length > 0) {
-    redirect('/register?error=email_exists');
+    // Server-side notice only; never confirm existence in HTTP response
+    await sendAccountAlreadyExistsNotice(email);
+    redirect('/register?info=check_email');
   }
 
   // Hash password using bcrypt
   const passwordHash = await bcrypt.hash(password, 10);
 
-  // Generate unique IDs
-  const orgId = 'org_' + crypto.randomUUID().substring(0, 8);
-  const userId = 'usr_' + crypto.randomUUID().substring(0, 8);
+  // Generate unique full UUIDs for org and user
+  const orgId = 'org_' + crypto.randomUUID();
+  const userId = 'usr_' + crypto.randomUUID();
 
   // Create Organization first
   await db.insert(organizations).values({
@@ -50,7 +84,7 @@ async function handleRegisterAction(formData: FormData) {
     plan: 'free',
   });
 
-  // Create User
+  // Create User with emailVerified: false
   await db.insert(users).values({
     id: userId,
     email,
@@ -58,9 +92,14 @@ async function handleRegisterAction(formData: FormData) {
     name,
     role: 'notary',
     organizationId: orgId,
+    emailVerified: false,
   });
 
-  // Set signed JWT session cookie
+  // Generate signed verification token & send email
+  const verifyToken = await createEmailVerificationToken(userId, email);
+  await sendVerificationEmail(email, verifyToken);
+
+  // Set session cookie
   await setSessionCookie({
     userId,
     email,
@@ -70,16 +109,17 @@ async function handleRegisterAction(formData: FormData) {
     role: 'notary',
   });
 
-  redirect('/');
+  redirect('/register?info=check_email');
 }
 
 interface RegisterPageProps {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; info?: string }>;
 }
 
 export default async function RegisterPage(props: RegisterPageProps) {
   const searchParams = await props.searchParams;
   const error = searchParams?.error;
+  const info = searchParams?.info;
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4 font-sans" dir="rtl">
@@ -93,12 +133,27 @@ export default async function RegisterPage(props: RegisterPageProps) {
           <p className="text-xs text-slate-400">انضم لمنصة التوثيق الرقمي المعالجة محلياً 100%</p>
         </div>
 
+        {info === 'check_email' && (
+          <div className="p-3 bg-emerald-950/80 border border-emerald-500/50 rounded-xl text-emerald-200 text-xs flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <span>تم استلام طلبك بنجاح. يرجى مراجعة بريدك الإلكتروني المهني للتعليمات وتأكيد الحساب.</span>
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="p-3 bg-rose-950/80 border border-rose-500/50 rounded-xl text-rose-200 text-xs flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
             <div>
               {error === 'db_unset' && (
                 <span>خطأ في النظام: قاعدة البيانات غير متصلة (DATABASE_URL غير محدد). يتعذر إنشاء الحسابات.</span>
+              )}
+              {error === 'rate_limited' && (
+                <span>تنبيه أمني: تم تجاوز عدد محاولات التسجيل المسموح بها. يرجى الانتظار قبل إعادة المحاولة.</span>
+              )}
+              {error === 'weak_password' && (
+                <span>كلمة المرور ضعيفة. يجب أن لا تقل عن 10 أحرف وأن لا تكون ضمن كلمات المرور الشائعة.</span>
               )}
               {error === 'email_exists' && (
                 <span>البريد الإلكتروني المدخل مسجل بالفعل لمكتب توثيق آخر.</span>
@@ -155,12 +210,13 @@ export default async function RegisterPage(props: RegisterPageProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1.5">كلمة المرور المشفرة</label>
+            <label className="block text-xs font-semibold text-slate-300 mb-1.5">كلمة المرور المشفرة (10 أحرف على الأقل)</label>
             <div className="relative">
               <input
                 type="password"
                 name="password"
                 required
+                minLength={10}
                 placeholder="••••••••••••"
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 pr-10"
                 dir="ltr"

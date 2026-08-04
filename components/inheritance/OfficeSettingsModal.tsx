@@ -29,6 +29,7 @@ export default function OfficeSettingsModal({
   const [showDisclaimer, setShowDisclaimer] = useState(settings.showDisclaimer ?? true);
   const [exportLanguage, setExportLanguage] = useState<'ar' | 'fr'>(settings.exportLanguage || 'ar');
   const [digitFormat, setDigitFormat] = useState<'western' | 'arabic-indic'>(settings.digitFormat || 'western');
+  const [auditLedgerOptIn, setAuditLedgerOptIn] = useState(settings.auditLedgerOptIn ?? false);
 
   // Sync state with props when modal opens or settings change
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function OfficeSettingsModal({
       setShowDisclaimer(settings.showDisclaimer ?? true);
       setExportLanguage(settings.exportLanguage || 'ar');
       setDigitFormat(settings.digitFormat || 'western');
+      setAuditLedgerOptIn(settings.auditLedgerOptIn ?? false);
     }
   }, [isOpen, settings]);
 
@@ -60,6 +62,7 @@ export default function OfficeSettingsModal({
       showDisclaimer,
       exportLanguage,
       digitFormat,
+      auditLedgerOptIn,
     });
     onClose();
   };
@@ -244,6 +247,22 @@ export default function OfficeSettingsModal({
                   </label>
                 </div>
               )}
+
+              <div className="flex items-center justify-between pt-2 border-t border-amber-200/50">
+                <div>
+                  <h4 className="text-xs font-bold text-[#1e293b]">تفعيل السجل السحابي للتحقق الجنائي (Audit Ledger)</h4>
+                  <p className="text-[11px] text-[#64748b]">تخزين البصمة المعماة ومجاميع الأنصبة سحابياً للتحقق من المستند من أجهزة أخرى بدون تخزين أسماء الورثة</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={auditLedgerOptIn}
+                    onChange={(e) => setAuditLedgerOptIn(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0a5d38]"></div>
+                </label>
+              </div>
             </div>
 
             {/* Mawarith Brand Reminder */}

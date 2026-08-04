@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { CalculationResult } from '@/lib/inheritance-calculator';
 import { INHERITANCE_BARS } from '@/data/inheritance-bars';
 import { MunasakhatStage } from './InheritanceCalculator';
-import { StageValidationResult } from '@/lib/inheritance/munasakhat-resolver';
+import { formatDZDAmount } from '@/lib/inheritance/document-branding';
 
 const FamilyTree = dynamic(() => import('./FamilyTree/FamilyTree'), {
   ssr: false,
@@ -45,8 +45,8 @@ interface ResultsTableProps {
   isEstatePanelOpen: boolean;
   isExpanded?: boolean;
   onToggleExpand?: () => void;
-  viewMode: 'table' | 'tree';
-  setViewMode: (m: 'table' | 'tree') => void;
+  viewMode: 'summary' | 'table' | 'tree' | 'steps';
+  setViewMode: (m: 'summary' | 'table' | 'tree' | 'steps') => void;
   currentStageIndex: number;
   setCurrentStageIndex: (i: number) => void;
   munasakhatStages: MunasakhatStage[];
@@ -60,7 +60,7 @@ interface ResultsTableProps {
   setSelectedHeirExplanation: (r: CalculationResult | null) => void;
   updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
   /** نتيجة مراجعة المرحلة الحالية (ورثة مستبعدون مُفعَّلون) */
-  currentStageValidation: StageValidationResult | null;
+  currentStageValidation?: unknown;
   /** سياسة توزيع الحصة عند غياب الورثة في المسألة الثانوية */
   noHeirsRedistribution: StageResult['noHeirsRedistribution'];
   isCalculating: boolean;
@@ -185,7 +185,7 @@ const ResultsTable = memo(function ResultsTable({
                 if (problemBase) lines.push(`أصل المسألة: ${problemBase}`);
                 lines.push('--------------------------------------------------');
                 results.forEach(r => {
-                  const presence = currentStage.heirPresence[r.heirId];
+                  const presence = currentStage?.heirPresence?.[r.heirId];
                   const getPct = (frac: Fraction) => {
                     const v = frac.valueOf() * 100;
                     return v % 1 === 0 ? `${v}%` : `${v.toFixed(2)}%`;
@@ -201,7 +201,7 @@ const ResultsTable = memo(function ResultsTable({
                       if (isPureSharesMode) {
                         lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - النسبة: ${pctStr}`);
                       } else {
-                        lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${individualAmt.toLocaleString('en-US')} دج (${pctStr})`);
+                        lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${formatDZDAmount(individualAmt, 'western', true)} (${pctStr})`);
                       }
                     }
                   } else {
@@ -209,7 +209,7 @@ const ResultsTable = memo(function ResultsTable({
                     if (isPureSharesMode) {
                       lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - النسبة: ${pctStr}`);
                     } else {
-                      lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${r.amount.toLocaleString('en-US')} دج (${pctStr})`);
+                      lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${formatDZDAmount(r.amount, 'western', true)} (${pctStr})`);
                     }
                   }
                 });
@@ -386,7 +386,7 @@ const TableView = memo(function TableView({
 
   const memoizedRowData = useMemo(() => {
     return results.flatMap((r, idx) => {
-      const presence = currentStage.heirPresence[r.heirId];
+      const presence = currentStage?.heirPresence?.[r.heirId];
       const items = [];
       for (let i = 0; i < r.count; i++) {
         const customName     = presence?.customNames?.[i];
@@ -428,7 +428,7 @@ const TableView = memo(function TableView({
       }
       return items;
     });
-  }, [results, currentStage.heirPresence]);
+  }, [results, currentStage?.heirPresence]);
 
   return (
     <>
@@ -554,7 +554,7 @@ const TableView = memo(function TableView({
                       const activeAmt = activeInd ? activeInd.amount : 0;
                       return activeAmt > 0 ? (
                         <div className="text-[10px] text-[#0a5d38] mt-0.5 font-bold">
-                          نصيب كل واحدة غير محرومة: {activeAmt.toLocaleString('en-US')}
+                          نصيب كل واحدة غير محرومة: {formatDZDAmount(activeAmt)}
                         </div>
                       ) : null;
                     })()
@@ -632,7 +632,7 @@ const TableView = memo(function TableView({
 
                 {/* Amount / Percentage */}
                 <td className="p-2.5 border-b border-[#e2e8f0] font-mono font-medium">
-                  {indIsBlocked ? '-' : (isPureSharesMode ? percentStr : `${individualAmt.toLocaleString('en-US')} دج (${percentStr})`)}
+                  {indIsBlocked ? '-' : (isPureSharesMode ? percentStr : `${formatDZDAmount(individualAmt, 'western', true)} (${percentStr})`)}
                 </td>
 
                 {/* Actions */}

@@ -369,7 +369,7 @@ export async function exportToWord(
     // Inheritors Rows
     let rowIndex = 0;
     inheritors.forEach((r) => {
-      const presence = stage.heirPresence[r.heirId];
+      const presence = stage.heirPresence?.[r.heirId];
       const customNames = presence?.customNames;
 
       for (let i = 0; i < r.count; i++) {
@@ -475,7 +475,7 @@ export async function exportToWord(
 
     const possibleBlocked = results.filter(r => r.heirId !== 'voluntary_bequest' && r.heirId !== 'mandatory_bequest');
     possibleBlocked.forEach((bh) => {
-      const presence = stage.heirPresence[bh.heirId];
+      const presence = stage.heirPresence?.[bh.heirId];
       const customNames = presence?.customNames;
 
       for (let i = 0; i < bh.count; i++) {

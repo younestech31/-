@@ -13,22 +13,29 @@ export function runInheritanceOrchestration(
 
   for (let index = 0; index < munasakhatStages.length; index++) {
     const stage = munasakhatStages[index];
-    const stageEstate  = index === 0 ? debouncedEstate       : stage.estate;
+    const inheritedAmount = stage.inheritedFromParentAmount ?? stage.alreadyInheritedFromParentAmount ?? stage.estate ?? 0;
+    const ownAssets = stage.ownSeparateAssets ?? 0;
+    const stageEstate = index === 0 ? debouncedEstate : (inheritedAmount + ownAssets);
     const stageDebts   = index === 0 ? debouncedDebts        : (stage.debts || 0);
     const stageFuneral = index === 0 ? debouncedFuneralCosts : (stage.funeralCosts || 0);
     const stageBequest = index === 0 ? debouncedBequest      : (stage.bequest || 0);
 
+    // Normalize presence array / record
+    const presenceList = stage.heirs || (stage.heirPresence ? Object.values(stage.heirPresence) : []);
+    const parentHeirId = stage.parentHeirId || stage.deceasedHeirId;
+    const hasOtherUnion = stage.secondDeceasedHasChildrenFromOtherUnion ?? stage.hasChildrenFromOtherUnion ?? false;
+
     // First pass: identify all present heirs that would be excluded by default
     const excludedHeirWarnings: Array<{ heirId: string; heirNameAr: string; reason: string; source?: string }> = [];
-    const heirsToCheck = Object.values(stage.heirPresence).filter(h => h.isPresent && h.count > 0 && !h.isImpeded);
+    const heirsToCheck = presenceList.filter(h => h.isPresent && h.count > 0 && !h.isImpeded);
 
     for (const h of heirsToCheck) {
-      if (index === 0 || !stage.parentHeirId) continue;
+      if (index === 0 || !parentHeirId) continue;
       
       const { excluded, reason, source } = isHeirExcludedInMunasakhat(
         h.heirId,
-        stage.parentHeirId,
-        stage.secondDeceasedHasChildrenFromOtherUnion
+        parentHeirId,
+        hasOtherUnion
       );
       
       if (excluded) {
@@ -43,14 +50,14 @@ export function runInheritanceOrchestration(
     }
 
     // Second pass: filter the presence list, keeping acknowledged exclusions or those bypassed by other unions
-    const sanitizedPresence = Object.values(stage.heirPresence)
+    const sanitizedPresence = presenceList
       .filter(h => {
-        if (index === 0 || !stage.parentHeirId) return true;
+        if (index === 0 || !parentHeirId) return true;
 
         const { excluded } = isHeirExcludedInMunasakhat(
           h.heirId,
-          stage.parentHeirId,
-          stage.secondDeceasedHasChildrenFromOtherUnion
+          parentHeirId,
+          hasOtherUnion
         );
 
         if (excluded) {
@@ -62,6 +69,9 @@ export function runInheritanceOrchestration(
       })
       .map(({ customNames: _customNames, ...rest }) => rest);
 
+    const sonsCount = stage.deceasedSonsCount ?? (stage.deceasedChildren?.filter(c => c.type === 'son').reduce((sum, c) => sum + c.count, 0) || 0);
+    const daughtersCount = stage.deceasedDaughtersCount ?? (stage.deceasedChildren?.filter(c => c.type === 'daughter').reduce((sum, c) => sum + c.count, 0) || 0);
+
     const res = calculateInheritance(
       sanitizedPresence,
       stageEstate,
@@ -70,8 +80,16 @@ export function runInheritanceOrchestration(
       stageBequest,
       stage.hasMandatoryBequest,
       [
-        { type: 'son' as const,      count: stage.deceasedSonsCount || 0 },
-        { type: 'daughter' as const, count: stage.deceasedDaughtersCount || 0 },
+        { 
+          type: 'son' as const, 
+          count: sonsCount,
+          alreadyInheritedFromParentAmount: stage.alreadyInheritedFromParentAmount || 0
+        },
+        { 
+          type: 'daughter' as const, 
+          count: daughtersCount,
+          alreadyInheritedFromParentAmount: stage.alreadyInheritedFromParentAmount || 0
+        },
       ].filter(c => c.count > 0),
     );
 

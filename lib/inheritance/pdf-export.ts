@@ -276,7 +276,8 @@ function drawPageDecorations(
   office: OfficeSettings,
   stageIdx: number,
   totalStages: number,
-  logoDataUrl?: string | null
+  logoDataUrl?: string | null,
+  isPaid?: boolean
 ) {
   // 1. Dual Vector Border Frame
   // Outer Emerald Line
@@ -288,6 +289,26 @@ function drawPageDecorations(
   pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.border));
   pdf.setLineWidth(0.2);
   pdf.rect(11.5, 11.5, 187, 274, 'S');
+
+  // Official Watermark for free-tier/unpaid users
+  if (!isPaid) {
+    try {
+      pdf.saveGraphicsState();
+      pdf.setTextColor(215, 215, 215);
+      pdf.setFontSize(24);
+      safeSetFont(pdf, 'Amiri', 'bold');
+      pdf.text(fixArabicRtl('نسخة مجانية — منصة مواريث الرقمية (mawarith.dz)'), 105, 150, {
+        align: 'center',
+        angle: 35,
+      });
+      pdf.restoreGraphicsState();
+    } catch {
+      pdf.setTextColor(220, 220, 220);
+      pdf.setFontSize(18);
+      safeSetFont(pdf, 'Amiri', 'bold');
+      pdf.text(fixArabicRtl('نسخة مجانية — غير مخصصة للاعتماد الرسمي'), 105, 150, { align: 'center' });
+    }
+  }
 
   // 2. Official Logo
   if (logoDataUrl) {
@@ -357,7 +378,8 @@ function renderStageVectorPDF(
   officeSettings?: OfficeSettings,
   logoDataUrl?: string | null,
   docRefNumber?: string,
-  qrDataUrl?: string | null
+  qrDataUrl?: string | null,
+  isPaid?: boolean
 ) {
   const office = officeSettings || DEFAULT_OFFICE_SETTINGS;
   const { estate: globalEstate, debts: globalDebts, funeralCosts: globalFuneralCosts, bequest: globalBequest, deceasedGender } = params;
@@ -368,8 +390,8 @@ function renderStageVectorPDF(
     pdf.addPage();
   }
 
-  // Draw decorations (borders, headers, logo, footers)
-  drawPageDecorations(pdf, office, stageIdx, totalStages, logoDataUrl);
+  // Draw decorations (borders, headers, logo, footers, watermark)
+  drawPageDecorations(pdf, office, stageIdx, totalStages, logoDataUrl, isPaid);
 
   let currentY = 38;
 
@@ -675,7 +697,7 @@ function renderStageVectorPDF(
   // Render Inheritor rows
   let rowIndex = 0;
   inheritors.forEach((r) => {
-    const presence = stage.heirPresence[r.heirId];
+    const presence = stage.heirPresence?.[r.heirId];
     const customNames = presence?.customNames;
 
     for (let i = 0; i < r.count; i++) {
@@ -789,7 +811,7 @@ function renderStageVectorPDF(
   const blockedRows: { name: string; reason: string; article: string }[] = [];
   const possibleBlocked = results.filter((r) => r.heirId !== 'voluntary_bequest' && r.heirId !== 'mandatory_bequest');
   possibleBlocked.forEach((bh) => {
-    const presence = stage.heirPresence[bh.heirId];
+    const presence = stage.heirPresence?.[bh.heirId];
     const customNames = presence?.customNames;
 
     for (let i = 0; i < bh.count; i++) {
@@ -857,7 +879,8 @@ export async function exportToPDF(
     bequest: number;
     deceasedGender: 'male' | 'female' | null;
   },
-  officeSettings?: OfficeSettings
+  officeSettings?: OfficeSettings,
+  isPaid?: boolean
 ): Promise<void> {
   const rootStage = allStagesResults[0];
   const deceasedGender = params.deceasedGender;
@@ -915,7 +938,18 @@ export async function exportToPDF(
   // 5. Render each stage as a clean vector page
   for (let idx = 0; idx < allStagesResults.length; idx++) {
     const stageResult = allStagesResults[idx];
-    renderStageVectorPDF(pdf, stageResult, idx, allStagesResults.length, params, officeSettings, cachedLogoDataUrl, docRefNumber, qrDataUrl);
+    renderStageVectorPDF(
+      pdf,
+      stageResult,
+      idx,
+      allStagesResults.length,
+      params,
+      officeSettings,
+      cachedLogoDataUrl,
+      docRefNumber,
+      qrDataUrl,
+      isPaid
+    );
   }
 
   // 6. Save as official Court/Notary Faritha PDF file
