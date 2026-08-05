@@ -7,8 +7,8 @@ import { MunasakhatStage } from '@/lib/inheritance/munasakhat-types';
 
 export const DEFAULT_HEIRS_STAGE0: HeirPresence[] = HEIRS.map(h => ({
   heirId: h.id,
-  count: h.id === 'son' || h.id === 'daughter' ? 0 : 1,
-  isPresent: ['husband', 'wife', 'father', 'mother', 'son', 'daughter'].includes(h.id),
+  count: 0,
+  isPresent: false,
 }));
 
 export const INITIAL_STAGES: MunasakhatStage[] = [

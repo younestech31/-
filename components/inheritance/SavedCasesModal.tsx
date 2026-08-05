@@ -17,6 +17,8 @@ interface SavedCasesModalProps {
   importData: (e: React.ChangeEvent<HTMLInputElement>) => void;
   exportData: () => void;
   isImporting: boolean;
+  isEntitlementsLoading?: boolean;
+  isPaid?: boolean;
 }
 
 export default function SavedCasesModal({
@@ -28,7 +30,9 @@ export default function SavedCasesModal({
   storageError,
   importData,
   exportData,
-  isImporting
+  isImporting,
+  isEntitlementsLoading = false,
+  isPaid = false
 }: SavedCasesModalProps) {
   const [deletingCase, setDeletingCase] = useState<{id: string, name: string} | null>(null);
   const [cloudSyncOptIn, setCloudSyncOptIn] = useState(false);
@@ -135,7 +139,7 @@ export default function SavedCasesModal({
                 type="checkbox" 
                 checked={cloudSyncOptIn} 
                 onChange={(e) => handleCloudSyncToggle(e.target.checked)}
-                disabled={isSyncing}
+                disabled={isSyncing || isEntitlementsLoading}
                 className="mt-0.5 rounded border-amber-400 text-[#0a5d38] focus:ring-[#0a5d38]"
               />
               <span className="leading-relaxed font-sans">

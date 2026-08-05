@@ -122,7 +122,9 @@ export function calculateInheritance(
     if (!h.isPresent || h.count <= 0) return { ...h };
     let activeCount = 0;
     for (let i = 0; i < h.count; i++) {
-      if (!(h.impededIndexes?.[i] ?? h.isImpeded ?? false)) {
+      const isIndImpeded = h.impededIndexes?.[i] ?? h.isImpeded ?? false;
+      const impedimentReasonId = h.impedimentReasonIds?.[i] ?? h.impedimentReasonId;
+      if (!isIndImpeded || impedimentReasonId === 'involuntary_killer') {
         activeCount++;
       }
     }
@@ -188,8 +190,9 @@ export function calculateInheritance(
     const groupArticle = activeRes?.article ?? blockedRes?.article;
 
     for (let i = 0; i < h.count; i++) {
-      const isIndImpeded = h.impededIndexes?.[i] ?? h.isImpeded ?? false;
+      const isIndImpededRaw = h.impededIndexes?.[i] ?? h.isImpeded ?? false;
       const impedimentReasonId = h.impedimentReasonIds?.[i] ?? h.impedimentReasonId;
+      const isIndImpeded = isIndImpededRaw && impedimentReasonId !== 'involuntary_killer';
       const bar = impedimentReasonId ? INHERITANCE_BARS.find(b => b.id === impedimentReasonId) : null;
       const impededReason = bar ? `محروم: ${bar.nameAr} (المادة ${bar.article})` : 'ممنوع من الإرث لوجود مانع شرعي';
 

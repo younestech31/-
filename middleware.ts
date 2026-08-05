@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const url = request.nextUrl.clone();
+  const url = request.nextUrl;
 
   // Remove trailing slashes (except root) while preserving query string
   if (url.pathname !== '/' && url.pathname.endsWith('/')) {
@@ -11,8 +11,9 @@ export function middleware(request: NextRequest) {
   }
 
   // Enforce lowercase URLs while preserving query string
+  const hasPercent = url.pathname.includes('%');
   const lowercasePath = url.pathname.toLowerCase();
-  if (url.pathname !== lowercasePath) {
+  if (!hasPercent && url.pathname !== lowercasePath) {
     const targetUrl = new URL(lowercasePath + url.search, request.url);
     return NextResponse.redirect(targetUrl, { status: 301 });
   }
@@ -32,7 +33,7 @@ export function middleware(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-lang', 'ar');
-  requestHeaders.set('x-pathname', url.pathname);
+  requestHeaders.set('x-pathname', encodeURIComponent(url.pathname));
 
   const response = NextResponse.next({
     request: {

@@ -306,7 +306,7 @@ export default function InheritanceCalculator({
                 
                 <button 
                   onClick={exportToExcelApplet} 
-                  disabled={isExportingExcel || isCalculatorEmpty}
+                  disabled={isExportingExcel || isCalculatorEmpty || state.isEntitlementsLoading}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير النتائج كملف Excel (XLSX)"}
                 >
@@ -320,7 +320,7 @@ export default function InheritanceCalculator({
                 
                 <button 
                   onClick={exportToWordApplet} 
-                  disabled={isExportingWord || isCalculatorEmpty}
+                  disabled={isExportingWord || isCalculatorEmpty || state.isEntitlementsLoading}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير وثيقة رسمية Word (DOCX)"}
                 >
@@ -334,7 +334,7 @@ export default function InheritanceCalculator({
 
                 <button 
                   onClick={exportToPDFApplet} 
-                  disabled={isExportingPDF || isCalculatorEmpty}
+                  disabled={isExportingPDF || isCalculatorEmpty || state.isEntitlementsLoading}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير وثيقة رسمية PDF"}
                 >
@@ -515,6 +515,8 @@ export default function InheritanceCalculator({
           importData={importData}
           exportData={exportData}
           isImporting={isImporting}
+          isEntitlementsLoading={state.isEntitlementsLoading}
+          isPaid={state.isPaid}
         />
 
         <HeirExplanationModal selectedHeirExplanation={selectedHeirExplanation} setSelectedHeirExplanation={setSelectedHeirExplanation} />

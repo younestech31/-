@@ -43,7 +43,7 @@ export const MUNASAKHAT_EXCLUSION_RULES: MunasakhatExclusionRule[] = [
     parentHeirId: 'full_sister',
     excludedHeirIds: ['father', 'mother', 'grandfather', 'maternal_grandmother', 'paternal_grandmother', 'full_brother', 'full_sister', 'paternal_brother', 'paternal_sister', 'maternal_grandfather'],
     reason: 'مستبعد: اتحاد جهة الحواشي والأصول مع التركة الأولى',
-    source: 'المادة 144 و 153 من قانون الأسرة الجزائري والسابقة التوثيقية رقم 402/2018',
+    source: 'المادة 144 و 153 من قانون الأسرة الجزائري (قواعد استبعاد اتحاد الجهات والأصول)',
   },
   {
     parentHeirId: 'paternal_brother',

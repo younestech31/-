@@ -84,7 +84,7 @@ function VerifyContent() {
               <Shield className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">التحقق الجنائي التوثيقي المباشر</h1>
+              <h1 className="text-2xl font-bold text-white tracking-wide">التحقق التشفيري المباشر من التركات</h1>
               <p className="text-sm text-slate-400">منظومة مطابقة البصمة الرقمية للفرائض (نظام بدون خادم / Zero-Trust)</p>
             </div>
           </div>
@@ -153,7 +153,7 @@ function VerifyContent() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/50 space-y-2">
-                    <span className="text-slate-400 text-xs block">معرف الفحص الجنائي (Audit ID):</span>
+                    <span className="text-slate-400 text-xs block">معرف سجل التدقيق التشفيري (Audit ID):</span>
                     <span className="font-mono text-emerald-300 font-bold block">{record.auditId}</span>
                   </div>
                   <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/50 space-y-2">

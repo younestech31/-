@@ -14,9 +14,50 @@ import { usePdfExport } from './usePdfExport';
 import { runInheritanceOrchestration } from '@/lib/inheritance/stage-orchestrator';
 
 export function useInheritanceState() {
-  // Plan / Billing simulation state
-  const [userPlan] = useState<'free' | 'pro' | 'notary'>('notary');
-  const isPaid = userPlan === 'pro' || userPlan === 'notary';
+  // Plan / Billing state derived from server entitlements
+  const [userPlan, setUserPlan] = useState<'free' | 'pro' | 'notary'>('free');
+  const [isPaid, setIsPaid] = useState<boolean>(false);
+  const [isEntitlementsLoading, setIsEntitlementsLoading] = useState<boolean>(true);
+  const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkEntitlements() {
+      try {
+        const res = await fetch('/api/entitlements');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setIsPaid(Boolean(data.isPaid));
+            setUserPlan(data.plan || 'free');
+            setOrganizationId(data.organizationId || null);
+            setUserId(data.userId || null);
+          }
+        } else {
+          if (isMounted) {
+            setIsPaid(false);
+            setUserPlan('free');
+            setOrganizationId(null);
+            setUserId(null);
+          }
+        }
+      } catch {
+        if (isMounted) {
+          setIsPaid(false);
+          setUserPlan('free');
+          setOrganizationId(null);
+          setUserId(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsEntitlementsLoading(false);
+        }
+      }
+    }
+    checkEntitlements();
+    return () => { isMounted = false; };
+  }, []);
 
   // Primary Financial & Deceased attributes for Stage 0
   const [deceasedGender, setDeceasedGender] = useState<'male' | 'female'>('male');
@@ -367,6 +408,9 @@ export function useInheritanceState() {
     // state
     isPaid,
     userPlan,
+    isEntitlementsLoading,
+    organizationId,
+    userId,
     deceasedGender, setDeceasedGender,
     estate, setEstate,
     debts, setDebts,

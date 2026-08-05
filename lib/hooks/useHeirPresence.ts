@@ -27,11 +27,13 @@ export function useHeirPresence(
 
       const heirs = stage.heirs || [];
       const heir = heirs.find(h => h.heirId === heirId);
-      if (heirId === 'husband' && deceasedGender === 'male') {
+      const isCurrentlyPresent = heir?.isPresent || false;
+
+      if (heirId === 'husband' && deceasedGender === 'male' && !isCurrentlyPresent) {
         showToast('لا يمكن إدخال الزوج عندما يكون المتوفى نذكرًا.', 'error');
         return prev;
       }
-      if (heirId === 'wife' && deceasedGender === 'female') {
+      if (heirId === 'wife' && deceasedGender === 'female' && !isCurrentlyPresent) {
         showToast('لا يمكن إدخال الزوجة عندما تكون المتوفاة أنثى.', 'error');
         return prev;
       }

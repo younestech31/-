@@ -43,4 +43,12 @@ describe('Legal Interpretations Registry Tests', () => {
       expect(outTrue).not.toEqual(outFalse);
     });
   });
+
+  it('should ensure all entries exposed by default in production have verifiedSource: true', () => {
+    Object.values(LEGAL_INTERPRETATIONS_REGISTRY).forEach(entry => {
+      if (entry.defaultSetting === true) {
+        expect(entry.verifiedSource).toBe(true);
+      }
+    });
+  });
 });

@@ -250,7 +250,7 @@ export default function OfficeSettingsModal({
 
               <div className="flex items-center justify-between pt-2 border-t border-amber-200/50">
                 <div>
-                  <h4 className="text-xs font-bold text-[#1e293b]">تفعيل السجل السحابي للتحقق الجنائي (Audit Ledger)</h4>
+                  <h4 className="text-xs font-bold text-[#1e293b]">تفعيل السجل السحابي للتحقق التشفيري (Audit Ledger)</h4>
                   <p className="text-[11px] text-[#64748b]">تخزين البصمة المعماة ومجاميع الأنصبة سحابياً للتحقق من المستند من أجهزة أخرى بدون تخزين أسماء الورثة</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">

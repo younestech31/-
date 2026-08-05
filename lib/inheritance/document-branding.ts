@@ -48,11 +48,12 @@ export interface OfficeSettings {
   phone: string;
   email: string;
   isOfficialMode?: boolean;      // Toggle for Official Notary Document Mode
+  notaryLicenseVerified?: boolean; // Verified notary license check
   showDisclaimer?: boolean;      // Show disclaimer box or notary stamp
   documentRefNumber?: string;    // Unique document reference number
   exportLanguage?: 'ar' | 'fr';  // Language toggle for export documents
   digitFormat?: 'western' | 'arabic-indic'; // Numeral formatting toggle
-  auditLedgerOptIn?: boolean;   // Opt-in toggle for forensic server-side audit ledger
+  auditLedgerOptIn?: boolean;   // Opt-in toggle for server-side audit ledger
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
@@ -225,26 +226,51 @@ export function getNotarialAttestationData(
   const caseRef = settings.documentRefNumber || auditRecord?.caseRef || generateDocumentRefNumber();
   const dateStr = formatBilingualDate(new Date(), lang);
   const auditHash = auditRecord?.combinedHash || 'SHA256-PENDING-NOTARIAL-SEAL';
+  const isVerified = Boolean(settings.notaryLicenseVerified);
 
   if (lang === 'fr') {
-    return {
-      title: 'ATTESTATION DE CONFORMITÉ ET EMPREINTE NUMÉRIQUE',
-      attestationText: `Je soussigné, ${settings.notaryNameAr || 'Maître Notaire'}, titulaire de l'office notarial, certifie la conformité légale des calculs de dévolution successorale ci-dessus établis conformément aux Articles 139 à 180 du Code de la Famille Algérien. Le présent acte comporte une empreinte numérique SHA-256 infalsifiable vérifiable en scannant le code QR ci-contre.`,
-      notaryName: settings.notaryNameAr || 'Maître Lattab Mohamed - Notaire',
-      caseRef: `Réf. Acte: ${caseRef}`,
-      formattedDate: `Date d'établissement: ${dateStr}`,
-      auditHash,
-      signatureBoxTitle: 'Sceau et Signature du Notaire',
-    };
+    if (isVerified) {
+      return {
+        title: 'ATTESTATION DE CONFORMITÉ ET VÉRIFICATION CRYPTOGRAPHIQUE',
+        attestationText: `Je soussigné, ${settings.notaryNameAr || 'Maître Notaire'}, titulaire de l'office notarial, certifie la conformité légale des calculs de dévolution successorale ci-dessus établis conformément aux Articles 139 à 180 du Code de la Famille Algérien. Le présent acte comporte une empreinte numérique SHA-256 infalsifiable vérifiable en scannant le code QR ci-contre.`,
+        notaryName: settings.notaryNameAr || 'Maître Lattab Mohamed - Notaire',
+        caseRef: `Réf. Acte: ${caseRef}`,
+        formattedDate: `Date d'établissement: ${dateStr}`,
+        auditHash,
+        signatureBoxTitle: 'Sceau et Signature du Notaire',
+      };
+    } else {
+      return {
+        title: 'RAPPORT DE CALCUL ET VÉRIFICATION CRYPTOGRAPHIQUE (SHA-256)',
+        attestationText: `Calcul de dévolution successorale établi via la plateforme Mawarith conformément aux Articles 139 à 180 du Code de la Famille Algérien. Le code de vérification (SHA-256) garantit l'intégrité technique des calculs.`,
+        notaryName: settings.notaryNameAr || 'Plateforme Mawarith',
+        caseRef: `Réf. Acte: ${caseRef}`,
+        formattedDate: `Date d'établissement: ${dateStr}`,
+        auditHash,
+        signatureBoxTitle: 'Aperçu du rapport technique',
+      };
+    }
   } else {
-    return {
-      title: 'إشهاد المصادقة التوثيقية والبصمة الرقمية الجنائية',
-      attestationText: `أشهد أنا الموثق الموقّع أدناه، صاحب الديوان العمومي للتوثيق، بصحة ومطابقة عملية تصفية التركة المرفقة للأنصبة الشرعية والمواد 139 إلى 180 من قانون الأسرة الجزائري. تحمل هذه الوثيقة بصمة رقمية مشفرة بـ SHA-256 لمنع أي تغيير يدوياً في السهام.`,
-      notaryName: settings.notaryNameAr || 'الأستاذ لعطب محمد — موثق',
-      caseRef: `رقم مرجع الفريضة: ${caseRef}`,
-      formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
-      auditHash,
-      signatureBoxTitle: 'توقيع وخاتم الموثق',
-    };
+    if (isVerified) {
+      return {
+        title: 'إشهاد المصادقة التوثيقية ورمز التحقق التشفيري (SHA-256)',
+        attestationText: `أشهد أنا الموثق الموقّع أدناه، صاحب الديوان العمومي للتوثيق، بصحة ومطابقة عملية تصفية التركة المرفقة للأنصبة الشرعية والمواد 139 إلى 180 من قانون الأسرة الجزائري. تحمل هذه الوثيقة رمز تحقق تشفيري بـ SHA-256 لمنع أي تغيير يدوياً في السهام.`,
+        notaryName: settings.notaryNameAr || 'الأستاذ لعطب محمد — موثق',
+        caseRef: `رقم مرجع الفريضة: ${caseRef}`,
+        formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
+        auditHash,
+        signatureBoxTitle: 'توقيع وخاتم الموثق',
+      };
+    } else {
+      return {
+        title: 'تقرير التصفية الآلية ورمز التحقق التشفيري (SHA-256)',
+        attestationText: `تم إعداد هذا الحساب باستخدام منصة مواريث بالحاسبة الفقهية الآلية وفق المواد 139 إلى 180 من قانون الأسرة الجزائري. رمز التحقق التشفيري المرفق (SHA-256) يُستخدم للتحقق التقني من تكامل الحسابات وعدم تعديلها.`,
+        notaryName: settings.notaryNameAr || 'منصة مواريث الرقمية',
+        caseRef: `رقم مرجع الفريضة: ${caseRef}`,
+        formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
+        auditHash,
+        signatureBoxTitle: 'معاينة المستخرج التقني',
+      };
+    }
   }
 }

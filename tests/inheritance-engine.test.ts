@@ -394,8 +394,9 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
         const sonRes = results.find(r => r.heirId === 'son');
 
         if (bar.id === 'involuntary_killer') {
-          // Involuntary killer (Art. 137) inherits from property -> Mother gets 1/6 + residue = 100%
-          expect(motherRes?.amount).toBe(300000);
+          // Involuntary killer (Art. 137) inherits from estate -> Mother gets 1/6 (50,000), Son gets residue 5/6 (250,000)
+          expect(sonRes?.amount).toBe(250000);
+          expect(motherRes?.amount).toBe(50000);
         } else {
           // Total impediments (Art. 135/138): Son is completely excluded -> Mother gets 100% via Radd
           expect(sonRes?.amount).toBe(0);

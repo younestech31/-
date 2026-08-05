@@ -348,6 +348,26 @@ const FamilyTreeInput = memo(function FamilyTreeInput({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
+        onNodeClick={(event, node) => {
+          if (node.id === 'deceased') return;
+          if (node.data.exclusionReason) return;
+          const target = event.target as HTMLElement;
+          if (
+            target.tagName === 'INPUT' ||
+            target.tagName === 'BUTTON' ||
+            target.tagName === 'LABEL' ||
+            target.closest('button') ||
+            target.closest('input') ||
+            target.closest('label')
+          ) {
+            return;
+          }
+          if (node.data.toggleHeir) {
+            (node.data.toggleHeir as (id: string) => void)(node.id);
+          } else if (toggleHeir) {
+            toggleHeir(node.id);
+          }
+        }}
         fitView
         fitViewOptions={{ padding: 0.2 }}
         minZoom={0.5}
