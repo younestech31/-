@@ -130,7 +130,7 @@ const EstatePanel = memo(function EstatePanel({
           )}
           <input
             type="text"
-            value={currentStage.deceasedName}
+            value={currentStage.deceasedName || ''}
             onChange={e => updateStageName(e.target.value)}
             className="w-full p-2 border border-[#e2e8f0] rounded text-sm focus:outline-none focus:border-[#0a5d38]"
             placeholder={currentStageIndex === 0 ? 'أدخل اسم المتوفى' : 'اسم الوارث المتوفى'}
