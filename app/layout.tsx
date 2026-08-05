@@ -64,7 +64,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({children}: {children: React.ReactNode}) {
+import { headers } from 'next/headers';
+
+export default async function RootLayout({children}: {children: React.ReactNode}) {
+  const headersList = await headers();
+  const nonce = headersList.get('x-nonce') || undefined;
+
   const jsonLd = [
     {
       '@context': 'https://schema.org',
@@ -166,8 +171,10 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
 
         {/* JSON-LD Structured Data */}
         <script
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          suppressHydrationWarning
         />
       </head>
       <body className="font-cairo" suppressHydrationWarning>

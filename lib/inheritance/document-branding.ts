@@ -54,6 +54,7 @@ export interface OfficeSettings {
   exportLanguage?: 'ar' | 'fr';  // Language toggle for export documents
   digitFormat?: 'western' | 'arabic-indic'; // Numeral formatting toggle
   auditLedgerOptIn?: boolean;   // Opt-in toggle for server-side audit ledger
+  cloudSyncPassphrase?: string;  // Passphrase for zero-knowledge cloud sync key derivation
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {

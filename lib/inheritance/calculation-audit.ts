@@ -5,6 +5,7 @@ export interface CalculationAuditRecord {
   inputHash: string;
   sharesHash: string;
   combinedHash: string;
+  previousRecordHash?: string;
   registryVersion: string;
   timestamp: string;
   buildId: string;
@@ -56,7 +57,8 @@ export async function createCalculationAuditRecord(
   inputState: Record<string, unknown>,
   outputResults: unknown[],
   caseRef: string = 'REF-DZD-NOTARY',
-  auditLedgerOptIn: boolean = false
+  auditLedgerOptIn: boolean = false,
+  previousRecordHash?: string
 ): Promise<CalculationAuditRecord> {
   const auditId = 'AUDIT-' + Math.random().toString(36).substring(2, 9).toUpperCase();
   const timestamp = new Date().toISOString();
@@ -67,7 +69,8 @@ export async function createCalculationAuditRecord(
   const inputHash = await computeSha256(serializedInput);
   const sharesHash = await computeSha256(serializedOutput);
 
-  const combinedPayload = `${inputHash}:${sharesHash}:${REGISTRY_VERSION}:${timestamp}:${BUILD_ID}:${caseRef}`;
+  const prevHash = previousRecordHash || 'GENESIS';
+  const combinedPayload = `${inputHash}:${sharesHash}:${REGISTRY_VERSION}:${timestamp}:${BUILD_ID}:${caseRef}:${prevHash}`;
   const combinedHash = await computeSha256(combinedPayload);
 
   let estate = 0;
@@ -80,6 +83,7 @@ export async function createCalculationAuditRecord(
     inputHash,
     sharesHash,
     combinedHash,
+    previousRecordHash: prevHash,
     registryVersion: REGISTRY_VERSION,
     timestamp,
     buildId: BUILD_ID,
@@ -102,6 +106,7 @@ export async function createCalculationAuditRecord(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           combinedHash: record.combinedHash,
+          previousRecordHash: record.previousRecordHash,
           auditId: record.auditId,
           registryVersion: record.registryVersion,
           timestamp: record.timestamp,
@@ -227,7 +232,8 @@ export async function verifyAuditIntegrity(
   outputResults: unknown[],
   expectedCombinedHash: string,
   timestamp: string,
-  caseRef: string
+  caseRef: string,
+  previousRecordHash?: string
 ): Promise<{ isValid: boolean; computedHash: string; details: string }> {
   const serializedInput = JSON.stringify(inputState);
   const serializedOutput = JSON.stringify(outputResults);
@@ -235,13 +241,20 @@ export async function verifyAuditIntegrity(
   const inputHash = await computeSha256(serializedInput);
   const sharesHash = await computeSha256(serializedOutput);
 
-  const combinedPayload = `${inputHash}:${sharesHash}:${REGISTRY_VERSION}:${timestamp}:${BUILD_ID}:${caseRef}`;
-  const computedHash = await computeSha256(combinedPayload);
+  const prevHash = previousRecordHash || 'GENESIS';
+  const combinedPayload = `${inputHash}:${sharesHash}:${REGISTRY_VERSION}:${timestamp}:${BUILD_ID}:${caseRef}:${prevHash}`;
+  const computedHashWithPrev = await computeSha256(combinedPayload);
 
-  const isValid = computedHash === expectedCombinedHash;
+  // Fallback check without previousRecordHash for backwards compatibility
+  const combinedPayloadLegacy = `${inputHash}:${sharesHash}:${REGISTRY_VERSION}:${timestamp}:${BUILD_ID}:${caseRef}`;
+  const computedHashLegacy = await computeSha256(combinedPayloadLegacy);
+
+  const isValid = computedHashWithPrev === expectedCombinedHash || computedHashLegacy === expectedCombinedHash;
+  const computedHash = computedHashWithPrev === expectedCombinedHash ? computedHashWithPrev : computedHashLegacy;
+
   const details = isValid
-    ? 'الوثيقة صحيحة ومطابقة للفرائض الشرعية ومجلة الأسرة الجزائرية ولم يطرأ عليها أي تعديل يدوي.'
-    : 'تنبيه: البصمة الرقمية غير مطابقة! هناك احتمال بتعديل القيم الحسابية أو الورثة يدوياً.';
+    ? 'لم يتم تعديل الأرقام يدوياً بعد إصدار الوثيقة. ملاحظة هامة: هذا التحقق لا يثبت صحة التطبيق الشرعي للحساب، بل فقط عدم تعديله يدوياً بعد الإصدار.'
+    : 'تنبيه: البصمة الرقمية غير مطابقة! هناك احتمال بتعديل القيم الحسابية أو الورثة يدوياً بعد الإصدار.';
 
   return { isValid, computedHash, details };
 }

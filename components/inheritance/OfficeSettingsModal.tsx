@@ -30,6 +30,7 @@ export default function OfficeSettingsModal({
   const [exportLanguage, setExportLanguage] = useState<'ar' | 'fr'>(settings.exportLanguage || 'ar');
   const [digitFormat, setDigitFormat] = useState<'western' | 'arabic-indic'>(settings.digitFormat || 'western');
   const [auditLedgerOptIn, setAuditLedgerOptIn] = useState(settings.auditLedgerOptIn ?? false);
+  const [cloudSyncPassphrase, setCloudSyncPassphrase] = useState(settings.cloudSyncPassphrase || '');
 
   // Sync state with props when modal opens or settings change
   useEffect(() => {
@@ -45,6 +46,7 @@ export default function OfficeSettingsModal({
       setExportLanguage(settings.exportLanguage || 'ar');
       setDigitFormat(settings.digitFormat || 'western');
       setAuditLedgerOptIn(settings.auditLedgerOptIn ?? false);
+      setCloudSyncPassphrase(settings.cloudSyncPassphrase || '');
     }
   }, [isOpen, settings]);
 
@@ -63,6 +65,7 @@ export default function OfficeSettingsModal({
       exportLanguage,
       digitFormat,
       auditLedgerOptIn,
+      cloudSyncPassphrase: cloudSyncPassphrase.trim(),
     });
     onClose();
   };
@@ -205,6 +208,23 @@ export default function OfficeSettingsModal({
                   dir="ltr"
                 />
               </div>
+            </div>
+
+            {/* Cloud Sync Passphrase */}
+            <div>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5 flex items-center gap-1">
+                <span>عبارة مرور التشفير السحابي (Cloud Sync Passphrase)</span>
+              </label>
+              <input
+                type="password"
+                value={cloudSyncPassphrase}
+                onChange={e => setCloudSyncPassphrase(e.target.value)}
+                placeholder="عبارة مرور لاشتقاق مفتاح PBKDF2 لتشفير واستعادة القضايا"
+                className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38]"
+              />
+              <p className="text-[11px] text-[#64748b] mt-1">
+                تُستخدم لاشتقاق مفتاح التشفير السحابي عبر PBKDF2 / AES-GCM من طرف إلى طرف (Zero-Knowledge). لا تُرسل كلمة المرور للسيرفر مطلقاً.
+              </p>
             </div>
 
           </div>

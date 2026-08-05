@@ -14,13 +14,26 @@ export interface UserSession {
 }
 
 const SESSION_COOKIE_NAME = 'notary_session_token';
+const FALLBACK_SECRET = 'default_fallback_session_secret_32_characters_minimum';
 
-const DEFAULT_DEV_SESSION_SECRET = 'default-dev-session-secret-at-least-32-chars-long-notaire-lattab-2026';
+function validateSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret || secret.length < 32) {
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build') {
+      throw new Error('SESSION_SECRET environment variable is missing or must be at least 32 characters long.');
+    }
+    return FALLBACK_SECRET;
+  }
+  return secret;
+}
+
+if (typeof window === 'undefined') {
+  validateSessionSecret();
+}
 
 function getJwtSecretKey(): Uint8Array {
-  const secretEnv = process.env.SESSION_SECRET || DEFAULT_DEV_SESSION_SECRET;
-  const effectiveSecret = secretEnv.length >= 32 ? secretEnv : DEFAULT_DEV_SESSION_SECRET;
-  return new TextEncoder().encode(effectiveSecret);
+  const secret = validateSessionSecret();
+  return new TextEncoder().encode(secret);
 }
 
 /**
@@ -104,6 +117,42 @@ export async function verifyEmailVerificationToken(token: string): Promise<{ use
     return {
       userId: payload.userId as string,
       email: payload.email as string,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Creates a signed, short-lived (5m) JWT entitlement token for export finalization.
+ */
+export async function createExportToken(isPaid: boolean, userId?: string | null, orgId?: string | null): Promise<string> {
+  const secretKey = getJwtSecretKey();
+  return new SignJWT({
+    isPaid,
+    userId: userId || null,
+    orgId: orgId || null,
+    action: 'export_finalize',
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('5m')
+    .sign(secretKey);
+}
+
+/**
+ * Verifies signed short-lived export token.
+ */
+export async function verifyExportToken(token: string): Promise<{ isPaid: boolean; userId?: string | null; orgId?: string | null } | null> {
+  try {
+    const { payload } = await jwtVerify(token, getJwtSecretKey(), {
+      algorithms: ['HS256'],
+    });
+    if (payload.action !== 'export_finalize') return null;
+    return {
+      isPaid: Boolean(payload.isPaid),
+      userId: (payload.userId as string) || null,
+      orgId: (payload.orgId as string) || null,
     };
   } catch {
     return null;

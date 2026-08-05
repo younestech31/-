@@ -13,29 +13,11 @@
  * =========================================================================================
  */
 
-export async function register() {
-  if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build' && !process.env.NEXT_PHASE?.includes('build')) {
-    const missing: string[] = [];
-    const sessionSecret = process.env.SESSION_SECRET;
-    if (!sessionSecret || sessionSecret.length < 32) {
-      missing.push('SESSION_SECRET (missing or under 32 bytes)');
-    }
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey || !stripeKey.startsWith('sk_')) {
-      missing.push('STRIPE_SECRET_KEY (missing or invalid)');
-    }
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    if (!webhookSecret || !webhookSecret.startsWith('whsec_')) {
-      missing.push('STRIPE_WEBHOOK_SECRET (missing or invalid)');
-    }
-    const dbUrl = process.env.DATABASE_URL;
-    if (!dbUrl || (!dbUrl.startsWith('postgres://') && !dbUrl.startsWith('postgresql://'))) {
-      missing.push('DATABASE_URL (missing or invalid)');
-    }
+import { validateEnv } from '@/lib/env';
 
-    if (missing.length > 0) {
-      throw new Error(`[Production Boot Error] Required environment variables are missing or malformed: ${missing.join(', ')}`);
-    }
+export async function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs' || typeof window === 'undefined') {
+    validateEnv();
   }
 }
 

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPaidSubscription } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/client';
-import { savedCases } from '@/lib/db/schema';
+import { savedCases, organizations } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
+import crypto from 'crypto';
 
 const saveCaseSchema = z.object({
   id: z.string(),
@@ -29,12 +30,28 @@ export async function GET(_req: NextRequest) {
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
 
+    const orgRows = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, session.organizationId));
+
+    let cloudSyncSalt = orgRows.length > 0 ? orgRows[0].cloudSyncSalt : null;
+    if (!cloudSyncSalt) {
+      cloudSyncSalt = crypto.randomBytes(16).toString('hex');
+      if (orgRows.length > 0) {
+        await db
+          .update(organizations)
+          .set({ cloudSyncSalt })
+          .where(eq(organizations.id, session.organizationId));
+      }
+    }
+
     const cases = await db
       .select()
       .from(savedCases)
       .where(eq(savedCases.organizationId, session.organizationId));
 
-    return NextResponse.json({ cases });
+    return NextResponse.json({ cases, cloudSyncSalt });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });

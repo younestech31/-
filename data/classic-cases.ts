@@ -7,6 +7,7 @@ export interface ClassicCase {
   heirIds: string[];
   counts?: number[];
   descriptionAr: string;
+  disputedAr?: string;
 }
 
 export const CLASSIC_CASES: ClassicCase[] = [
@@ -61,10 +62,9 @@ export const CLASSIC_CASES: ClassicCase[] = [
   {
     id: 'marwaniyyah',
     nameAr: 'المسألة المروانية',
-    article: 178,
     heirIds: ['husband', 'full_sister', 'maternal_siblings'],
     counts: [1, 2, 2],
-    descriptionAr: 'زوج وأختان شقيقتان وأخوة لأم — عالت من 6 إلى 9 (المادة 178 من قانون الأسرة)'
+    descriptionAr: 'زوج وأختان شقيقتان وأخوة لأم — عالت من 6 إلى 9'
   },
   {
     id: 'kharqaa',
@@ -72,7 +72,8 @@ export const CLASSIC_CASES: ClassicCase[] = [
     article: 175,
     heirIds: ['mother', 'grandfather', 'full_sister'],
     counts: [1, 1, 1],
-    descriptionAr: 'أم وجد وأخت شقيقة — تعددت فيها الآراء واختلف فيها الصحابة رضي الله عنهم'
+    descriptionAr: 'أم وجد وأخت شقيقة — كثرت فيها أقوال الصحابة وقيل لكثرة تخرق الأقوال فيها.',
+    disputedAr: 'تنبيه شرعي وخلافي: كثرت وتعددت آراء الصحابة والفقهاء في مسألة الخرقاء (علي بن أبي طالب، أبو بكر الصديق، ابن مسعود، وزيد بن ثابت رضي الله عنهم). والحل المعروض هنا يمثل مذهب زيد بن ثابت المقعد في قانون الأسرة (للأم الثلث، وللجد ضعف الأخت تعصيباً).'
   },
   {
     id: 'dinariyyah',

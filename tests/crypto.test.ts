@@ -53,4 +53,49 @@ describe('Cryptographic Persistence Layer (AES-GCM)', () => {
   it('should throw error on invalid base64 or altered ciphertext', async () => {
     await expect(decryptData('invalid-base64-text')).rejects.toThrow();
   });
+
+  it('end-to-end saved cases persistence: encrypts to localStorage and decrypts back correctly', async () => {
+    const mockStorage: Record<string, string> = {};
+    const STORAGE_KEY = 'mawarith_saved_cases_v2';
+
+    const savedCasesPayload = [
+      {
+        id: 'case-test-101',
+        name: 'قضية حقيقية مشفرة',
+        date: '2026-08-05',
+        estate: 1000000,
+        debts: 0,
+        funeralCosts: 0,
+        bequest: 0,
+        deceasedGender: 'male' as const,
+        stages: [],
+      },
+    ];
+
+    // Save step
+    const jsonToSave = JSON.stringify(savedCasesPayload);
+    const encrypted = await encryptData(jsonToSave);
+    mockStorage[STORAGE_KEY] = encrypted;
+
+    // Verify stored item is NOT valid JSON when Base64-decoded directly
+    const rawStored = mockStorage[STORAGE_KEY];
+    expect(rawStored).toBeDefined();
+
+    let directBase64DecodedJsonValid = false;
+    try {
+      const plainFromBase64 = atob(rawStored);
+      JSON.parse(plainFromBase64);
+      directBase64DecodedJsonValid = true;
+    } catch {
+      directBase64DecodedJsonValid = false;
+    }
+    expect(directBase64DecodedJsonValid).toBe(false);
+
+    // Reload & Decrypt step
+    const decryptedJson = await decryptData(mockStorage[STORAGE_KEY]);
+    const restoredCases = JSON.parse(decryptedJson);
+    expect(restoredCases).toHaveLength(1);
+    expect(restoredCases[0].name).toBe('قضية حقيقية مشفرة');
+    expect(restoredCases[0].estate).toBe(1000000);
+  });
 });

@@ -1,17 +1,7 @@
 import type {NextConfig} from 'next';
+import { buildCspHeader } from './lib/security/csp';
 
-const cspHeader = `
-  default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval';
-  style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob: https://picsum.photos;
-  font-src 'self' data:;
-  connect-src 'self' ws: wss:;
-  object-src 'none';
-  base-uri 'self';
-  form-action 'self';
-  frame-ancestors *;
-`.replace(/\s{2,}/g, ' ').trim();
+const cspHeader = buildCspHeader();
 
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },

@@ -6,6 +6,10 @@ import AkdariyyaExplainer from '@/components/inheritance/content/AkdariyyaExplai
 import MubahalaExplainer from '@/components/inheritance/content/MubahalaExplainer';
 import GharawainExplainer from '@/components/inheritance/content/GharawainExplainer';
 import MusharrakahExplainer from '@/components/inheritance/content/MusharrakahExplainer';
+import MarwaniyyaExplainer from '@/components/inheritance/content/MarwaniyyaExplainer';
+import KharqaaExplainer from '@/components/inheritance/content/KharqaaExplainer';
+import DinariyyaExplainer from '@/components/inheritance/content/DinariyyaExplainer';
+import YatimaExplainer from '@/components/inheritance/content/YatimaExplainer';
 import OnboardingGuideIntroContent from '@/components/inheritance/content/OnboardingGuideIntroContent';
 
 export const dynamic = 'force-dynamic';
@@ -18,10 +22,10 @@ export default function Home() {
     'gharawain-husband': <GharawainExplainer />,
     'gharawain-wife': <GharawainExplainer />,
     musharrakah: <MusharrakahExplainer />,
-    marwaniyyah: <MubahalaExplainer />,
-    kharqaa: <AkdariyyaExplainer />,
-    dinariyyah: <MinbariyyaExplainer />,
-    yatimah: <AkdariyyaExplainer />
+    marwaniyyah: <MarwaniyyaExplainer />,
+    kharqaa: <KharqaaExplainer />,
+    dinariyyah: <DinariyyaExplainer />,
+    yatimah: <YatimaExplainer />
   };
 
   return (

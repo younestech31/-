@@ -139,7 +139,7 @@ export default function InheritanceCalculator({
     noHeirsRedistribution,
     currentStageValidation,
     inputWarnings,
-    savedCases,
+    savedCases, setSavedCases,
     toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, updateImpediment,
     addMunasakhatStage, removeStage,
     updateStageName, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
@@ -517,6 +517,8 @@ export default function InheritanceCalculator({
           isImporting={isImporting}
           isEntitlementsLoading={state.isEntitlementsLoading}
           isPaid={state.isPaid}
+          cloudSyncPassphrase={officeSettings.cloudSyncPassphrase}
+          onCloudCasesRestored={(restoredList) => setSavedCases(restoredList)}
         />
 
         <HeirExplanationModal selectedHeirExplanation={selectedHeirExplanation} setSelectedHeirExplanation={setSelectedHeirExplanation} />

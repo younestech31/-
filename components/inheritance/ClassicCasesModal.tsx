@@ -56,6 +56,11 @@ export default function ClassicCasesModal({
                              </div>
                          )
                      )}
+                     {c.disputedAr && (
+                         <div className="mt-2 text-[11px] p-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-md font-sans leading-relaxed">
+                             {c.disputedAr}
+                         </div>
+                     )}
                  </button>
              ))}
           </div>

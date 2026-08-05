@@ -19,6 +19,36 @@ describe('Bidi, French-locale, Digits & Notarial Attestation Export Tests', () =
     expect(res).not.toBe('محمد');
   });
 
+  it('(a) fixArabicRtl preserves embedded Latin custom names inside Arabic text in LTR run order', () => {
+    const input = 'الوريث Sarah Belkacem له نصيب';
+    const res = fixArabicRtl(input);
+    expect(res).toContain('Sarah Belkacem');
+    // Ensure Latin name characters maintain visual LTR relative order (S before a, B before e)
+    expect(res.indexOf('S')).toBeLessThan(res.indexOf('a'));
+    expect(res.indexOf('B')).toBeLessThan(res.indexOf('e'));
+  });
+
+  it('(b) fixArabicRtl handles French-mode text with embedded Arabic legal citations correctly', () => {
+    const input = 'Époux (Az-Zawj) - المادة 144';
+    const res = fixArabicRtl(input);
+    expect(res).toContain('Époux');
+    expect(res).toContain('Az-Zawj');
+    // Ensures Arabic part is reshaped into visual glyphs
+    expect(res).not.toContain('المادة');
+  });
+
+  it('(c) fixArabicRtl formats Arabic currency with embedded Western digits correctly and calculates non-zero width', async () => {
+    const input = 'المبلغ 50.000,00 دج صافي';
+    const res = fixArabicRtl(input);
+    expect(res).toContain('50.000,00');
+
+    // Render in jsPDF instance to measure text width & confirm rendering validity
+    const { jsPDF } = await import('jspdf');
+    const pdf = new jsPDF();
+    const width = pdf.getTextWidth(res);
+    expect(width).toBeGreaterThan(0);
+  });
+
   it('converts Western digits to Arabic-Indic digits correctly', () => {
     expect(toArabicIndicDigits('1234567890')).toBe('١٢٣٤٥٦٧٨٩٠');
     expect(toArabicIndicDigits('DZD 50.000,00')).toBe('DZD ٥٠.٠٠٠,٠٠');

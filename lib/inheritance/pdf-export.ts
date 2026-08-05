@@ -2,6 +2,9 @@ import { jsPDF } from 'jspdf';
 import { StageResult } from '@/components/inheritance/ResultsTable';
 import Fraction from 'fraction.js';
 import { ArabicShaper } from 'arabic-persian-reshaper';
+import bidiFactory from 'bidi-js';
+
+const bidi = bidiFactory();
 import {
   COLOR_PALETTE,
   EXPORT_OFFICE_INFO,
@@ -47,17 +50,29 @@ export function safeSetFont(pdf: jsPDF, fontName: string, style: string = 'norma
 }
 
 /**
- * Prepares Arabic text for native jsPDF vector rendering:
- * Reshapes characters using ArabicShaper to connect letters correctly in logical order.
+ * Prepares text for native jsPDF vector rendering:
+ * 1. Isolates embedded non-Arabic script runs (e.g. Latin custom names) in First-Strong-Isolate marks (\u2066...\u2069).
+ * 2. Shapes Arabic characters using ArabicShaper into visual glyphs without modifying Latin runs.
+ * 3. Runs Unicode Bidi Algorithm via bidi-js for proper RTL/LTR character reordering.
  */
 export function fixArabicRtl(text: string | number | null | undefined): string {
   if (text === null || text === undefined) return '';
   const str = String(text);
   if (!str.trim()) return '';
-  if (!/[\u0600-\u06FF]/.test(str)) {
-    return `\u2066${str}\u2069`;
+
+  // Isolate embedded runs of non-Arabic script (Latin letters, accents, numbers)
+  const isolated = str.replace(/([A-Za-z\u00C0-\u00FF][A-Za-z\u00C0-\u00FF0-9\s.\-]*[A-Za-z\u00C0-\u00FF0-9])/g, '\u2066$1\u2069');
+
+  // Shape Arabic letters into visual glyph forms
+  const reshaped = ArabicShaper.convertArabic(isolated);
+
+  // Apply Unicode Bidi reordering if string contains Arabic/RTL characters
+  if (/[\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(reshaped)) {
+    const levels = bidi.getEmbeddingLevels(reshaped);
+    return bidi.getReorderedString(reshaped, levels);
   }
-  return ArabicShaper.convertArabic(str);
+
+  return reshaped;
 }
 
 /**
@@ -952,8 +967,50 @@ export async function exportToPDF(
     );
   }
 
-  // 6. Save as official Court/Notary Faritha PDF file
+  // 6. Save as official Court/Notary Faritha PDF file via server-side finalization endpoint
   const office = officeSettings || DEFAULT_OFFICE_SETTINGS;
   const documentFileName = EXPORT_FILENAME(rootDeceasedName, 'pdf', office.notaryNameAr);
+
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    try {
+      let token = '';
+      try {
+        const entRes = await fetch('/api/entitlements');
+        if (entRes.ok) {
+          const entData = await entRes.json();
+          token = entData.token || '';
+        }
+      } catch {
+        // Ignore network error fetching entitlement
+      }
+
+      const pdfArrayBuffer = pdf.output('arraybuffer');
+      const pdfBase64 = Buffer.from(pdfArrayBuffer).toString('base64');
+
+      const finalizeRes = await fetch('/api/export/finalize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ pdfBase64, token }),
+      });
+
+      if (finalizeRes.ok) {
+        const blob = await finalizeRes.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = documentFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        return;
+      }
+    } catch (finalizeErr) {
+      console.warn('Server-side PDF finalization failed, falling back to local save:', finalizeErr);
+    }
+  }
+
   pdf.save(documentFileName);
 }

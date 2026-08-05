@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SavedCase, MunasakhatStage } from '@/lib/inheritance/munasakhat-types';
 import { OfficeSettings, DEFAULT_OFFICE_SETTINGS } from '@/lib/inheritance/document-branding';
-import { encryptStorageData, decryptStorageData } from '@/lib/crypto';
+import { encryptData, decryptData } from '@/lib/crypto';
 
 const STORAGE_KEY = 'mawarith_saved_cases_v2';
 const OFFICE_SETTINGS_KEY = 'mawarith_office_settings_v1';
@@ -46,18 +46,48 @@ export function useSavedCases(
   // Load saved cases and office settings from localStorage on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      const rawCases = localStorage.getItem(STORAGE_KEY);
-      if (rawCases) {
-        const parsed = decryptStorageData<SavedCase[]>(rawCases);
-        if (Array.isArray(parsed)) {
-          setSavedCases(parsed);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load saved cases from localStorage:', e);
-      setStorageError('تعذر تحميل القضايا المحفوظة من الذاكرة المحلية (قد تكون البيانات مشفرة بشكل غير متوافق).');
+
+    if (!window.crypto || !window.crypto.subtle) {
+      setStorageError('تنبيه أمان: تقنية التشفير الآمن (WebCrypto API) غير متوفرة في هذا المتصفح أو سياق التشغيل غير الآمن.');
+      return;
     }
+
+    async function loadCases() {
+      try {
+        const rawCases = localStorage.getItem(STORAGE_KEY);
+        if (rawCases) {
+          try {
+            const decryptedStr = await decryptData(rawCases);
+            const parsed = JSON.parse(decryptedStr);
+            if (Array.isArray(parsed)) {
+              setSavedCases(parsed);
+              setStorageError(null);
+            }
+          } catch (decryptErr) {
+            // Check if legacy Base64 format exists for automatic migration
+            try {
+              const legacyParsed = JSON.parse(decodeURIComponent(atob(rawCases)));
+              if (Array.isArray(legacyParsed)) {
+                setSavedCases(legacyParsed);
+                const encrypted = await encryptData(JSON.stringify(legacyParsed));
+                localStorage.setItem(STORAGE_KEY, encrypted);
+                setStorageError(null);
+              } else {
+                throw decryptErr;
+              }
+            } catch {
+              console.error('Failed to decrypt saved cases:', decryptErr);
+              setStorageError('تعذر فك تشفير القضايا المحفوظة من الذاكرة المحلية (خطأ في مفتاح التشفير أو تلف البيانات).');
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load saved cases from localStorage:', e);
+        setStorageError('تعذر تحميل القضايا المحفوظة من الذاكرة المحلية.');
+      }
+    }
+
+    loadCases();
 
     try {
       const rawSettings = localStorage.getItem(OFFICE_SETTINGS_KEY);
@@ -72,16 +102,22 @@ export function useSavedCases(
     }
   }, []);
 
-  const persistCases = useCallback((cases: SavedCase[]) => {
+  const persistCases = useCallback(async (cases: SavedCase[]) => {
     setSavedCases(cases);
     if (typeof window === 'undefined') return;
+
+    if (!window.crypto || !window.crypto.subtle) {
+      setStorageError('تنبيه أمان: تقنية التشفير الآمن غير متوفرة في هذا المتصفح. يتعذر حفظ القضايا.');
+      return;
+    }
+
     try {
-      const encrypted = encryptStorageData(cases);
+      const encrypted = await encryptData(JSON.stringify(cases));
       localStorage.setItem(STORAGE_KEY, encrypted);
       setStorageError(null);
     } catch (e) {
       console.error('Failed to save cases to localStorage:', e);
-      setStorageError('حدث خطأ أثناء حفظ القضايا في الذاكرة المحلية.');
+      setStorageError('حدث خطأ أثناء تشفير وحفظ القضايا في الذاكرة المحلية.');
     }
   }, []);
 

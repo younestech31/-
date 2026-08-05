@@ -10,6 +10,7 @@ export const organizations = pgTable('organizations', {
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id'),
   maxFirmSeats: integer('max_firm_seats').notNull().default(1),
+  cloudSyncSalt: text('cloud_sync_salt'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -62,9 +63,9 @@ export const savedCases = pgTable('saved_cases', {
 });
 
 /**
- * Audit Records Table (Forensic Ledger)
+ * Audit Records Table (Tamper-Evident Hash Chain Ledger)
  * NON-IDENTIFYING SERVER-SIDE AUDIT LEDGER
- * Stores ONLY combinedHash (primary key), auditId, registryVersion, timestamp, buildId, and summary object.
+ * Stores ONLY combinedHash (primary key), auditId, registryVersion, timestamp, buildId, summary object, and previousRecordHash.
  * NEVER stores raw heir names, personal identification, or serialized input.
  */
 export const auditRecords = pgTable('audit_records', {
@@ -74,6 +75,7 @@ export const auditRecords = pgTable('audit_records', {
   timestamp: text('timestamp').notNull(),
   buildId: text('build_id').notNull(),
   summary: jsonb('summary').notNull(),
+  previousRecordHash: text('previous_record_hash'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

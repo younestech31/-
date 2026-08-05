@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { X, FolderOpen, Trash2, Cloud } from 'lucide-react';
+import { X, FolderOpen, Trash2, Cloud, DownloadCloud } from 'lucide-react';
 import { SavedCase } from './InheritanceCalculator';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
-import { encryptData } from '@/lib/crypto';
+import { encryptData, decryptData, encryptDataWithPassphrase, decryptDataWithPassphrase } from '@/lib/crypto';
 import { formatDZDAmount } from '@/lib/inheritance/document-branding';
 
 interface SavedCasesModalProps {
@@ -19,6 +19,8 @@ interface SavedCasesModalProps {
   isImporting: boolean;
   isEntitlementsLoading?: boolean;
   isPaid?: boolean;
+  cloudSyncPassphrase?: string;
+  onCloudCasesRestored?: (cases: SavedCase[]) => void;
 }
 
 export default function SavedCasesModal({
@@ -32,11 +34,14 @@ export default function SavedCasesModal({
   exportData,
   isImporting,
   isEntitlementsLoading = false,
-  isPaid = false
+  isPaid: _isPaid = false,
+  cloudSyncPassphrase,
+  onCloudCasesRestored
 }: SavedCasesModalProps) {
   const [deletingCase, setDeletingCase] = useState<{id: string, name: string} | null>(null);
   const [cloudSyncOptIn, setCloudSyncOptIn] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -47,11 +52,22 @@ export default function SavedCasesModal({
       setIsSyncing(true);
       setSyncStatus('جاري مزامنة المسائل مشفرة سحابياً...');
       try {
+        // First get cloudSyncSalt from GET /api/cases
+        const saltRes = await fetch('/api/cases');
+        const saltData = await saltRes.json().catch(() => ({}));
+        const saltHex = saltData.cloudSyncSalt || '00112233445566778899aabbccddeeff';
+
         for (const c of savedCases) {
           const caseNameEncrypted = await encryptData(c.name);
           const caseDateEncrypted = await encryptData(c.date);
           const notaryIdEncrypted = await encryptData(c.id);
-          const encryptedPayload = await encryptData(JSON.stringify(c));
+
+          let encryptedPayload: string;
+          if (cloudSyncPassphrase && cloudSyncPassphrase.trim().length > 0) {
+            encryptedPayload = await encryptDataWithPassphrase(JSON.stringify(c), cloudSyncPassphrase, saltHex);
+          } else {
+            encryptedPayload = await encryptData(JSON.stringify(c));
+          }
 
           const res = await fetch('/api/cases', {
             method: 'POST',
@@ -80,6 +96,62 @@ export default function SavedCasesModal({
       }
     } else {
       setSyncStatus(null);
+    }
+  };
+
+  const handleRestoreFromCloud = async () => {
+    setIsRestoring(true);
+    setSyncStatus('جاري جلب القضايا السحابية واستعادتها...');
+    try {
+      const res = await fetch('/api/cases');
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'فشل جلب القضايا السحابية');
+      }
+
+      const data = await res.json();
+      const serverCases = data.cases || [];
+      const saltHex = data.cloudSyncSalt || '00112233445566778899aabbccddeeff';
+
+      const restoredList: SavedCase[] = [];
+
+      for (const item of serverCases) {
+        if (!item.encryptedPayload) continue;
+        try {
+          let decryptedJson: string;
+          if (cloudSyncPassphrase && cloudSyncPassphrase.trim().length > 0) {
+            try {
+              decryptedJson = await decryptDataWithPassphrase(item.encryptedPayload, cloudSyncPassphrase, saltHex);
+            } catch {
+              decryptedJson = await decryptData(item.encryptedPayload);
+            }
+          } else {
+            decryptedJson = await decryptData(item.encryptedPayload);
+          }
+
+          const parsed = JSON.parse(decryptedJson) as SavedCase;
+          if (parsed && parsed.id) {
+            restoredList.push(parsed);
+          }
+        } catch (decryptErr) {
+          console.warn(`Could not decrypt cloud case ${item.id}:`, decryptErr);
+        }
+      }
+
+      if (restoredList.length > 0) {
+        if (onCloudCasesRestored) {
+          onCloudCasesRestored(restoredList);
+        }
+        setSyncStatus(`تمت استعادة ${restoredList.length} قضية من السحابة بنجاح.`);
+      } else {
+        setSyncStatus('لم يتم العثور على قضايا سحابية قابلة للفك أو القضايا فارغة.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'حدث خطأ أثناء الاستعادة';
+      console.error('Failed to restore cloud cases:', err);
+      setSyncStatus(`تعذر الاستعادة: ${msg}`);
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -152,6 +224,15 @@ export default function SavedCasesModal({
           <div className="p-4 border-t border-[#e2e8f0] bg-[#fdfdfd] shrink-0 flex flex-col items-end gap-2">
             {storageError && <div className="text-red-500 text-xs text-left w-full">{storageError}</div>}
             <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleRestoreFromCloud}
+                disabled={isRestoring || isEntitlementsLoading}
+                className="px-3.5 py-2 text-sm bg-[#0284c7] hover:bg-[#0369a1] text-white font-medium rounded-md transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <DownloadCloud size={16} />
+                <span>{isRestoring ? 'جاري الاستعادة...' : 'استعادة من السحابة'}</span>
+              </button>
               <label 
                 className={`px-4 py-2 text-sm text-white rounded-md transition-colors cursor-pointer ${isImporting ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
               >

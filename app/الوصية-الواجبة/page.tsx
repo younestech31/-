@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { SITE_URL } from '@/lib/config';
 
 export const metadata: Metadata = {
@@ -7,7 +8,9 @@ export const metadata: Metadata = {
   description: 'تفصيل وشرح أحكام الوصية الواجبة وتطبيقاتها في المواد 169 إلى 172 من قانون الأسرة الجزائري، مع شروط الاستحقاق ومقدار الحصة والحل الشرعي.',
 };
 
-export default function MandatoryBequestPage() {
+export default async function MandatoryBequestPage() {
+  const headersList = await headers();
+  const nonce = headersList.get('x-nonce') || undefined;
   const pageUrl = `${SITE_URL}/الوصية-الواجبة`;
 
   const jsonLd = {
@@ -45,6 +48,7 @@ export default function MandatoryBequestPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between" dir="rtl">
       <script
+        nonce={nonce}
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
