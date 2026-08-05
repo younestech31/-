@@ -50,6 +50,7 @@ export interface CalculationResult {
   count: number;
   individuals?: IndividualResult[]; // Individual results for each of the count heirs
   isWithheld?: boolean;
+  hasUnverifiedOverride?: boolean;
 }
 
 export interface DeceasedChildGroup {

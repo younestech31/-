@@ -287,6 +287,29 @@ export async function exportToWord(
       new Paragraph({ text: "", spacing: { after: 100 } })
     );
 
+    if (stageResult.hasUnverifiedOverride) {
+      docChildren.push(
+        new Paragraph({
+          bidirectional: true,
+          alignment: AlignmentType.RIGHT,
+          shading: {
+            fill: BRAND.redLight,
+          },
+          border: {
+            top: { color: BRAND.red, size: 6, style: BorderStyle.SINGLE },
+            bottom: { color: BRAND.red, size: 6, style: BorderStyle.SINGLE },
+            left: { color: BRAND.red, size: 6, style: BorderStyle.SINGLE },
+            right: { color: BRAND.red, size: 6, style: BorderStyle.SINGLE },
+          },
+          children: [
+            arText('تنبيه هام: تم تجاوز استبعاد الميراث في هذه المرحلة يدوياً (تجاوز غير معتمد فقهياً/قانونياً)', true, 18, BRAND.red),
+            arText('\nالحسابات الصادرة تحت هذا التجاوز تعتبر غير صالحة للاستخدام الرسمي أو التوثيقي.', false, 14, BRAND.red),
+          ],
+          spacing: { after: 150, before: 100 }
+        })
+      );
+    }
+
     if (!isRoot) {
       docChildren.push(
         rtlPara(`صافي التركة المنتقلة للمتوفى: ${formatDocumentCurrency(netEstate)}`),

@@ -12,8 +12,6 @@ import DinariyyaExplainer from '@/components/inheritance/content/DinariyyaExplai
 import YatimaExplainer from '@/components/inheritance/content/YatimaExplainer';
 import OnboardingGuideIntroContent from '@/components/inheritance/content/OnboardingGuideIntroContent';
 
-export const dynamic = 'force-dynamic';
-
 export default function Home() {
   const classicCasesExplainers = {
     minbariyya: <MinbariyyaExplainer />,

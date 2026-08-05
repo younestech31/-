@@ -437,6 +437,25 @@ function renderStageVectorPDF(
 
   currentY += 18;
 
+  if (stageResult.hasUnverifiedOverride) {
+    pdf.setFillColor(...hexToRgb(COLOR_PALETTE.amberLight || '#FEF3C7'));
+    pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.amber || '#D97706'));
+    pdf.setLineWidth(0.4);
+    pdf.roundedRect(15, currentY, 180, 10, 1.5, 1.5, 'FD');
+
+    safeSetFont(pdf, 'Amiri', 'bold');
+    pdf.setFontSize(8);
+    pdf.setTextColor(...hexToRgb(COLOR_PALETTE.amber || '#D97706'));
+    pdf.text(fixArabicRtl('تنبيه هام: تم تجاوز استبعاد الميراث في هذه المرحلة يدوياً (تجاوز غير معتمد فقهياً/قانونياً)'), 192, currentY + 4, { align: 'right' });
+    
+    safeSetFont(pdf, 'Amiri', 'normal');
+    pdf.setFontSize(7);
+    pdf.setTextColor(...hexToRgb('#78350F'));
+    pdf.text(fixArabicRtl('الحسابات الصادرة تحت هذا التجاوز تعتبر غير صالحة للاستخدام الرسمي أو التوثيقي.'), 192, currentY + 8, { align: 'right' });
+
+    currentY += 12;
+  }
+
   // 2. Legal Disclaimer Box OR Official Notary Banner (Stage 0 Page 1)
   if (stageIdx === 0) {
     if (office.isOfficialMode || office.showDisclaimer === false) {
@@ -901,6 +920,13 @@ export async function exportToPDF(
   const deceasedGender = params.deceasedGender;
   const rootDeceasedName = rootStage?.stage.deceasedName?.trim() || deceasedPronoun(deceasedGender);
 
+  const office = { ...(officeSettings || DEFAULT_OFFICE_SETTINGS) };
+  const hasAnyOverride = allStagesResults.some(sr => sr.hasUnverifiedOverride);
+  if (hasAnyOverride) {
+    office.isOfficialMode = false;
+    office.showDisclaimer = true;
+  }
+
   // 1. Prefetch & cache Amiri fonts (Regular and Bold)
   try {
     if (!cachedRegularFontBase64) {
@@ -959,7 +985,7 @@ export async function exportToPDF(
       idx,
       allStagesResults.length,
       params,
-      officeSettings,
+      office,
       cachedLogoDataUrl,
       docRefNumber,
       qrDataUrl,
@@ -968,7 +994,6 @@ export async function exportToPDF(
   }
 
   // 6. Save as official Court/Notary Faritha PDF file via server-side finalization endpoint
-  const office = officeSettings || DEFAULT_OFFICE_SETTINGS;
   const documentFileName = EXPORT_FILENAME(rootDeceasedName, 'pdf', office.notaryNameAr);
 
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {

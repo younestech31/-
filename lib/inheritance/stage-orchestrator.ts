@@ -50,6 +50,7 @@ export function runInheritanceOrchestration(
     }
 
     // Second pass: filter the presence list, keeping acknowledged exclusions or those bypassed by other unions
+    let hasUnverifiedOverride = false;
     const sanitizedPresence = presenceList
       .filter(h => {
         if (index === 0 || !parentHeirId) return true;
@@ -62,6 +63,9 @@ export function runInheritanceOrchestration(
 
         if (excluded) {
           const isAcknowledged = stage.acknowledgedExclusions?.includes(h.heirId);
+          if (isAcknowledged) {
+            hasUnverifiedOverride = true;
+          }
           return isAcknowledged ?? false;
         }
 
@@ -93,6 +97,12 @@ export function runInheritanceOrchestration(
       ].filter(c => c.count > 0),
     );
 
+    if (hasUnverifiedOverride) {
+      res.forEach(r => {
+        r.hasUnverifiedOverride = true;
+      });
+    }
+
     const mandatoryBequest = res.find(r => r.heirId === 'mandatory_bequest')?.amount ?? 0;
     const actualBequest = res.find(r => r.heirId === 'voluntary_bequest')?.amount ?? 0;
     const net = stageEstate - stageDebts - stageFuneral - actualBequest - mandatoryBequest;
@@ -118,7 +128,7 @@ export function runInheritanceOrchestration(
       }
     }
 
-    stagesData.push({ stage, results: res, netEstate: net, noHeirsRedistribution, excludedHeirWarnings });
+    stagesData.push({ stage, results: res, netEstate: net, noHeirsRedistribution, excludedHeirWarnings, hasUnverifiedOverride });
   }
 
   return stagesData;

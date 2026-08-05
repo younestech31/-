@@ -39,6 +39,7 @@ export interface StageResult {
     redistributeTo?: CalculationResult[];
   } | null;
   excludedHeirWarnings?: ExcludedHeirWarning[];
+  hasUnverifiedOverride?: boolean;
 }
 
 interface ResultsTableProps {
@@ -274,6 +275,20 @@ const ResultsTable = memo(function ResultsTable({
         {currentStageIndex > 0 && currentNetEstate === 0 && !isPureSharesMode && (
           <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-800 text-xs rounded">
             <p><strong>تنبيه:</strong> صافي التركة لهذه المرحلة هو صفر. لن يتم حساب أي أنصبة.</p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.hasUnverifiedOverride && (
+          <div className="p-4 mb-4 bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded-lg flex items-start gap-3 shadow-sm no-print">
+            <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <p className="font-bold">تنبيه هام: تم تجاوز استبعاد الميراث يدوياً في هذه المرحلة</p>
+              <p className="text-xs text-amber-700 mt-1">
+                لقد تم تفعيل خيار تجاوز الاستبعاد التلقائي للوارث في هذه المرحلة يدوياً. هذا التجاوز يعتبر غير معتمد فقهياً/قانونياً وفقاً لقواعد تصفية المناسخات، ولذلك تم حظر إصدار المستندات الرسمية (المصادقة التوثيقية) لهذه القضية.
+              </p>
+            </div>
           </div>
         )}
 

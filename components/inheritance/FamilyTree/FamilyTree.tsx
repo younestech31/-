@@ -145,6 +145,7 @@ export interface StageResult {
   };
   results: CalculationResult[];
   netEstate: number;
+  hasUnverifiedOverride?: boolean;
 }
 
 interface FamilyTreeProps {

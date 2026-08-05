@@ -271,6 +271,22 @@ export async function exportToExcel(
 
     // Calc Notices (AWL / RADD)
     const calcType = results[0]?.calculationType;
+    if (stageResult.hasUnverifiedOverride) {
+      const noticeText = 'تنبيه هام: تم تجاوز استبعاد الميراث في هذه المرحلة يدوياً (تجاوز غير معتمد فقهياً/قانونياً)';
+      const noticeRow = ws1.addRow({
+        name: noticeText, role: '', share: '', parts: '', percentage: '', amount: '', article: ''
+      });
+      noticeRow.height = 20;
+      ws1.mergeCells(`A${noticeRow.number}:G${noticeRow.number}`);
+      noticeRow.eachCell({ includeEmpty: true }, (cell) => {
+        styleData(cell, {
+          argbBg: COLOR.blockedRow,
+          bold: true,
+          hAlign: 'center',
+        });
+      });
+    }
+
     if (calcType === 'awl' || calcType === 'radd') {
       const noticeText = calcType === 'awl'
         ? 'عول (م.166): أصل المسألة وُسِّع لاستيعاب جميع الفروض الشرعية'
