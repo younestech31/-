@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cairo, Amiri } from 'next/font/google';
 import { Suspense } from 'react';
+import Script from 'next/script';
 import './globals.css';
 import { SITE_URL, OFFICE_INFO } from '@/lib/config';
 import type { Viewport } from 'next';
@@ -170,11 +171,27 @@ export default async function RootLayout({children}: {children: React.ReactNode}
         <meta name="msapplication-TileImage" content="/icons/mstile-150x150.png" />
 
         {/* JSON-LD Structured Data */}
-        <script
-          nonce={nonce}
+        <Script
+          id="json-ld"
           type="application/ld+json"
+          nonce={nonce}
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-          suppressHydrationWarning
+        />
+        {/* Automatic ChunkLoadError / Stale Bundle Recovery */}
+        <Script
+          id="chunk-error-recovery"
+          nonce={nonce}
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.addEventListener('error', function(e) {
+                if (e && e.message && e.message.indexOf('Loading chunk') !== -1) {
+                  console.warn('ChunkLoadError detected, reloading page to fetch fresh bundle...', e);
+                  window.location.reload();
+                }
+              });
+            `,
+          }}
         />
       </head>
       <body className="font-cairo" suppressHydrationWarning>

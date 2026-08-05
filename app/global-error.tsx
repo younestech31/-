@@ -12,8 +12,13 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error);
+    const msg = error?.message || String(error);
+    if (msg.includes('Loading chunk')) {
+      window.location.reload();
+      return;
+    }
     reportClientError({
-      errorMessage: error.message || String(error),
+      errorMessage: msg,
       componentStack: error.stack,
       route: typeof window !== 'undefined' ? window.location.pathname : undefined,
     });
