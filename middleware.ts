@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { buildCspHeader } from '@/lib/security/csp';
+import { buildCspHeader } from './lib/security/csp';
 
 function generateNonce(): string {
   try {
@@ -24,10 +24,10 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(targetUrl, { status: 301 });
     }
 
-    // Enforce lowercase URLs while preserving query string
+    // Enforce lowercase URLs for non-file paths while preserving query string
     const hasPercent = url.pathname.includes('%');
     const lowercasePath = url.pathname.toLowerCase();
-    if (!hasPercent && url.pathname !== lowercasePath) {
+    if (!hasPercent && url.pathname !== lowercasePath && !url.pathname.includes('.')) {
       const targetUrl = request.nextUrl.clone();
       targetUrl.pathname = lowercasePath;
       return NextResponse.redirect(targetUrl, { status: 301 });
@@ -63,7 +63,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt|.*\\..*).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
   ],
 };
+
 
