@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { buildCspHeader } from './lib/security/csp';
+import { buildCspHeader } from '@/lib/security/csp';
 
 function generateNonce(): string {
   try {
@@ -24,25 +24,31 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(targetUrl, { status: 301 });
     }
 
-    // Enforce lowercase URLs for non-file paths while preserving query string
+    // Enforce lowercase URLs for non-file ASCII paths while preserving query string
     const hasPercent = url.pathname.includes('%');
     const lowercasePath = url.pathname.toLowerCase();
     if (!hasPercent && url.pathname !== lowercasePath && !url.pathname.includes('.')) {
-      const targetUrl = request.nextUrl.clone();
-      targetUrl.pathname = lowercasePath;
-      return NextResponse.redirect(targetUrl, { status: 301 });
+      // Check if path is plain ASCII before mutating
+      if (/^[\x00-\x7F]*$/.test(url.pathname)) {
+        const targetUrl = request.nextUrl.clone();
+        targetUrl.pathname = lowercasePath;
+        return NextResponse.redirect(targetUrl, { status: 301 });
+      }
     }
 
     const nonce = generateNonce();
-    const cspHeader = buildCspHeader(nonce);
+    const cspHeader = buildCspHeader(nonce).replace(/[\r\n]+/g, ' ').trim();
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-lang', 'ar');
+
+    let safePathname = url.pathname;
     try {
-      requestHeaders.set('x-pathname', encodeURIComponent(url.pathname));
+      safePathname = encodeURIComponent(url.pathname);
     } catch {
-      requestHeaders.set('x-pathname', url.pathname);
+      safePathname = url.pathname.replace(/[^\x20-\x7E]/g, '');
     }
+    requestHeaders.set('x-pathname', safePathname);
     requestHeaders.set('x-nonce', nonce);
 
     const response = NextResponse.next({
@@ -63,8 +69,9 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
+    '/((?!api|_next/static|_next/image|favicon\\.ico|sitemap\\.xml|robots\\.txt).*)',
   ],
 };
+
 
 
