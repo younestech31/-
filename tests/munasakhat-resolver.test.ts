@@ -127,4 +127,43 @@ describe('Munasakhat Resolver Tests', () => {
     // Stage 2 net estate must equal inherited (100000) + ownSeparateAssets (50000) = 150000
     expect(results[1].netEstate).toBe(150000);
   });
+
+  it('preserves Article 171 prior-gift metadata through the orchestration layer', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      {
+        id: 'root',
+        deceasedName: 'المتوفى الأصلي',
+        deceasedSonsCount: 1,
+        deceasedDaughtersCount: 0,
+        deceasedChildren: [{ type: 'son', count: 1, priorGiftOrBequestAmount: 700000 }],
+        heirs: [{ heirId: 'wife', count: 1, isPresent: true }],
+        hasMandatoryBequest: true,
+      },
+    ];
+    const [result] = runInheritanceOrchestration([stages, 1200000, 0, 0, 0]);
+    expect(result.results.find(row => row.heirId === 'mandatory_bequest')?.amount).toBe(350000);
+  });
+
+  it('keeps an involuntary killer in the per-person group-share denominator', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([{
+      heirId: 'full_brother',
+      count: 2,
+      isPresent: true,
+      isImpeded: true,
+      impededIndexes: [false, true],
+      impedimentReasonIds: [undefined, 'involuntary_killer'],
+    }], 600000, 0, 0, 0, false);
+    const brothers = results.find(row => row.heirId === 'full_brother');
+    expect(brothers?.individuals?.map(person => person.amount)).toEqual([300000, 300000]);
+    expect(brothers?.individuals?.reduce((sum, person) => sum + person.amount, 0)).toBe(brothers?.amount);
+  });
+
+  it('restricts CSP frame ancestors to the same origin', async () => {
+    const { buildCspHeader } = await import('../lib/security/csp');
+    expect(buildCspHeader()).toContain("frame-ancestors 'self'");
+    expect(buildCspHeader()).not.toContain('frame-ancestors *');
+    expect(buildCspHeader('test-nonce')).toContain("'nonce-test-nonce'");
+  });
 });
