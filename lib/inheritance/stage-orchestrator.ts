@@ -13,7 +13,7 @@ export function runInheritanceOrchestration(
 
   for (let index = 0; index < munasakhatStages.length; index++) {
     const stage = munasakhatStages[index];
-    const inheritedAmount = stage.inheritedFromParentAmount ?? stage.alreadyInheritedFromParentAmount ?? stage.estate ?? 0;
+    const inheritedAmount = stage.inheritedFromParentAmount ?? stage.alreadyInheritedFromParentAmount ?? stage.inheritedAmount ?? stage.estate ?? 0;
     const ownAssets = stage.ownSeparateAssets ?? 0;
     const stageEstate = index === 0 ? debouncedEstate : (inheritedAmount + ownAssets);
     const stageDebts   = index === 0 ? debouncedDebts        : (stage.debts || 0);
@@ -76,6 +76,31 @@ export function runInheritanceOrchestration(
     const sonsCount = stage.deceasedSonsCount ?? (stage.deceasedChildren?.filter(c => c.type === 'son').reduce((sum, c) => sum + c.count, 0) || 0);
     const daughtersCount = stage.deceasedDaughtersCount ?? (stage.deceasedChildren?.filter(c => c.type === 'daughter').reduce((sum, c) => sum + c.count, 0) || 0);
 
+    // Preserve Article 171/172 metadata for each deceased-child group.
+    // The UI keeps the legacy count fields separately, so use those counts
+    // while carrying the matching group's gift / prior-inheritance metadata.
+    const deceasedChildrenForCalculation = ([
+      { type: 'son' as const, count: sonsCount },
+      { type: 'daughter' as const, count: daughtersCount },
+    ]).filter(group => group.count > 0).map(group => {
+      const configuredGroup = stage.deceasedChildren?.find(child => child.type === group.type);
+      return configuredGroup ? { ...configuredGroup, count: group.count } : group;
+    });
+
+    // Older saved cases may store one stage-level offset. Apply it once only;
+    // never duplicate the same amount across both the son and daughter groups.
+    if (
+      stage.alreadyInheritedFromParentAmount &&
+      stage.alreadyInheritedFromParentAmount > 0 &&
+      deceasedChildrenForCalculation.length > 0 &&
+      !deceasedChildrenForCalculation.some(child => child.alreadyInheritedFromParentAmount !== undefined)
+    ) {
+      deceasedChildrenForCalculation[0] = {
+        ...deceasedChildrenForCalculation[0],
+        alreadyInheritedFromParentAmount: stage.alreadyInheritedFromParentAmount,
+      };
+    }
+
     const res = calculateInheritance(
       sanitizedPresence,
       stageEstate,
@@ -83,18 +108,7 @@ export function runInheritanceOrchestration(
       stageFuneral,
       stageBequest,
       stage.hasMandatoryBequest,
-      [
-        { 
-          type: 'son' as const, 
-          count: sonsCount,
-          alreadyInheritedFromParentAmount: stage.alreadyInheritedFromParentAmount || 0
-        },
-        { 
-          type: 'daughter' as const, 
-          count: daughtersCount,
-          alreadyInheritedFromParentAmount: stage.alreadyInheritedFromParentAmount || 0
-        },
-      ].filter(c => c.count > 0),
+      deceasedChildrenForCalculation,
     );
 
     if (hasUnverifiedOverride) {
