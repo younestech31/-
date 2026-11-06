@@ -109,8 +109,7 @@ describe('Munasakhat Resolver Tests', () => {
       {
         id: 'stage-2',
         deceasedName: 'الابن المتوفى ثانيا',
-        estate: 100000,
-        inheritedFromParentAmount: 100000,
+        inheritedAmount: 100000,
         ownSeparateAssets: 50000,
         parentHeirId: 'son',
         parentStageId: 'root',
