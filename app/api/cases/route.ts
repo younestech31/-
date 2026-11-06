@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
     const { id, caseNameEncrypted, caseDateEncrypted, notaryIdEncrypted, isCloudSynced, encryptedPayload } = parsed.data;
 
-    await db
+    const savedRows = await db
       .insert(savedCases)
       .values({
         id,
@@ -104,7 +104,17 @@ export async function POST(req: NextRequest) {
           encryptedPayload,
           updatedAt: new Date(),
         },
-      });
+        // A globally colliding case ID must never update another organization's row.
+        setWhere: eq(savedCases.organizationId, session.organizationId),
+      })
+      .returning({ id: savedCases.id });
+
+    if (savedRows.length === 0) {
+      return NextResponse.json(
+        { error: 'Case ID is already owned by another organization.' },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json({ success: true, id });
   } catch (err: unknown) {
