@@ -35,6 +35,7 @@ export interface MunasakhatStage {
   hasMandatoryBequest: boolean;
   alreadyInheritedFromParentAmount?: number;
   inheritedFromParentAmount?: number;
+  inheritedAmount?: number;
   ownSeparateAssets?: number;
   debts?: number;
   funeralCosts?: number;
