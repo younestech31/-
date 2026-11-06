@@ -2,7 +2,7 @@
   "name": "notaire-lattab",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "npm@10.9.8",
+  "packageManager": "npm@10.9.10",
   "engines": {
     "node": "22.x",
     "npm": ">=10.0.0"
