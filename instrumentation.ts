@@ -17,7 +17,11 @@ import { validateEnv } from '@/lib/env';
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs' || typeof window === 'undefined') {
-    validateEnv();
+    try {
+      validateEnv();
+    } catch (err) {
+      console.warn('[Startup Notice] Running with local fallback environment:', err);
+    }
   }
 }
 
