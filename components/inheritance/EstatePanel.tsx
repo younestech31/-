@@ -157,7 +157,7 @@ const EstatePanel = memo(function EstatePanel({
                   الموروث من التركة السابقة
                 </span>
                 <div className="font-mono text-sm font-bold text-slate-700">
-                  {formatDZDAmount(currentStage.inheritedFromParentAmount ?? currentStage.alreadyInheritedFromParentAmount ?? (currentStage.estate ?? 0), 'western', true)}
+                  {formatDZDAmount(currentStage.inheritedFromParentAmount ?? currentStage.alreadyInheritedFromParentAmount ?? currentStage.inheritedAmount ?? (currentStage.estate ?? 0), 'western', true)}
                 </div>
               </div>
 
@@ -177,7 +177,7 @@ const EstatePanel = memo(function EstatePanel({
               <div className="bg-emerald-50/80 p-2.5 rounded border border-emerald-200 flex justify-between items-center">
                 <span className="text-xs font-bold text-emerald-800">إجمالي تركة المتوفى الثاني:</span>
                 <span className="font-mono text-base font-bold text-emerald-900">
-                  {formatDZDAmount((currentStage.inheritedFromParentAmount ?? currentStage.alreadyInheritedFromParentAmount ?? 0) + (currentStage.ownSeparateAssets ?? 0), 'western', true)}
+                  {formatDZDAmount((currentStage.inheritedFromParentAmount ?? currentStage.alreadyInheritedFromParentAmount ?? currentStage.inheritedAmount ?? 0) + (currentStage.ownSeparateAssets ?? 0), 'western', true)}
                 </span>
               </div>
             </div>
