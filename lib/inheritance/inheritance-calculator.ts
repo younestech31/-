@@ -179,7 +179,15 @@ export function calculateInheritance(
     // Is there a blocked/calculated result from internal calculation?
     const blockedRes = internalResults.find(r => r.heirId === h.heirId && r.isBlocked);
 
-    const activeCount = h.count - (h.impededIndexes?.filter((v, idx) => idx < h.count && v).length ?? (h.isImpeded ? h.count : 0));
+    // Keep this count consistent with the preprocessing step above:
+    // an involuntary killer (القاتل خطأ) remains entitled to the estate,
+    // although the entitlement excludes the diyah / compensation.
+    const impededCount = Array.from({ length: h.count }, (_, idx) => {
+      const isIndImpeded = h.impededIndexes?.[idx] ?? h.isImpeded ?? false;
+      const impedimentReasonId = h.impedimentReasonIds?.[idx] ?? h.impedimentReasonId;
+      return isIndImpeded && impedimentReasonId !== 'involuntary_killer';
+    }).filter(Boolean).length;
+    const activeCount = h.count - impededCount;
 
     const individuals: IndividualResult[] = [];
     let groupAmount = 0;
