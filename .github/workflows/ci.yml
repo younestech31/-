@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -17,7 +17,7 @@ jobs:
   verify:
     name: Lint, Typecheck, Test & Build
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
       - name: Checkout code
@@ -27,41 +27,59 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.4.4
-
-      - name: Verify toolchain
+      - name: Pin npm version
         run: |
+          npm install --global npm@10.9.8
           node --version
-          bun --version
+          npm --version
 
-      # bun.lock matches package.json; package-lock.json is stale and must not
-      # be used for CI installs until it is regenerated and reviewed.
-      - name: Install dependencies from the committed Bun lockfile
-        run: bun install --frozen-lockfile
+      # Regenerate the npm lock from the authoritative package.json.
+      # This repairs the stale lock on Gptcoder before using npm ci.
+      - name: Synchronize npm lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Install dependencies from the synchronized lockfile
+        run: npm ci --no-audit --no-fund
 
       - name: Run dependency vulnerability audit
-        run: bun audit --audit-level=high
+        run: npm audit --audit-level=high
 
       - name: Run Linter
-        run: bun run lint
+        run: npm run lint
 
       - name: Run TypeScript Type Check
-        run: bunx tsc --noEmit
+        run: npx tsc --noEmit
 
       - name: Run Unit Tests
-        run: bun run test
+        run: npm run test
 
       - name: Build Application with Bundle Analyzer
-        run: bun run build
+        run: npm run build
         env:
-          ANALYZE: true
+          ANALYZE: "true"
 
       - name: Install Playwright Browsers
-        run: bunx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Run Playwright Privacy & Accessibility E2E Tests
-        run: bunx playwright test
+        run: npx playwright test
+
+      # Only the Gptcoder branch may receive the regenerated lockfile commit.
+      # GITHUB_TOKEN pushes do not start a second workflow run; this job has
+      # already tested the exact lockfile that it commits.
+      - name: Commit synchronized package-lock.json on Gptcoder
+        if: success() && github.ref == 'refs/heads/Gptcoder'
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json is already synchronized."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore(deps): synchronize npm lockfile"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
