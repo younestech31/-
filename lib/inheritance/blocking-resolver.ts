@@ -7,7 +7,8 @@ import { BLOCKING_RULES } from '@/data/blocking-rules';
 export interface BlockingContext {
   has: (id: string) => boolean;
   getCount: (id: string) => number;
-  hasDirectProgeny: boolean;
+  /** True when any inheriting descendant (child or son's descendant) is present. */
+  hasDescendant: boolean;
   siblingsCount: number;
   hasFemaleDirectDescendant?: boolean;
 }
@@ -57,9 +58,9 @@ export function resolveBlocking(heirId: string, ctx: BlockingContext): BlockingR
     
     // Generic Blocker Handlers
     if (rule.blocker === 'direct_heir') {
-      isApplied = ctx.hasDirectProgeny;
+      isApplied = ctx.hasDescendant;
     } else if (rule.blocker === 'direct_heir_or_siblings') {
-      isApplied = ctx.hasDirectProgeny || ctx.siblingsCount >= 2;
+      isApplied = ctx.hasDescendant || ctx.siblingsCount >= 2;
     } else if (rule.blocker === 'two_full_sisters_fard') {
       // م. 164: الأختان الشقيقتان تحجبان الأخت لأب إذا استكملتا الثلثين فرضاً
       // ذلك يعني: وجود أختين، عدم وجود الأخ الشقيق (لم تعصبا)، وعدم وجود حاجب أصلي (أب، ابن)

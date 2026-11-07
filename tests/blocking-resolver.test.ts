@@ -6,7 +6,7 @@ describe('Blocking Resolver Tests (Hajb)', () => {
     const ctx: BlockingContext = {
       has: (id: string) => id === 'son',
       getCount: (id: string) => (id === 'son' ? 1 : 0),
-      hasDirectProgeny: true,
+      hasDescendant: true,
       siblingsCount: 0,
     };
 
@@ -19,7 +19,7 @@ describe('Blocking Resolver Tests (Hajb)', () => {
     const ctx: BlockingContext = {
       has: (id: string) => ['full_sister', 'daughter'].includes(id),
       getCount: (_id: string) => 1,
-      hasDirectProgeny: true,
+      hasDescendant: true,
       hasFemaleDirectDescendant: true,
       siblingsCount: 1,
     };
@@ -34,7 +34,7 @@ describe('Blocking Resolver Tests (Hajb)', () => {
     const ctx: BlockingContext = {
       has: (id: string) => id === 'full_sister',
       getCount: (id: string) => (id === 'full_sister' ? 2 : 0),
-      hasDirectProgeny: false,
+      hasDescendant: false,
       siblingsCount: 2,
     };
 
@@ -47,7 +47,7 @@ describe('Blocking Resolver Tests (Hajb)', () => {
     const ctx: BlockingContext = {
       has: (id: string) => id === 'full_sister' || id === 'paternal_brother',
       getCount: (id: string) => (id === 'full_sister' ? 2 : 0),
-      hasDirectProgeny: false,
+      hasDescendant: false,
       siblingsCount: 3,
     };
 
@@ -59,7 +59,7 @@ describe('Blocking Resolver Tests (Hajb)', () => {
     const ctx: BlockingContext = {
       has: (id: string) => id === 'father',
       getCount: (id: string) => (id === 'father' ? 1 : 0),
-      hasDirectProgeny: false,
+      hasDescendant: false,
       siblingsCount: 1,
     };
 

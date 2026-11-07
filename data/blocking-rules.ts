@@ -105,43 +105,43 @@ export const BLOCKING_RULES: BlockingRule[] = [
     blocker: 'grandfather',
     blocked: 'full_nephew',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب ابن الأخ الشقيق'
+    article: 162,
+    conditionAr: 'الجد الصحيح وإن علا يحجب ابن الأخ الشقيق وفق المادة 162'
   },
   {
     blocker: 'grandfather',
     blocked: 'paternal_nephew',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب ابن الأخ لأب'
+    article: 162,
+    conditionAr: 'الجد الصحيح وإن علا يحجب ابن الأخ لأب وفق المادة 162'
   },
   {
     blocker: 'grandfather',
     blocked: 'full_uncle',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب العم الشقيق'
+    article: 153,
+    conditionAr: 'جهة الأبوة (الجد الصحيح) مقدمة على جهة العمومة وفق ترتيب العصبات في المادة 153'
   },
   {
     blocker: 'grandfather',
     blocked: 'paternal_uncle',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب العم لأب'
+    article: 153,
+    conditionAr: 'جهة الأبوة (الجد الصحيح) مقدمة على جهة العمومة وفق ترتيب العصبات في المادة 153'
   },
   {
     blocker: 'grandfather',
     blocked: 'full_uncle_son',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب ابن العم الشقيق'
+    article: 153,
+    conditionAr: 'جهة الأبوة (الجد الصحيح) مقدمة على جهة العمومة وفق ترتيب العصبات في المادة 153'
   },
   {
     blocker: 'grandfather',
     blocked: 'paternal_uncle_son',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب ابن العم لأب'
+    article: 153,
+    conditionAr: 'جهة الأبوة (الجد الصحيح) مقدمة على جهة العمومة وفق ترتيب العصبات في المادة 153'
   },
   {
     blocker: 'full_brother',
@@ -319,8 +319,9 @@ export const BLOCKING_RULES: BlockingRule[] = [
     conditionAr: 'ابن العم الشقيق يحجب ابن العم لأب'
   },
   /**
-   * Note: Maps to 'granddaughter' since the codebase uses this unified ID for
-   * all paternal granddaughters, and the degree relationships are handled dynamically.
+   * The input model uses one generic ID for sons' daughters of all degrees.
+   * Degree-dependent cases are therefore held for manual review by the stage
+   * orchestrator under Arts. 155 and 163; this rule table cannot infer lineage.
    */
   {
     blocker: 'son_son',
@@ -333,8 +334,8 @@ export const BLOCKING_RULES: BlockingRule[] = [
     blocker: 'two_daughters',
     blocked: 'granddaughter',
     type: 'full',
-    article: 160,
-    conditionAr: 'بنتان أو أكثر يحجبن بنات الابن'
+    article: 163,
+    conditionAr: 'البنتان أو بنات الابن الأعلى درجة تحجب بنت الابن الأدنى ما لم يوجد من يعصبها — م.163'
   },
   {
     blocker: 'son',
@@ -462,42 +463,42 @@ export const BLOCKING_RULES: BlockingRule[] = [
     blocker: 'father',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'الأب يحجب أولاد الأم'
   },
   {
     blocker: 'grandfather',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'الجد يحجب أولاد الأم'
   },
   {
     blocker: 'son',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'الابن يحجب أولاد الأم'
   },
   {
     blocker: 'daughter',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'البنت تحجب أولاد الأم'
   },
   {
     blocker: 'son_son',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'ابن الابن يحجب أولاد الأم'
   },
   {
     blocker: 'granddaughter',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'بنت الابن تحجب أولاد الأم'
   },
   // حجب النقصان (م. 160)
