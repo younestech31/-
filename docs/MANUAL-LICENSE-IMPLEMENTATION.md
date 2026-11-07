@@ -4,7 +4,7 @@
 
 Mawarith remains usable without an account. Calculation, inheritance scenarios, local case storage, and local backup/import/export remain available in the free edition. Professional access is a manually prepaid, fixed-duration license. There is no automatic renewal, online payment gateway, payment API, customer database, server-side file storage, or cloud synchronization in this model.
 
-The proposed pilot periods and prices are product decisions, not technical constants:
+The proposed pilot periods and prices are product decisions, not market-validated prices or technical constants:
 - 30 days — 1,000 DZD
 - 90 days — 2,500 DZD
 - 365 days — 8,000 DZD
@@ -18,7 +18,7 @@ Arabic Cairo and Amiri font assets are served from `public/fonts/` and loaded wi
 ## Pro features in the current pilot
 
 - **Clean PDF export:** removes the free-edition Mawarith watermark. The inheritance calculations themselves remain free.
-- **Encrypted local backup:** exports saved cases and office settings into a password-protected `.mwbackup` file. The ordinary JSON backup/import remains free and clearly warns that it is plaintext.
+- **Encrypted local backup:** exports and imports saved cases and office settings into a password-protected `.mwbackup` file. This entitlement is explicitly represented as `encrypted-backup`; the ordinary JSON backup/import remains free and clearly warns that it is plaintext.
 - No service receives backup files or passphrases. The user must keep the passphrase separately; losing it means the encrypted backup cannot be recovered.
 
 Encrypted backups use PBKDF2-HMAC-SHA-256 with 600,000 iterations to derive an AES-256-GCM key, a fresh 16-byte salt, a fresh 12-byte IV, and authenticated additional data. The file format fixes and validates its KDF parameters before running PBKDF2, applies size limits, authenticates ciphertext, and rejects invalid case/settings structures. Tests cover correct-password round-trip, incorrect password, ciphertext tampering, KDF parameter changes, weak passphrases, and malformed payloads.
@@ -28,7 +28,7 @@ Encrypted backups use PBKDF2-HMAC-SHA-256 with 600,000 iterations to derive an A
 1. The customer's browser creates a random installation ID and stores it locally.
 2. The customer shares that ID with the owner by a normal communication channel.
 3. The owner independently confirms that the funds have actually arrived in the owner's account.
-4. The owner runs the offline issuer on a trusted local computer.
+4. The owner runs the offline issuer on a trusted local computer. The issuer now checks that the private key, PEM public key, and public key pinned in the client source match before it creates a license.
 5. The issuer signs a small JSON license file with the owner's ECDSA P-256 private key.
 6. The customer imports that file. The browser checks signature, expiry, product, and installation ID using the public key.
 7. The browser stores the accepted license locally. No license check calls a server.
@@ -80,12 +80,16 @@ The free calculation engine must not be blocked when a license is missing, expir
 - [x] Make CI read-only and reproducible; move dependency update proposals to free Dependabot PRs.
 - [x] Align declared npm engine with the npm version provided by Vercel's Node 22 build image.
 - [x] Remove legacy office branding from the independent Mawarith identity.
-- [ ] Complete the latest GitHub Actions run and latest Vercel Preview build after the final SPKI byte-validation fix.
+- [ ] Complete the latest GitHub Actions checks on `work/mawarith`. Vercel Preview deployments are intentionally disabled for this branch; do not trigger one manually during this review.
 - [ ] Generate the production key pair on the owner's trusted device; commit only the public key and keep the private key offline.
 - [ ] Run a clean-browser end-to-end test with a test license: issue, import, expiry, wrong installation, tampering, and free-tier fallback.
-- [ ] Revisit the Pro value proposition: current entitlement is PDF watermark removal only; decide whether office branding/templates should be added before public launch.
+- [ ] Validate the Pro value proposition and willingness to pay with a small pilot of real notary offices. Current Pro entitlements are clean PDF export and encrypted local backup/restore; do not claim office-brand verification or official certification.
 - [ ] Review the final branch diff and production/preview separation before any merge.
+
+## Current deployment boundary
+
+The `work/mawarith` branch is excluded from automatic Vercel Git deployments in `vercel.json`. Keep all work on that branch. Do not use Vercel manual deployment, promote, alias, or merge operations during this audit. Confirm that Vercel has zero deployments for this branch after every push.
 
 ## Release gate
 
-Do not merge this branch or trigger a production deployment until every checklist item is completed or explicitly deferred, all CI checks pass, the owner has generated and safely backed up the private key, and the complete activation flow has been tested using a test license on a clean browser profile.
+Do not merge this branch or trigger a production deployment until every checklist item is completed or explicitly deferred, all CI checks pass, the owner has generated and safely backed up the private key, the commercial/legal operating model is confirmed, and the complete activation flow has been tested using a test license on a clean browser profile. The public key may be committed to the application; the private key must remain offline and must never be uploaded to GitHub or Vercel.
