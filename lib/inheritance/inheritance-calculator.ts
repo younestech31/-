@@ -757,7 +757,7 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
 
   // Blocking Resolver Context
   const hasFemaleDirectDescendant = hasDaughter || has('granddaughter');
-  const blockingCtx: BlockingContext = { has, getCount, hasDirectProgeny, siblingsCount, hasFemaleDirectDescendant };
+  const blockingCtx: BlockingContext = { has, getCount, hasDescendant: hasChildren, siblingsCount, hasFemaleDirectDescendant };
   const checkBlocking = (heirId: string) => resolveBlocking(heirId, blockingCtx);
 
   // MASHARAKA & AKDARIYA (Articles 175–176)
@@ -1072,7 +1072,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
                         getSiblingCountForMother('paternal_brother') + getSiblingCountForMother('paternal_sister') + 
                         getSiblingCountForMother('maternal_siblings');
 
-  const blockingCtx: BlockingContext = { has, getCount, hasDirectProgeny, siblingsCount, hasFemaleDirectDescendant };
+  const blockingCtx: BlockingContext = { has, getCount, hasDescendant: hasChildren, siblingsCount, hasFemaleDirectDescendant };
   const checkBlocking = (heirId: string) => resolveBlocking(heirId, blockingCtx);
 
   const hasMother = has('mother');
