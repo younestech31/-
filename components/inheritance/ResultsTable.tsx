@@ -46,6 +46,7 @@ export interface StageResult {
   noHeirsNeedsManualReview?: boolean;
   pregnancyNeedsManualReview?: boolean;
   minorHeirNeedsJudicialPartition?: boolean;
+  deathOrderNeedsManualReview?: boolean;
 }
 
 interface ResultsTableProps {
@@ -308,6 +309,19 @@ const ResultsTable = memo(function ResultsTable({
             </ul>
             <p className="text-xs mt-2">
               يعرض النظام نتائج استكشافية فقط، ويعطّل تصدير المستندات حتى تُعالج هذه الصورة في المحرك وتُراجع قانونياً.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.deathOrderNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-rose-300 bg-rose-50 p-4 text-sm text-rose-950"
+          >
+            <p className="font-bold">توقّف المناسخة المتسلسلة — ترتيب الوفاة غير ثابت (المادة 129)</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              إذا توفي شخصان أو أكثر ولم يُعرف أيهم مات أولاً، فلا يرث أحدهم من تركة الآخر. النتيجة المتسلسلة هنا غير معتمدة؛ يجب إثبات ترتيب الوفاة أو فصل التركات وحساب كل تركة مستقلة.
             </p>
           </div>
         )}
