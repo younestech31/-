@@ -44,6 +44,7 @@ interface EstatePanelProps {
   updateStagePregnancy: (hasUnbornHeir: boolean, outcome: NonNullable<MunasakhatStage['unbornOutcome']>) => void;
   updateStagePregnancyDisputed: (checked: boolean) => void;
   updateStageMinorHeirPresent: (checked: boolean) => void;
+  updateStageDeathOrderUncertain: (checked: boolean) => void;
   requiresNoDistantKindredConfirmation?: boolean;
   parentHeirName?: string;
 }
@@ -78,6 +79,7 @@ const EstatePanel = memo(function EstatePanel({
   updateStagePregnancy,
   updateStagePregnancyDisputed,
   updateStageMinorHeirPresent,
+  updateStageDeathOrderUncertain,
   requiresNoDistantKindredConfirmation = false,
   parentHeirName,
 }: EstatePanelProps) {
@@ -322,6 +324,21 @@ const EstatePanel = memo(function EstatePanel({
             </p>
           </div>
         )}
+
+        <div className="mb-3 rounded border border-rose-200 bg-rose-50/70 p-3">
+          <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-rose-950">
+            <input
+              type="checkbox"
+              checked={currentStage.deathOrderUncertain === true}
+              onChange={e => updateStageDeathOrderUncertain(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-rose-700"
+            />
+            <span className="font-semibold">توجد وفيات لشخصين أو أكثر ولم يثبت ترتيب الوفاة بينهم (المادة 129)</span>
+          </label>
+          <p className="mt-2 text-[10px] leading-relaxed text-rose-800">
+            عند عدم معرفة من مات أولاً، لا يرث أحد المتوفين من الآخر. لا تعتمد هذه المرحلة كمناسخة متسلسلة قبل إثبات ترتيب الوفاة أو فصل التركات.
+          </p>
+        </div>
 
         <div className="mb-3 rounded border border-violet-200 bg-violet-50/70 p-3">
           <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-violet-950">
