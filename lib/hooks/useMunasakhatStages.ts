@@ -284,6 +284,38 @@ export function useMunasakhatStages(
     });
   }, [currentStageIndex]);
 
+  const updateStagePregnancy = useCallback((
+    hasUnbornHeir: boolean,
+    unbornOutcome: NonNullable<MunasakhatStage['unbornOutcome']>
+  ) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          hasUnbornHeir,
+          unbornOutcome,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStagePregnancyDisputed = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          pregnancyDisputed: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
   const acknowledgeStageExclusion = useCallback((heirId: string) => {
     setMunasakhatStages(prev => {
       const next = [...prev];
@@ -329,6 +361,8 @@ export function useMunasakhatStages(
     updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
     updateStageNoDistantKindredConfirmation,
+    updateStagePregnancy,
+    updateStagePregnancyDisputed,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
   };
