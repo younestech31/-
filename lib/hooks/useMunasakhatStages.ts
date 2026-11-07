@@ -275,6 +275,7 @@ export function useMunasakhatStages(
     addMunasakhatStage,
     removeStage,
     updateStageName,
+    updateStageGender,
     updateStageMandatoryBequest,
     updateStageDeceasedChildren,
     updateStageAlreadyInherited,
