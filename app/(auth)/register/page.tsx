@@ -77,23 +77,42 @@ async function handleRegisterAction(formData: FormData) {
   const orgId = 'org_' + crypto.randomUUID();
   const userId = 'usr_' + crypto.randomUUID();
 
-  // Create Organization first
-  await db.insert(organizations).values({
-    id: orgId,
-    name: firmName,
-    plan: 'free',
-  });
+  // Insert the organization and its first user in one Neon HTTP batch.
+  // This keeps the two rows atomic and avoids orphan organizations if the
+  // unique email constraint rejects a concurrent registration.
+  try {
+    await db.batch([
+      db.insert(organizations).values({
+        id: orgId,
+        name: firmName,
+        plan: 'free',
+      }),
+      db.insert(users).values({
+        id: userId,
+        email,
+        passwordHash,
+        name,
+        role: 'notary',
+        organizationId: orgId,
+        emailVerified: false,
+      }),
+    ]);
+  } catch (error) {
+    // A concurrent request may have registered the email after the SELECT above.
+    const emailNowExists = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  // Create User with emailVerified: false
-  await db.insert(users).values({
-    id: userId,
-    email,
-    passwordHash,
-    name,
-    role: 'notary',
-    organizationId: orgId,
-    emailVerified: false,
-  });
+    if (emailNowExists.length > 0) {
+      await sendAccountAlreadyExistsNotice(email);
+      redirect('/register?info=check_email');
+    }
+
+    console.error('[register] Atomic account creation failed:', error);
+    redirect('/register?error=registration_failed');
+  }
 
   // Generate signed verification token & send email
   const verifyToken = await createEmailVerificationToken(userId, email);
@@ -148,6 +167,9 @@ export default async function RegisterPage(props: RegisterPageProps) {
               )}
               {error === 'email_exists' && (
                 <span>البريد الإلكتروني المدخل مسجل بالفعل لمكتب توثيق آخر.</span>
+              )}
+              {error === 'registration_failed' && (
+                <span>تعذر إنشاء الحساب حالياً. يرجى المحاولة لاحقاً أو التواصل مع الدعم.</span>
               )}
               {error === 'missing_fields' && (
                 <span>جميع الحقول مطلوبة لتسجيل ديوان توثيق جديد.</span>
