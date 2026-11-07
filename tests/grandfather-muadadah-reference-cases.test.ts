@@ -160,12 +160,12 @@ const referenceCases: ReferenceCase[] = [
   },
   {
     id: 'art158-grandfather-three-full-sisters-muqasama-two-fifths',
-    basis: 'Article 158 / Zayd method: three sisters are more than twice the grandfather; one third is better than muqasama',
+    basis: 'Article 158 / Zayd method: grandfather two shares against three sisters five total parts; muqasama gives him two fifths',
     estate: 150_000,
     heirs: [present('grandfather'), present('full_sister', 3)],
     expected: {
-      grandfather: { fraction: '1/3', amount: 50_000 },
-      full_sister: { fraction: '2/3', amount: 100_000, individualAmounts: [33_333.33, 33_333.33, 33_333.34] },
+      grandfather: { fraction: '2/5', amount: 60_000 },
+      full_sister: { fraction: '3/5', amount: 90_000, individualAmounts: [30_000, 30_000, 30_000] },
     },
   },
   {
