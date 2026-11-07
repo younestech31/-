@@ -263,7 +263,7 @@ export function getNotarialAttestationData(
         title: 'إشهاد المصادقة التوثيقية ورمز التحقق التشفيري (SHA-256)',
         attestationText: `أشهد أنا الموثق الموقّع أدناه، صاحب الديوان العمومي للتوثيق، بصحة ومطابقة عملية تصفية التركة المرفقة للأنصبة الشرعية والمواد 139 إلى 180 من قانون الأسرة الجزائري. تحمل هذه الوثيقة رمز تحقق تشفيري بـ SHA-256 لمنع أي تغيير يدوياً في السهام.`,
         notaryName: settings.notaryNameAr || 'الموثق',
-        caseRef: `رقم مرجع الفريضة: ${caseRef}`,
+        caseRef: `مرجع التقرير: ${caseRef}`,
         formattedDate: `تاريخ إعداد التقرير: ${dateStr}`,
         auditHash,
         signatureBoxTitle: 'توقيع وخاتم الموثق',
@@ -274,7 +274,7 @@ export function getNotarialAttestationData(
         attestationText: `تم إعداد هذا التقرير آلياً بواسطة منصة مواريث للمساعدة على الحساب والمراجعة فقط. لا يُعدّ عقداً رسمياً أو إشهاداً توثيقياً أو مصادقة على صحة الوقائع والمعطيات. لا يكتسب أي صفة رسمية إلا بعد المراجعة المستقلة والإجراءات والتوقيع والختم من الجهة المختصة. وتُستخدم بصمة SHA-256 للتحقق التقني من سلامة الملف فقط.`,
         notaryName: settings.notaryNameAr || 'منصة مواريث الرقمية',
         caseRef: `رقم مرجع الفريضة: ${caseRef}`,
-        formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
+        formattedDate: `تاريخ إعداد التقرير: ${dateStr}`,
         auditHash,
         signatureBoxTitle: 'مخصص للمراجعة والتحقق الخارجي',
       };
