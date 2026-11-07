@@ -30,7 +30,11 @@ export function runInheritanceOrchestration(
     const heirsToCheck = presenceList.filter(h => h.isPresent && h.count > 0 && !h.isImpeded);
     const manualClassificationIds = new Set(['distant_kindred', 'maternal_grandfather']);
     const manualClassificationHeirs = heirsToCheck.filter(h => manualClassificationIds.has(h.heirId));
-    const requiresManualClassification = manualClassificationHeirs.length > 0;
+    const hasGrandfather = heirsToCheck.some(h => h.heirId === 'grandfather');
+    const hasFullSiblingLine = heirsToCheck.some(h => ['full_brother', 'full_sister'].includes(h.heirId));
+    const hasPaternalSiblingLine = heirsToCheck.some(h => ['paternal_brother', 'paternal_sister'].includes(h.heirId));
+    const hasUnresolvedGrandfatherMuadadah = hasGrandfather && hasFullSiblingLine && hasPaternalSiblingLine;
+    const requiresManualClassification = manualClassificationHeirs.length > 0 || hasUnresolvedGrandfatherMuadadah;
 
     for (const h of manualClassificationHeirs) {
       const heirDetails = HEIRS.find(x => x.id === h.heirId);
@@ -83,6 +87,13 @@ export function runInheritanceOrchestration(
 
     const sonsCount = stage.deceasedSonsCount ?? (stage.deceasedChildren?.filter(c => c.type === 'son').reduce((sum, c) => sum + c.count, 0) || 0);
     const daughtersCount = stage.deceasedDaughtersCount ?? (stage.deceasedChildren?.filter(c => c.type === 'daughter').reduce((sum, c) => sum + c.count, 0) || 0);
+    // Article 169–172 requires branch-level descendant eligibility, direct-heir
+    // status, gifts/wills, prior inheritance, and the distribution among each
+    // grandchild. The current aggregate son/daughter counters cannot capture
+    // those facts, so do not emit a misleading automatic tanzil amount.
+    const tanzilNeedsManualReview = Boolean(
+      stage.hasMandatoryBequest && sonsCount + daughtersCount > 0
+    );
 
     // Preserve Article 171/172 metadata for each deceased-child group.
     // The UI keeps the legacy count fields separately, so use those counts
@@ -115,7 +126,7 @@ export function runInheritanceOrchestration(
       stageDebts,
       stageFuneral,
       stageBequest,
-      stage.hasMandatoryBequest,
+      stage.hasMandatoryBequest && !tanzilNeedsManualReview,
       deceasedChildrenForCalculation,
     );
 
@@ -158,6 +169,7 @@ export function runInheritanceOrchestration(
       excludedHeirWarnings,
       hasUnverifiedOverride,
       requiresManualClassification,
+      tanzilNeedsManualReview,
     });
   }
 
