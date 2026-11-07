@@ -316,6 +316,20 @@ export function useMunasakhatStages(
     });
   }, [currentStageIndex]);
 
+  const updateStageMinorHeirPresent = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          hasMinorHeir: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
   const acknowledgeStageExclusion = useCallback((heirId: string) => {
     setMunasakhatStages(prev => {
       const next = [...prev];
@@ -363,6 +377,7 @@ export function useMunasakhatStages(
     updateStageNoDistantKindredConfirmation,
     updateStagePregnancy,
     updateStagePregnancyDisputed,
+    updateStageMinorHeirPresent,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
   };
