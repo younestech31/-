@@ -49,7 +49,7 @@ export async function getSession(): Promise<UserSession | null> {
       algorithms: ['HS256'],
     });
 
-    if (!payload.userId || !payload.organizationId) return null;
+    // Only sessions minted after the email-verification gate are accepted.\n    // This also invalidates legacy pre-verification JWTs already in circulation.\n    if (!payload.userId || !payload.organizationId || payload.emailVerified !== true) return null;
 
     return {
       userId: payload.userId as string,
@@ -69,7 +69,7 @@ export async function getSession(): Promise<UserSession | null> {
  */
 export async function setSessionCookie(session: UserSession): Promise<void> {
   const cookieStore = await cookies();
-  const token = await new SignJWT({ ...session })
+  const token = await new SignJWT({ ...session, emailVerified: true })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('30d')
