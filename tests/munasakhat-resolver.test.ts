@@ -327,6 +327,28 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
   });
 
+  it('does not assign negative sibling residue when Article 158 grandfather share causes awl', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('husband'),
+      present('mother'),
+      present('daughter'),
+      present('grandfather'),
+      present('full_brother'),
+    ], 156000, 0, 0, 0);
+
+    // Before the Awl adjustment, the fixed shares (including the grandfather's
+    // statutory 1/6) exceed the estate. The brother is an asaba and receives
+    // no negative residue; Awl proportionally reduces the fixed shares.
+    expect(amountFor(results, 'husband')).toBe(36000);    // 3/13
+    expect(amountFor(results, 'mother')).toBe(24000);   // 2/13
+    expect(amountFor(results, 'daughter')).toBe(72000); // 6/13
+    expect(amountFor(results, 'grandfather')).toBe(24000);// 2/13
+    expect(amountFor(results, 'full_brother')).toBe(0);
+    expect(results.every(result => result.amount >= 0)).toBe(true);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(156000);
+  });
+
   it('recognizes the Article 176 mushtaraka when full siblings are represented only by a sister', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
