@@ -44,7 +44,8 @@ const outputPath = path.resolve(root, readOption('output', 'mawarith-' + license
 
 if (
   !installationId || installationId.length < 16 || installationId.length > 100 ||
-  !customerName || customerName.trim().length < 2 || customerName.length > 160 ||
+  !customerName || customerName.trim().length < 2 || customerName.trim().length > 160 ||
+  !licenseId || licenseId.length < 8 || licenseId.length > 100 ||
   !Number.isInteger(days) || days < 1 || days > 3650
 ) {
   usage();
