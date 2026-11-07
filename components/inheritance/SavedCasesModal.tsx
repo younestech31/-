@@ -16,7 +16,7 @@ interface SavedCasesModalProps {
   importData: (e: React.ChangeEvent<HTMLInputElement>) => void;
   exportData: () => void;
   isImporting: boolean;
-  isPaid: boolean;
+  hasEncryptedBackup: boolean;
   exportEncryptedBackup: (passphrase: string) => Promise<boolean>;
   importEncryptedBackup: (file: File, passphrase: string) => Promise<boolean>;
 }
@@ -31,7 +31,7 @@ export default function SavedCasesModal({
   importData,
   exportData,
   isImporting,
-  isPaid,
+  hasEncryptedBackup,
   exportEncryptedBackup,
   importEncryptedBackup,
 }: SavedCasesModalProps) {
@@ -174,7 +174,7 @@ export default function SavedCasesModal({
                   تصدير JSON
                 </button>
               )}
-              {isPaid && (
+              {hasEncryptedBackup && (
                 <>
                   <button
                     type="button"
@@ -221,7 +221,7 @@ export default function SavedCasesModal({
                 </>
               )}
             </div>
-            {isPaid && (
+            {hasEncryptedBackup && (
               <p className="w-full text-right text-[11px] leading-relaxed text-emerald-900 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-2">
                 النسخة المشفّرة تشمل المسائل المحفوظة وإعدادات المكتب. لا تُرسل البيانات إلى خادم، ولا تحتفظ مواريث بكلمة المرور.
               </p>
