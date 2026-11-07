@@ -122,6 +122,27 @@ export function calculateInheritance(
   hasUnbornHeir: boolean = false,
   confirmedNoDistantKindred: boolean = false
 ): CalculationResult[] {
+  // A pending pregnancy needs a legally verified reservation calculation.
+  // The current engine's reservation path is not yet accepted for notarial use,
+  // so fail closed instead of normalizing other heirs' shares against an
+  // uncertain distributable estate.
+  if (hasUnbornHeir && unbornOutcome === 'pending') {
+    return [{
+      heirId: 'article_173_review',
+      nameAr: 'مراجعة الحمل — المادة 173',
+      share: 'معلق للمراجعة',
+      shareDecimal: 0,
+      shareFraction: new Fraction(0),
+      shares: 0,
+      problemBase: 0,
+      amount: 0,
+      isBlocked: false,
+      reason: 'الحمل غير محسوم؛ يجب تحديد النصيب الموقوف أو التوقف الكامل عند احتمال حجب وارث حجب حرمان قبل اعتماد أي قسمة.',
+      article: 173,
+      count: 1
+    }];
+  }
+
   // Pre-process: Map original heirs to active heirs with counts matching non-impeded individuals
   const activeHeirs = heirs.map(h => {
     if (!h.isPresent || h.count <= 0) return { ...h };
