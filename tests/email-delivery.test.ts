@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
+  vi.doUnmock('resend');
   vi.resetModules();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
@@ -41,5 +42,45 @@ describe('Production email delivery', () => {
     expect(result).toBe(true);
     expect(info).toHaveBeenCalledTimes(1);
     expect(info.mock.calls.flat().join(' ')).not.toContain('secret-token');
+  });
+
+  it('uses NEXT_PUBLIC_SITE_URL when APP_URL is not configured', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://mawarith.example.test');
+    vi.stubEnv('RESEND_API_KEY', 'test-api-key');
+
+    const send = vi.fn().mockResolvedValue({ data: { id: 'email-1' }, error: null });
+    vi.doMock('resend', () => ({
+      Resend: vi.fn(() => ({ emails: { send } })),
+    }));
+
+    const { sendVerificationEmail } = await import('@/lib/email');
+    const result = await sendVerificationEmail('user@example.test', 'one-time-token');
+
+    expect(result).toBe(true);
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({
+      html: expect.stringContaining(
+        'https://mawarith.example.test/api/auth/verify-email?token=one-time-token'
+      ),
+    }));
+  });
+
+  it('refuses to build production verification links without a configured HTTPS site URL', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'http://localhost:3000');
+    vi.stubEnv('RESEND_API_KEY', 'test-api-key');
+
+    const send = vi.fn().mockResolvedValue({ data: { id: 'email-1' }, error: null });
+    vi.doMock('resend', () => ({
+      Resend: vi.fn(() => ({ emails: { send } })),
+    }));
+
+    const { sendVerificationEmail } = await import('@/lib/email');
+    const result = await sendVerificationEmail('user@example.test', 'one-time-token');
+
+    expect(result).toBe(false);
+    expect(send).not.toHaveBeenCalled();
   });
 });
