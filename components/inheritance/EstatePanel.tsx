@@ -296,7 +296,7 @@ const EstatePanel = memo(function EstatePanel({
           </div>
         )}
 
-        {!(currentStage.heirs || Object.values(currentStage.heirPresence || {})).some(
+        {!(currentStage.heirs?.length ? currentStage.heirs : Object.values(currentStage.heirPresence || {})).some(
           heir => heir.isPresent && heir.count > 0 && !['husband', 'wife'].includes(heir.heirId)
         ) && (
           <div className="mb-3 rounded border border-amber-200 bg-amber-50/70 p-3">
