@@ -120,11 +120,12 @@ export function runInheritanceOrchestration(
       };
     }
 
-    const unsupportedMultiplePregnancy = Boolean(
-      stage.hasUnbornHeir &&
-      ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome || '')
+    const pregnancyNeedsManualReview = Boolean(
+      stage.pregnancyDisputed ||
+      (stage.hasUnbornHeir &&
+        (!stage.unbornOutcome || stage.unbornOutcome === 'pending' ||
+          ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome)))
     );
-    const pregnancyNeedsManualReview = Boolean(stage.pregnancyDisputed || unsupportedMultiplePregnancy);
 
     const res = pregnancyNeedsManualReview
       ? []
