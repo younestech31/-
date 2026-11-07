@@ -52,7 +52,7 @@ describe('Shared financial input validation at the inheritance orchestration bou
     ['negative funeral costs', 1_000, 0, -1, 0, 'قيمة «مصاريف التجهيز والدفن» لا يمكن أن تكون سالبة.'],
     ['negative bequest', 1_000, 0, 0, -1, 'قيمة «الوصية الاختيارية» لا يمكن أن تكون سالبة.'],
     ['deductions exceed the estate', 1_000, 700, 400, 0, 'مجموع الديون ومصاريف التجهيز والدفن يتجاوز قيمة التركة المدخلة؛ أوقف الحساب حتى تصحيح المبالغ.'],
-  ])('holds the result for %s', (_label, estate, debts, funeralCosts, bequest, expectedIssue) => {
+  ] as const)('holds the result for %s', (_label, estate, debts, funeralCosts, bequest, expectedIssue) => {
     const [result] = calculate([stage('root')], estate, debts, funeralCosts, bequest);
 
     expect(result.results).toEqual([]);
@@ -129,6 +129,14 @@ describe('Shared financial input validation at the inheritance orchestration bou
     const [result] = calculate([root], 1_000, -1, 0, 0);
     expect(result.financialInputNeedsManualReview).toBe(true);
     expect(result.results).toEqual([]);
+  });
+
+  it('still applies the legal one-third cap to an oversized voluntary bequest', () => {
+    const [result] = calculate([stage('root')], 1_000, 0, 0, 500);
+    const voluntaryBequest = result.results.find(row => row.heirId === 'voluntary_bequest');
+
+    expect(result.financialInputNeedsManualReview).toBeUndefined();
+    expect(voluntaryBequest?.amount).toBeLessThanOrEqual((1_000 / 3) + 1e-9);
   });
 
   it('rejects non-finite numeric inputs before any share is calculated', () => {
