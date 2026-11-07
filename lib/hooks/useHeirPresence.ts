@@ -9,7 +9,7 @@ export function useHeirPresence(
   munasakhatStages: MunasakhatStage[],
   setMunasakhatStages: React.Dispatch<React.SetStateAction<MunasakhatStage[]>>,
   currentStageIndex: number,
-  deceasedGender: 'male' | 'female',
+  deceasedGender: 'male' | 'female' | null,
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
 ) {
   const currentStage = useMemo(() => {
@@ -175,6 +175,9 @@ export function useHeirPresence(
   const filteredHeirs = useMemo(() => {
     if (!currentStage) return HEIRS;
     return HEIRS.filter(h => {
+      // When a mixed-gender heir group is the deceased, ask for the individual's
+      // gender before presenting either spouse as a possible heir.
+      if (deceasedGender === null && (h.id === 'husband' || h.id === 'wife')) return false;
       if (h.id === 'husband' && deceasedGender === 'male') return false;
       if (h.id === 'wife' && deceasedGender === 'female') return false;
       return true;
