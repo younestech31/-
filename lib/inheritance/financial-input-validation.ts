@@ -38,6 +38,8 @@ export function validateFinancialInputs(input: FinancialInputValidation): string
       issues.push(`قيمة «${label}» غير رقمية أو خارج النطاق الحسابي.`);
     } else if (value < 0) {
       issues.push(`قيمة «${label}» لا يمكن أن تكون سالبة.`);
+    } else if (!Number.isSafeInteger(Math.round(value * 100))) {
+      issues.push(`قيمة «${label}» تتجاوز الحد الآمن للحساب بالسنتيم؛ يجب تقسيم العملية أو مراجعة المبلغ.`);
     }
   }
 
