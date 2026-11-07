@@ -5,7 +5,7 @@ import { headers } from 'next/headers';
 import { Shield, Lock, Mail, User, Building, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { setSessionCookie, createEmailVerificationToken } from '@/lib/auth/session';
+import { createEmailVerificationToken } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/client';
 import { users, organizations } from '@/lib/db/schema';
 import { checkRateLimit } from '@/lib/auth/rate-limit';
@@ -99,16 +99,7 @@ async function handleRegisterAction(formData: FormData) {
   const verifyToken = await createEmailVerificationToken(userId, email);
   await sendVerificationEmail(email, verifyToken);
 
-  // Set session cookie
-  await setSessionCookie({
-    userId,
-    email,
-    name,
-    organizationId: orgId,
-    plan: 'free',
-    role: 'notary',
-  });
-
+  // Do not authenticate an account until its email address has been verified.
   redirect('/register?info=check_email');
 }
 
