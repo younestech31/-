@@ -4,6 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SavedCase, MunasakhatStage } from '@/lib/inheritance/munasakhat-types';
 import { OfficeSettings, DEFAULT_OFFICE_SETTINGS, getPersistedOfficeSettings } from '@/lib/inheritance/document-branding';
 import { encryptData, decryptData } from '@/lib/crypto';
+import { getStoredLicenseStatus } from '@/lib/licensing/manual-license';
+import {
+  decryptMawarithBackup,
+  encryptMawarithBackup,
+  MAWARITH_BACKUP_MAX_FILE_BYTES,
+} from '@/lib/backup/encrypted-backup';
 
 const STORAGE_KEY = 'mawarith_saved_cases_v2';
 const OFFICE_SETTINGS_KEY = 'mawarith_office_settings_v1';
@@ -279,6 +285,117 @@ export function useSavedCases(
     }
   }, [savedCases, showToast]);
 
+  const exportEncryptedBackup = useCallback(async (passphrase: string): Promise<boolean> => {
+    try {
+      const license = await getStoredLicenseStatus();
+      if (!license.isPaid) {
+        showToast('ميزة النسخ الاحتياطي المشفّر متاحة ضمن ترخيص Pro الساري فقط.', 'error');
+        return false;
+      }
+
+      const backupPayload = {
+        format: 'mawarith-backup' as const,
+        version: 1 as const,
+        exportedAt: new Date().toISOString(),
+        cases: savedCases,
+        officeSettings: getPersistedOfficeSettings(officeSettings),
+      };
+      const encryptedText = await encryptMawarithBackup(backupPayload, passphrase);
+      const blob = new Blob([encryptedText], { type: 'application/json' });
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = `mawarith_encrypted_backup_${new Date().toISOString().slice(0, 10)}.mwbackup`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(objectUrl);
+
+      showToast('تم إنشاء النسخة الاحتياطية المشفّرة وتنزيلها بنجاح ✓', 'success');
+      return true;
+    } catch (error) {
+      console.error('Encrypted backup export failed:', error);
+      showToast(
+        error instanceof Error ? error.message : 'تعذر إنشاء النسخة الاحتياطية المشفّرة.',
+        'error',
+      );
+      return false;
+    }
+  }, [savedCases, officeSettings, showToast]);
+
+  const importEncryptedBackup = useCallback(async (
+    file: File,
+    passphrase: string,
+  ): Promise<boolean> => {
+    setIsImporting(true);
+    try {
+      const license = await getStoredLicenseStatus();
+      if (!license.isPaid) {
+        showToast('استيراد النسخة الاحتياطية المشفّرة متاح ضمن ترخيص Pro الساري فقط.', 'error');
+        return false;
+      }
+      if (file.size <= 0 || file.size > MAWARITH_BACKUP_MAX_FILE_BYTES) {
+        throw new Error('حجم ملف النسخة الاحتياطية غير صالح أو أكبر من الحد المسموح.');
+      }
+
+      const backup = await decryptMawarithBackup(await file.text(), passphrase);
+      const importedCases = backup.cases as SavedCase[];
+      const existingIds = new Set(savedCases.map(savedCase => savedCase.id));
+      const mergedImportedCases = importedCases.map(savedCase => {
+        if (!existingIds.has(savedCase.id)) {
+          existingIds.add(savedCase.id);
+          return savedCase;
+        }
+        const replacementId = `case-import-${globalThis.crypto.randomUUID()}`;
+        existingIds.add(replacementId);
+        return { ...savedCase, id: replacementId };
+      });
+      const mergedCases = [...mergedImportedCases, ...savedCases];
+      const restoredSettings = getPersistedOfficeSettings(backup.officeSettings as OfficeSettings);
+      const encryptedCases = await encryptData(JSON.stringify(mergedCases));
+      const serializedSettings = JSON.stringify(restoredSettings);
+
+      // Update both local records as one best-effort transaction. If either write fails,
+      // restore the old values so the user is not left with a half-restored backup.
+      const previousCases = window.localStorage.getItem(STORAGE_KEY);
+      const previousSettings = window.localStorage.getItem(OFFICE_SETTINGS_KEY);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, encryptedCases);
+        window.localStorage.setItem(OFFICE_SETTINGS_KEY, serializedSettings);
+      } catch (storageError) {
+        try {
+          if (previousCases === null) window.localStorage.removeItem(STORAGE_KEY);
+          else window.localStorage.setItem(STORAGE_KEY, previousCases);
+          if (previousSettings === null) window.localStorage.removeItem(OFFICE_SETTINGS_KEY);
+          else window.localStorage.setItem(OFFICE_SETTINGS_KEY, previousSettings);
+        } catch {
+          // Preserve the original storage error; rollback is best-effort when quota is exhausted.
+        }
+        throw storageError;
+      }
+
+      setSavedCases(mergedCases);
+      setOfficeSettings({ ...DEFAULT_OFFICE_SETTINGS, ...restoredSettings });
+      setStorageError(null);
+      showToast(
+        importedCases.length > 0
+          ? `تم فك النسخة المشفّرة واستيراد ${importedCases.length} مسألة واستعادة إعدادات المكتب ✓`
+          : 'تم فك النسخة المشفّرة واستعادة إعدادات المكتب ✓',
+        'success',
+      );
+      return true;
+    } catch (error) {
+      console.error('Encrypted backup import failed:', error);
+      showToast(
+        error instanceof Error ? error.message : 'تعذر استيراد النسخة الاحتياطية المشفّرة.',
+        'error',
+      );
+      return false;
+    } finally {
+      setIsImporting(false);
+    }
+  }, [savedCases, showToast]);
+
   const importData = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -370,5 +487,7 @@ export function useSavedCases(
     confirmDelete,
     exportData,
     importData,
+    exportEncryptedBackup,
+    importEncryptedBackup,
   };
 }
