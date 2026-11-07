@@ -101,10 +101,15 @@ export default function LicenseManager() {
     }
   };
 
-  const whatsappNumber = process.env.NEXT_PUBLIC_MAWARITH_WHATSAPP || '';
+  const whatsappNumber = process.env.NEXT_PUBLIC_MAWARITH_WHATSAPP?.trim() || '';
+  const supportEmail = process.env.NEXT_PUBLIC_MAWARITH_SUPPORT_EMAIL?.trim() || '';
   const whatsappUrl = whatsappNumber
     ? 'https://wa.me/' + whatsappNumber.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(requestMessage)
     : '';
+  const emailUrl = supportEmail
+    ? 'mailto:' + supportEmail + '?subject=' + encodeURIComponent('طلب تفعيل مواريث Pro') + '&body=' + encodeURIComponent(requestMessage)
+    : '';
+  const hasConfiguredContact = Boolean(whatsappUrl || emailUrl);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 px-4 py-8 sm:px-6" dir="rtl">
@@ -225,9 +230,31 @@ export default function LicenseManager() {
                 فتح واتساب
               </a>
             )}
+            {emailUrl && (
+              <a
+                href={emailUrl}
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-3 text-center text-sm font-bold text-slate-800 hover:bg-slate-50"
+              >
+                مراسلة البريد الإلكتروني
+              </a>
+            )}
+          </div>
+          {!hasConfiguredContact && (
+            <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-950">
+              لم تُهيّأ وسيلة التواصل الرسمية بعد. يمكنك نسخ الطلب، لكن لا تحوّل أي مبلغ ولا ترسل بياناتك المالية قبل التأكد من قناة تواصل موثوقة مع مالك مواريث.
+            </p>
+          )}
+          <div className="rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">
+            <p className="font-bold">ماذا يشمل Pro؟</p>
+            <ul className="mt-1 list-disc space-y-1 pr-5">
+              <li>تصدير تقارير PDF دون العلامة المائية التوضيحية.</li>
+              <li>تصدير واستيراد نسخة احتياطية مشفّرة للمسائل وإعدادات المكتب.</li>
+              <li>لا تُرسل بيانات التركات أو كلمة مرور النسخة الاحتياطية إلى خادم.</li>
+            </ul>
+            <p className="mt-2 text-xs text-slate-500">تبقى الحسابات الشرعية، مسائل المواريث، وWord وExcel والحفظ العادي متاحة مجاناً.</p>
           </div>
           <p className="text-xs leading-6 text-slate-500">
-            الأسعار تجريبية قابلة للمراجعة. لا يوجد تجديد تلقائي؛ ينتهي الترخيص في التاريخ المحدد ويمكن طلب التجديد يدوياً.
+            الأسعار تجريبية قابلة للمراجعة. لا يوجد تجديد تلقائي؛ ينتهي الترخيص في التاريخ المحدد ويمكن طلب التجديد يدوياً. يرتبط الترخيص بملف المتصفح الحالي، وقد يستلزم حذف بيانات الموقع أو تغيير المتصفح إصدار ترخيص بديل.
           </p>
         </section>
         ) : (
