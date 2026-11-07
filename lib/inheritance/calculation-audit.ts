@@ -25,33 +25,19 @@ const BUILD_ID = process.env.NEXT_PUBLIC_BUILD_ID || 'dz-notary-build-2026';
  * Computes a browser-native or Node SHA-256 hex string from arbitrary text.
  */
 export async function computeSha256(text: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(text);
-
-  if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
-    const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  const cryptoApi = globalThis.crypto;
+  if (!cryptoApi?.subtle) {
+    throw new Error('SHA-256 is unavailable in this environment; an audit hash cannot be generated safely.');
   }
 
-  // Fallback for Node / SSR context using crypto module
-  try {
-    const cryptoNode = await import('crypto');
-    return cryptoNode.createHash('sha256').update(text).digest('hex');
-  } catch {
-    // Basic fallback hash for test environments where subtle crypto is mocked
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash |= 0;
-    }
-    return Math.abs(hash).toString(16).padStart(64, '0');
-  }
+  const data = new TextEncoder().encode(text);
+  const hashBuffer = await cryptoApi.subtle.digest('SHA-256', data.buffer as ArrayBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 /**
- * Generates a signed calculation audit record.
+ * Generates a client-side hash-linked calculation audit record (not a digital signature).
  */
 export async function createCalculationAuditRecord(
   inputState: Record<string, unknown>,
@@ -60,7 +46,11 @@ export async function createCalculationAuditRecord(
   auditLedgerOptIn: boolean = false,
   previousRecordHash?: string
 ): Promise<CalculationAuditRecord> {
-  const auditId = 'AUDIT-' + Math.random().toString(36).substring(2, 9).toUpperCase();
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID !== 'function') {
+    throw new Error('Secure random ID generation is unavailable; an audit record cannot be created safely.');
+  }
+  const auditId = `AUDIT-${cryptoApi.randomUUID().replace(/-/g, '').toUpperCase()}`;
   const timestamp = new Date().toISOString();
 
   const serializedInput = JSON.stringify(inputState);
