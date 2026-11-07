@@ -54,6 +54,15 @@ export function validateFinancialInputs(input: FinancialInputValidation): string
     issues.push('مجموع الديون ومصاريف التجهيز والدفن يتجاوز قيمة التركة المدخلة؛ أوقف الحساب حتى تصحيح المبالغ.');
   }
 
+  const activeHeirIds = new Set(
+    input.heirs
+      .filter(heir => heir.isPresent && Number.isSafeInteger(heir.count) && heir.count > 0)
+      .map(heir => heir.heirId)
+  );
+  if (activeHeirIds.has('husband') && activeHeirIds.has('wife')) {
+    issues.push('لا يمكن تسجيل الزوج والزوجة معاً كورثة للمتوفى نفسه؛ راجع جنس المتوفى وصلة الزوجية قبل الحساب.');
+  }
+
   const seenHeirIds = new Set<string>();
   for (const heir of input.heirs) {
     if (typeof heir.heirId !== 'string' || heir.heirId.trim().length === 0) {
@@ -64,8 +73,12 @@ export function validateFinancialInputs(input: FinancialInputValidation): string
       seenHeirIds.add(heir.heirId);
     }
 
-    if (!Number.isSafeInteger(heir.count) || heir.count < 0) {
-      issues.push(`عدد أفراد فئة «${heir.heirId || 'وارث غير محدد'}» يجب أن يكون عدداً صحيحاً غير سالب.`);
+    if (!Number.isSafeInteger(heir.count) || heir.count < 0 || (heir.isPresent && heir.count === 0)) {
+      issues.push(
+        heir.isPresent
+          ? `عدد أفراد فئة «${heir.heirId || 'وارث غير محدد'}» يجب أن يكون عدداً صحيحاً موجباً عند تفعيل وجودها.`
+          : `عدد أفراد فئة «${heir.heirId || 'وارث غير محدد'}» يجب أن يكون عدداً صحيحاً غير سالب.`
+      );
     }
 
     if (
