@@ -9,7 +9,7 @@ export async function GET(
 ) {
   try {
     const { hash } = await params;
-    if (!hash || hash.length !== 64) {
+    if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) {
       return NextResponse.json({ error: 'Invalid document hash format' }, { status: 400 });
     }
 
@@ -32,6 +32,7 @@ export async function GET(
     return NextResponse.json({
       record: {
         combinedHash: rec.combinedHash,
+        previousRecordHash: rec.previousRecordHash,
         auditId: rec.auditId,
         registryVersion: rec.registryVersion,
         timestamp: rec.timestamp,
