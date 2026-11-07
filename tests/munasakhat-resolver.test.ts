@@ -365,6 +365,35 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
   });
 
+  it('does not use the whole-estate one-third option when a husband is a fixed-share heir (Article 158)', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('husband'),
+      present('grandfather'),
+      present('full_brother', 4),
+    ], 120000, 0, 0, 0);
+
+    // Husband: 1/2; grandfather: best of 1/6 (=20k), 1/3 of remainder (=20k),
+    // or muqasama (=12k). The whole-estate 1/3 (=40k) is not an option here.
+    expect(amountFor(results, 'husband')).toBe(60000);
+    expect(amountFor(results, 'grandfather')).toBe(20000);
+    expect(amountFor(results, 'full_brother')).toBe(40000);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
+  });
+
+  it('retains the whole-estate one-third option when no fixed-share heir exists (Article 158)', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('grandfather'),
+      present('full_brother', 4),
+    ], 120000, 0, 0, 0);
+
+    // Without fixed-share heirs, one third of the whole estate beats muqasama.
+    expect(amountFor(results, 'grandfather')).toBe(40000);
+    expect(amountFor(results, 'full_brother')).toBe(80000);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
+  });
+
   it('recognizes the Article 176 mushtaraka with an eligible grandmother instead of the mother', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
