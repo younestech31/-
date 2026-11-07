@@ -83,6 +83,7 @@ async function handleLoginAction(formData: FormData) {
     organizationId: orgId,
     plan,
     role: (user.role as 'notary' | 'admin' | 'clerk') || 'notary',
+    emailVerified: true,
   });
 
   redirect('/');
