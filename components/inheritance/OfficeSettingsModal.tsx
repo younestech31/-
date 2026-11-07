@@ -210,8 +210,8 @@ export default function OfficeSettingsModal({
             <div className="p-3 bg-amber-50/60 rounded-lg border border-amber-200/80 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-[#1e293b]">إصدار محرر رسمي (نموذج الموثقين)</h4>
-                  <p className="text-[11px] text-[#64748b]">إزالة مربع التنبيه الأحمر وإضافة ختم الموثق ورمز QR للتأكد من الأصالة</p>
+                  <h4 className="text-xs font-bold text-[#1e293b]">قالب مهني بترويسة المكتب</h4>
+                  <p className="text-[11px] text-[#64748b]">تنسيق ترويسة المكتب وإظهار مرجع التقرير ورمز QR؛ لا يمنح المستند صفة رسمية ولا يثبت اعتماد الموثق.</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -230,7 +230,7 @@ export default function OfficeSettingsModal({
               {!isOfficialMode && (
                 <div className="flex items-center justify-between pt-2 border-t border-amber-200/50">
                   <div>
-                    <h4 className="text-xs font-bold text-[#1e293b]">تضمين التنبيه التوضيحي</h4>
+                    <h4 className="text-xs font-bold text-[#1e293b]">إظهار التنبيه التوضيحي</h4>
                     <p className="text-[11px] text-[#64748b]">عرض مربع التنبيه في مستند PDF</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
