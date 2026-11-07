@@ -95,14 +95,14 @@ export default function SavedCasesModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => { if (!isBackupBusy) onClose(); }}>
         <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[85vh] flex flex-col animate-in fade-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
           <div className="flex justify-between items-center p-4 border-b border-[#e2e8f0] bg-[#f8fafc] shrink-0">
             <h3 className="font-bold text-[#1e293b] flex items-center gap-2">
               <FolderOpen size={18} className="text-[#0a5d38]" />
               المسائل المحفوظة ({savedCases.length})
             </h3>
-            <button onClick={onClose} className="text-[#64748b] hover:text-[#0f172a] transition-colors" aria-label="إغلاق"><X size={20} /></button>
+            <button onClick={onClose} disabled={isBackupBusy} className="text-[#64748b] hover:text-[#0f172a] transition-colors disabled:opacity-40" aria-label="إغلاق"><X size={20} /></button>
           </div>
 
           <div className="p-4 overflow-y-auto flex-grow bg-[#f8f9fa]">

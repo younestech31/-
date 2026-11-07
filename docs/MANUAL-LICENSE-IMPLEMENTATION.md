@@ -15,6 +15,14 @@ Prices belong in one presentation/configuration layer. They must not affect calc
 
 Arabic Cairo and Amiri font assets are served from `public/fonts/` and loaded with `next/font/local`. This avoids a Google Fonts network dependency during CI and Vercel builds. Keep the repository font files as the single source of truth; do not switch back to remote `next/font/google` imports.
 
+## Pro features in the current pilot
+
+- **Clean PDF export:** removes the free-edition Mawarith watermark. The inheritance calculations themselves remain free.
+- **Encrypted local backup:** exports saved cases and office settings into a password-protected `.mwbackup` file. The ordinary JSON backup/import remains free and clearly warns that it is plaintext.
+- No service receives backup files or passphrases. The user must keep the passphrase separately; losing it means the encrypted backup cannot be recovered.
+
+Encrypted backups use PBKDF2-HMAC-SHA-256 with 600,000 iterations to derive an AES-256-GCM key, a fresh 16-byte salt, a fresh 12-byte IV, and authenticated additional data. The file format fixes and validates its KDF parameters before running PBKDF2, applies size limits, authenticates ciphertext, and rejects invalid case/settings structures. Tests cover correct-password round-trip, incorrect password, ciphertext tampering, KDF parameter changes, weak passphrases, and malformed payloads.
+
 ## Trust boundaries
 
 1. The customer's browser creates a random installation ID and stores it locally.
