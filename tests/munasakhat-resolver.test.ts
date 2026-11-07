@@ -474,7 +474,7 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
       present('mother'),
-      present('son'),
+      present('father'),
       {
         heirId: 'full_brother',
         count: 2,
@@ -484,10 +484,11 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
       },
     ], 120000, 0, 0, 0);
 
-    // Article 148 expressly says "ولو لم يرثوا": two impeded brothers still
-    // reduce the mother's share from 1/3 to 1/6, without inheriting themselves.
+    // The father blocks the two brothers from inheriting, but Article 148
+    // expressly says "ولو لم يرثوا": their original headcount still reduces
+    // the mother's share from 1/3 to 1/6.
     expect(amountFor(results, 'mother')).toBe(20000);
-    expect(amountFor(results, 'son')).toBe(100000);
+    expect(amountFor(results, 'father')).toBe(100000);
     expect(amountFor(results, 'full_brother')).toBe(0);
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
   });
