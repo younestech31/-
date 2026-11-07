@@ -159,13 +159,17 @@ export function validateMunasakhatStageExclusions(
     );
   }
 
-  const grandmotherDegreeNeedsManualReview = presenceList.some(heir =>
-    heir.isPresent && heir.count > 1 &&
-    ['maternal_grandmother', 'paternal_grandmother'].includes(heir.heirId)
-  );
+  const presentMaternalGrandmother = presentIds.has('maternal_grandmother');
+  const presentPaternalGrandmother = presentIds.has('paternal_grandmother');
+  const grandmotherDegreeNeedsManualReview =
+    (presentMaternalGrandmother && presentPaternalGrandmother) ||
+    presenceList.some(heir =>
+      heir.isPresent && heir.count > 1 &&
+      ['maternal_grandmother', 'paternal_grandmother'].includes(heir.heirId)
+    );
   if (grandmotherDegreeNeedsManualReview) {
     manualClassificationReasons.push(
-      'المادتان 149(4) و161: تقسيم السدس أو اختصاص الجدة الأقرب به يتطلب معرفة درجة كل جدة. لا يميز النموذج الحالي الجدات الأبعد عن الجدة المباشرة، لذلك تُراجع هذه الصورة يدوياً.'
+      'المادتان 149(4) و161: إذا اجتمعت جدتان في درجة واحدة اشتركتا في السدس، وإذا كانت إحداهما أبعد اختصت الأقرب به. النموذج لا يسجل درجة كل جدة، ولذلك تتطلب هذه الصورة مراجعة يدوية.'
     );
   }
 
