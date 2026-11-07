@@ -162,6 +162,24 @@ describe('Munasakhat Resolver Tests', () => {
     expect(results.some(result => result.heirId === 'article_180_review')).toBe(false);
   });
 
+  it('uses legacy heirPresence data when a saved stage contains an empty heirs array', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى الأصلي',
+      hasMandatoryBequest: false,
+      heirs: [],
+      heirPresence: {
+        son: { heirId: 'son', count: 1, isPresent: true },
+      },
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 100000, 0, 0, 0]);
+    expect(result.noHeirsNeedsManualReview).toBe(false);
+    expect(amountFor(result.results, 'son')).toBe(100000);
+    expect(result.results.some(row => row.heirId === 'treasury')).toBe(false);
+  });
+
   it('does not return a spouse-only residue to the spouse before Article 167 distant-kindred review', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([present('husband')], 240000, 0, 0, 0);
