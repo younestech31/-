@@ -85,6 +85,9 @@ export function validateFinancialInputs(input: FinancialInputValidation): string
   }
 
   for (const group of input.deceasedChildren ?? []) {
+    if (group.type !== 'son' && group.type !== 'daughter') {
+      issues.push('نوع فرع الابن المتوفى في بيانات التنزيل غير صالح.');
+    }
     if (!Number.isSafeInteger(group.count) || group.count < 0) {
       issues.push(`عدد فرع «${group.type}» المتوفى في بيانات التنزيل غير صالح.`);
     }
