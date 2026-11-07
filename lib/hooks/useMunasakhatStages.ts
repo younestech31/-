@@ -20,6 +20,7 @@ export const INITIAL_STAGES: MunasakhatStage[] = [
   {
     id: 'stage-0',
     titleAr: 'المسألة الأولى (المتوفى الأصلي)',
+    deceasedName: 'المتوفى الأصلي',
     deceasedNameAr: 'المتوفى الأصلي',
     heirs: DEFAULT_HEIRS_STAGE0,
     hasMandatoryBequest: false,
@@ -69,6 +70,7 @@ export function useMunasakhatStages(
     const newStage: MunasakhatStage = {
       id: `stage-${Date.now()}`,
       titleAr: `مناسخة: وفاة ${heirName}`,
+      deceasedName: heirName,
       deceasedNameAr: heirName,
       deceasedHeirId: heirId,
       inheritedAmount: amount,
@@ -111,6 +113,7 @@ export function useMunasakhatStages(
       if (next[currentStageIndex]) {
         next[currentStageIndex] = {
           ...next[currentStageIndex],
+          deceasedName: name,
           deceasedNameAr: name,
         };
       }
