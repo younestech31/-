@@ -37,15 +37,16 @@ export function validateAllStages(stages: MunasakhatStage[]): StageValidationRes
 export function resolveNoHeirsPolicy(
   stage: MunasakhatStage,
   net: number,
-  __parentResults: CalculationResult[]
+  _parentResults: CalculationResult[]
 ): {
   policy: 'treasury';
   amount: number;
   messageAr: string;
   redistributeTo?: CalculationResult[];
 } {
-  // فى قانون الأسرة الجزائري، إذا لم يوجد للمتوفى الثاني أي ورثة (لا أصحاب فروض ولا عصبة ولا ذوي أرحام)، تؤول تركته للخزينة (بيت المال).
-  // إذا كان المستخدم لم يختر ورثته بالخطأ، يجب عليه تصحيح المسألة.
+  // المادة 180 تطبق على تركة كل متوفى على حدة: أصحاب الفروض، ثم العصبة،
+  // ثم ذوو الأرحام، فإن لم يوجدوا آلت التركة إلى الخزينة العامة.
+  // وجود وارث في نتيجة المرحلة السابقة لا يجعله وارثاً تلقائياً في تركة هذا المتوفى.
   return {
     policy: 'treasury',
     amount: net,
