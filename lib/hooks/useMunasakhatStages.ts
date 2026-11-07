@@ -80,7 +80,7 @@ export function useMunasakhatStages(
 
   const currentStage = useMemo(() => {
     const rawStage = munasakhatStages[currentStageIndex] || munasakhatStages[0] || INITIAL_STAGES[0];
-    const heirs = rawStage?.heirs || DEFAULT_HEIRS_STAGE0;
+    const heirs = rawStage?.heirs?.length ? rawStage.heirs : (rawStage?.heirPresence ? Object.values(rawStage.heirPresence) : DEFAULT_HEIRS_STAGE0);
     const heirPresence = (rawStage?.heirPresence && Object.keys(rawStage.heirPresence).length > 0)
       ? rawStage.heirPresence
       : heirs.reduce((acc, h) => {
