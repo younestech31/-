@@ -43,6 +43,7 @@ export interface StageResult {
   hasUnverifiedOverride?: boolean;
   requiresManualClassification?: boolean;
   tanzilNeedsManualReview?: boolean;
+  noHeirsNeedsManualReview?: boolean;
 }
 
 interface ResultsTableProps {
@@ -318,6 +319,22 @@ const ResultsTable = memo(function ResultsTable({
             <p className="font-bold">التنزيل (المواد 169–172) لم يُحتسب آلياً في هذه المرحلة</p>
             <p className="text-xs mt-1 leading-relaxed">
               المدخل الحالي يسجل أعداد الأبناء المتوفين فقط، ولا يسجل كل فرع من الأحفاد، ومن يرث منهم مباشرة، وما خُصّ به كل فرد بوصية أو هبة، وما ورثه من أبيه أو أمه، ولا طريقة توزيع مناب كل فرع بينهم. لذلك أوقف المحرك حساب مبلغ التنزيل بدلاً من إصدار رقم قد يكون مضللاً. يلزم استكمال نموذج الفروع التفصيلي ومراجعته قبل اعتماد أي مبلغ.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.noHeirsNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          >
+            <p className="font-bold">توقّف اعتماد أيلولة الباقي — يلزم استقصاء ذوي الأرحام</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لا يثبت عدم وجود ذوي الأرحام بمجرد عدم إدخال أسماء في الحاسبة. المادة 168 ترتب ذوي الأرحام عند الاستحقاق، والمادة 180 تجعلهم قبل الخزينة، كما تقيد المادة 167 رد الباقي إلى الزوج أو الزوجة بانتفاء ذوي الأرحام. راجع صلات القرابة ثم أكد الاستقصاء في بيانات التركة.
+            </p>
+            <p className="mt-2 text-xs font-semibold">
+              الأنصبة المعروضة استكشافية، ولم يُسند هذا الباقي إلى الزوج أو الزوجة أو الخزينة.
             </p>
           </div>
         )}
