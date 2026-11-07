@@ -1830,6 +1830,12 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
   };
 }
 
+function roundNonNegativeFractionToInteger(value: Fraction): number {
+  const floor = Math.floor(value.valueOf());
+  const fractionalRemainder = value.sub(floor);
+  return fractionalRemainder.compare(new Fraction(1, 2)) >= 0 ? floor + 1 : floor;
+}
+
 function distributeAmounts(res: CalculationResult[], totalNetEstate: number) {
   const heirsToDistribute = res.filter(r =>
     !['mandatory_bequest', 'voluntary_bequest', 'unborn_withholding'].includes(r.heirId) && !r.isBlocked
@@ -1837,28 +1843,43 @@ function distributeAmounts(res: CalculationResult[], totalNetEstate: number) {
 
   const totalSharesFraction = heirsToDistribute.reduce((sum, r) => sum.add(r.shareFraction), new Fraction(0));
   if (totalSharesFraction.compare(0) === 0) return;
-
-  const exactValues = heirsToDistribute.map(r => r.shareFraction.valueOf() * totalNetEstate);
-  const floors = exactValues.map(v => Math.floor(v));
-  const remainders = exactValues.map((v, i) => v - floors[i]);
-
-  const allocated = floors.reduce((a, b) => a + b, 0);
-  // Distribute only the value represented by the heirs' assigned fractions.
-  // Any remainder deliberately held for legal review (e.g. Article 167/168)
-  // must stay undistributed rather than being rounded into an existing heir.
-  const targetDistributed = Math.round(totalNetEstate * totalSharesFraction.valueOf());
-  const undistributed = Math.max(0, targetDistributed - allocated);
-
-  const remainderIndices = remainders.map((r, i) => ({ remainder: r, index: i }));
-  remainderIndices.sort((a, b) => b.remainder - a.remainder);
-
-  const finalAmounts = [...floors];
-  for (let i = 0; i < undistributed && i < remainderIndices.length; i++) {
-    finalAmounts[remainderIndices[i].index] += 1;
+  if (totalSharesFraction.compare(1) > 0) {
+    throw new Error('Currency distribution invariant failed: distributable inheritance fractions exceed the estate.');
   }
 
-  heirsToDistribute.forEach((r, i) => {
-    r.amount = finalAmounts[i];
+  // DZD amounts are displayed to two decimal places. Allocate integer centimes
+  // from the net estate so rounding never creates or destroys a fraction of a
+  // dinar when a gross estate, deduction or bequest contains centimes.
+  const totalEstateCents = Math.round(totalNetEstate * 100);
+  if (!Number.isSafeInteger(totalEstateCents) || totalEstateCents < 0) {
+    throw new Error('Currency distribution requires a non-negative safe-integer centime balance.');
+  }
+
+  const exactCents = heirsToDistribute.map(r => r.shareFraction.mul(totalEstateCents));
+  const floors = exactCents.map(value => Math.floor(value.valueOf()));
+  const remainders = exactCents.map((value, index) => ({
+    remainder: value.sub(floors[index]),
+    index,
+  }));
+
+  const allocatedCents = floors.reduce((sum, value) => sum + value, 0);
+  // Preserve unallocated amounts held for legal review (e.g. Articles 167/168).
+  // Hamilton's largest-remainder method distributes only the centimes represented
+  // by the heirs' assigned fractions; it never redistributes a legally held residue.
+  const targetDistributedCents = roundNonNegativeFractionToInteger(
+    new Fraction(totalEstateCents).mul(totalSharesFraction)
+  );
+  const undistributedCents = Math.max(0, targetDistributedCents - allocatedCents);
+
+  remainders.sort((a, b) => b.remainder.compare(a.remainder));
+
+  const finalCents = [...floors];
+  for (let i = 0; i < undistributedCents && i < remainders.length; i++) {
+    finalCents[remainders[i].index] += 1;
+  }
+
+  heirsToDistribute.forEach((result, index) => {
+    result.amount = finalCents[index] / 100;
   });
 }
 
