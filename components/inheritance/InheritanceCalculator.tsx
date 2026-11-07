@@ -472,6 +472,7 @@ export default function InheritanceCalculator({
             currentStage={currentStage}
             currentStageIndex={currentStageIndex}
             currentGender={currentGender}
+            updateStageGender={updateStageGender}
             deceasedGender={deceasedGender}
             toggleHeir={toggleHeir} updateCount={updateCount} updateCustomName={updateCustomName} updateMissingPersonStatus={updateMissingPersonStatus}
             className={expandedSection === 'heirs' || mobileTab === 'heirs' ? 'flex h-full' : 'hidden lg:flex'}
