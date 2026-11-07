@@ -12,6 +12,7 @@ interface HeirsPanelProps {
   currentStage: MunasakhatStage;
   currentStageIndex: number;
   currentGender: 'male' | 'female' | null;
+  updateStageGender?: (gender: 'male' | 'female') => void;
   deceasedGender: 'male' | 'female' | null;
   toggleHeir: (heirId: string) => void;
   updateCount: (heirId: string, count: number) => void;
@@ -27,6 +28,7 @@ const HeirsPanel = memo(function HeirsPanel({
   currentStage,
   currentStageIndex,
   currentGender,
+  updateStageGender,
   deceasedGender,
   toggleHeir,
   updateCount,
