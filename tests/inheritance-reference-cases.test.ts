@@ -78,6 +78,17 @@ const statutoryCases: ReferenceCase[] = [
     },
   },
   {
+    id: 'art158-grandfather-paternal-sister-only',
+    article: 158,
+    facts: 'الجد مع أخت واحدة لأب دون أصحاب فروض: يقارن الثلث بالمقاسمة، والمقاسمة تعطي الجد ثلثي المال',
+    estate: 300_000,
+    heirs: [present('grandfather'), present('paternal_sister')],
+    expected: {
+      grandfather: { fraction: '2/3', amount: 200_000 },
+      paternal_sister: { fraction: '1/3', amount: 100_000 },
+    },
+  },
+  {
     id: 'art158-kharqaa-mother-grandfather-full-sister',
     article: 158,
     facts: 'الأم والجد والأخت الشقيقة: الأم الثلث، والجد يقارن السدس وثلث الباقي والمقاسمة؛ المقاسمة تعطيه 80,000',
@@ -278,6 +289,20 @@ describe('Legally guarded cases — a review result is not a computed distributi
     expect(stage.results).toEqual([]);
   });
 
+  it('holds a generic Dhu al-Arham entry for relationship-degree classification under Article 168', () => {
+    const stages: MunasakhatStage[] = [{
+      id: 'dhu-al-arham-review',
+      deceasedName: 'المتوفى وذو رحم غير مصنف',
+      hasMandatoryBequest: false,
+      heirs: [present('maternal_grandfather')],
+    }];
+
+    const [stage] = runInheritanceOrchestration([stages, 100_000, 0, 0, 0]);
+    expect(stage.requiresManualClassification).toBe(true);
+    expect(stage.results).toEqual([]);
+    expect(stage.excludedHeirWarnings?.some(warning => warning.heirId === 'maternal_grandfather')).toBe(true);
+  });
+
   it('does not produce distributable heirs while the pregnancy outcome is pending', () => {
     const stages: MunasakhatStage[] = [{
       id: 'pending-pregnancy',
@@ -296,6 +321,25 @@ describe('Legally guarded cases — a review result is not a computed distributi
 });
 
 describe('Tanzil engine arithmetic — separate from production eligibility review', () => {
+  it('enforces the one-third tanzil ceiling where one surviving son blocks the predeceased son descendants from direct inheritance', () => {
+    // The predeceased son's hypothetical portion is 1/2 of 900,000 = 450,000.
+    // Article 170 caps the tanzil at one-third = 300,000; the surviving son
+    // receives the remaining 600,000 as the ordinary heir.
+    const results = calculateInheritance(
+      [present('son')],
+      900_000, 0, 0, 0,
+      true,
+      [{ type: 'son', count: 1 }],
+      'stillborn',
+      false,
+      true,
+    );
+
+    expect(resultFor(results, 'mandatory_bequest').amount).toBe(300_000);
+    expect(resultFor(results, 'son').amount).toBe(600_000);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(900_000);
+  });
+
   it('applies the one-third cap and prior gift/inheritance offsets before ordinary heirs receive the residue', () => {
     // Independent arithmetic:
     // Three hypothetical sons (two alive + one predeceased) give the deceased
@@ -318,6 +362,50 @@ describe('Tanzil engine arithmetic — separate from production eligibility revi
     expect(resultFor(results, 'son').amount).toBe(500_000);
     expect(resultFor(results, 'son').individuals?.map(person => person.amount)).toEqual([250_000, 250_000]);
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(600_000);
+  });
+});
+
+describe('Pregnancy outcomes after a live birth or stillbirth — Articles 134 and 173', () => {
+  it('adds a live-born male fetus as a son and recalculates the prescribed shares', () => {
+    const results = calculateInheritance(
+      [present('wife'), present('mother'), present('father')],
+      240_000, 0, 0, 0,
+      false, [], 'born_male', true,
+    );
+
+    expect(resultFor(results, 'wife').amount).toBe(30_000);
+    expect(resultFor(results, 'mother').amount).toBe(40_000);
+    expect(resultFor(results, 'father').amount).toBe(40_000);
+    expect(resultFor(results, 'son').amount).toBe(130_000);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(240_000);
+  });
+
+  it('adds a live-born female fetus as a daughter and corrects the father residue', () => {
+    const results = calculateInheritance(
+      [present('wife'), present('mother'), present('father')],
+      240_000, 0, 0, 0,
+      false, [], 'born_female', true,
+    );
+
+    expect(resultFor(results, 'wife').amount).toBe(30_000);
+    expect(resultFor(results, 'mother').amount).toBe(40_000);
+    expect(resultFor(results, 'father').amount).toBe(50_000);
+    expect(resultFor(results, 'daughter').amount).toBe(120_000);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(240_000);
+  });
+
+  it('does not create a fetus heir after a stillbirth', () => {
+    const results = calculateInheritance(
+      [present('wife'), present('mother'), present('father')],
+      240_000, 0, 0, 0,
+      false, [], 'stillborn', true,
+    );
+
+    expect(results.some(result => result.heirId === 'son' || result.heirId === 'daughter')).toBe(false);
+    expect(resultFor(results, 'wife').amount).toBe(60_000);
+    expect(resultFor(results, 'mother').amount).toBe(60_000);
+    expect(resultFor(results, 'father').amount).toBe(120_000);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(240_000);
   });
 });
 
