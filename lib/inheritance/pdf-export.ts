@@ -693,7 +693,7 @@ function renderStageVectorPDF(
   const checkOverflowAndNewPage = (neededH: number) => {
     if (currentY + neededH > 262) {
       pdf.addPage();
-      drawPageDecorations(pdf, office, stageIdx, totalStages, logoDataUrl);
+      drawPageDecorations(pdf, office, stageIdx, totalStages, logoDataUrl, isPaid);
       currentY = 38;
       renderTableHeader();
     }
@@ -993,49 +993,7 @@ export async function exportToPDF(
     );
   }
 
-  // 6. Save as official Court/Notary Faritha PDF file via server-side finalization endpoint
+  // Export locally. No server endpoint, entitlement token, or remote file processing.
   const documentFileName = EXPORT_FILENAME(rootDeceasedName, 'pdf', office.notaryNameAr);
-
-  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-    try {
-      let token = '';
-      try {
-        const entRes = await fetch('/api/entitlements');
-        if (entRes.ok) {
-          const entData = await entRes.json();
-          token = entData.token || '';
-        }
-      } catch {
-        // Ignore network error fetching entitlement
-      }
-
-      const pdfArrayBuffer = pdf.output('arraybuffer');
-      const pdfBase64 = Buffer.from(pdfArrayBuffer).toString('base64');
-
-      const finalizeRes = await fetch('/api/export/finalize', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ pdfBase64, token }),
-      });
-
-      if (finalizeRes.ok) {
-        const blob = await finalizeRes.blob();
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = documentFileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        return;
-      }
-    } catch (finalizeErr) {
-      console.warn('Server-side PDF finalization failed, falling back to local save:', finalizeErr);
-    }
-  }
-
   pdf.save(documentFileName);
 }

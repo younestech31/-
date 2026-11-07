@@ -2,6 +2,7 @@ import { LICENSE_PUBLIC_KEY_SPKI } from './public-key';
 
 export const LICENSE_STORAGE_KEY = 'mawarith_manual_license_v1';
 export const INSTALLATION_ID_STORAGE_KEY = 'mawarith_installation_id_v1';
+export const LICENSE_UPDATED_EVENT = 'mawarith:license-updated';
 
 export const LICENSE_FEATURES = [
   'professional-exports',
@@ -212,8 +213,11 @@ export function getOrCreateInstallationId(): string {
   }
   const bytes = new Uint8Array(16);
   window.crypto.getRandomValues(bytes);
+  // RFC 4122 UUID v4 version and variant bits.
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
   const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
-  const installationId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20)}`;
+  const installationId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   window.localStorage.setItem(INSTALLATION_ID_STORAGE_KEY, installationId);
   return installationId;
 }
@@ -281,10 +285,12 @@ export async function activateLicenseFile(file: File): Promise<LicenseStatus> {
   }
 
   window.localStorage.setItem(LICENSE_STORAGE_KEY, JSON.stringify(parsed));
+  window.dispatchEvent(new Event(LICENSE_UPDATED_EVENT));
   return status;
 }
 
 export function removeStoredLicense(): void {
   if (typeof window === 'undefined') return;
   window.localStorage.removeItem(LICENSE_STORAGE_KEY);
+  window.dispatchEvent(new Event(LICENSE_UPDATED_EVENT));
 }
