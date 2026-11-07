@@ -43,7 +43,16 @@ export default function LicenseManager() {
   }, []);
 
   useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshStatus();
+    };
     void refreshStatus();
+    window.addEventListener('focus', refreshStatus);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.removeEventListener('focus', refreshStatus);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, [refreshStatus]);
 
   const selectedPlan = useMemo(
@@ -60,12 +69,14 @@ export default function LicenseManager() {
     'يرجى إرسال بيانات التحويل وخطوات التفعيل.',
   ].join('\n'), [selectedPlan, installationId]);
 
-  const handleCopy = async (value: string, successText: string) => {
+  const handleCopy = async (value: string, successText: string, markRequestCopied = false) => {
     try {
       await navigator.clipboard.writeText(value);
       setMessage(successText);
-      setIsCopied(true);
-      window.setTimeout(() => setIsCopied(false), 1800);
+      if (markRequestCopied) {
+        setIsCopied(true);
+        window.setTimeout(() => setIsCopied(false), 1800);
+      }
     } catch {
       setMessage('تعذر النسخ تلقائياً. حدّد النص وانسخه يدوياً.');
     }
@@ -190,7 +201,7 @@ export default function LicenseManager() {
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
-              onClick={() => void handleCopy(requestMessage, 'تم نسخ طلب التفعيل. أرسله عبر وسيلة التواصل المناسبة.')}
+              onClick={() => void handleCopy(requestMessage, 'تم نسخ طلب التفعيل. أرسله عبر وسيلة التواصل المناسبة.', true)}
               className="flex-1 rounded-xl bg-emerald-800 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-900"
             >
               <Clipboard size={16} className="ml-2 inline" />

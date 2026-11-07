@@ -43,13 +43,21 @@ export function useInheritanceState() {
       }
     };
 
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshLocalLicense();
+    };
+
     void refreshLocalLicense();
     window.addEventListener(LICENSE_UPDATED_EVENT, refreshLocalLicense);
     window.addEventListener('storage', refreshLocalLicense);
+    window.addEventListener('focus', refreshLocalLicense);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
     return () => {
       isMounted = false;
       window.removeEventListener(LICENSE_UPDATED_EVENT, refreshLocalLicense);
       window.removeEventListener('storage', refreshLocalLicense);
+      window.removeEventListener('focus', refreshLocalLicense);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
     };
   }, []);
 
@@ -368,17 +376,32 @@ export function useInheritanceState() {
       });
   }, [allStagesResults, estate, debts, funeralCosts, bequest, deceasedGender, showToast, isCalculatorEmpty, officeSettings]);
 
-  const exportToPDFApplet = useCallback(() => {
+  const exportToPDFApplet = useCallback(async () => {
     if (isCalculatorEmpty) {
       showToast('لا يمكن التصدير: الرجاء إضافة ورثة أولاً.', 'error');
       return;
     }
-    exportToPDFClient(allStagesResults, { estate, debts, funeralCosts, bequest, deceasedGender }, officeSettings, isPaid)
-      .then(() => showToast('تم تصدير PDF بنجاح ✓', 'success'))
-      .catch((err) => {
-        showToast(err.message || 'حدث خطأ أثناء تصدير PDF.', 'error');
-      });
-  }, [allStagesResults, estate, debts, funeralCosts, bequest, deceasedGender, showToast, isCalculatorEmpty, exportToPDFClient, officeSettings, isPaid]);
+    try {
+      // Re-check the signed local license at export time so an expired license
+      // cannot stay active merely because the calculator tab remained open.
+      const currentLicense = await getStoredLicenseStatus();
+      setLicenseStatus(currentLicense);
+      setIsPaid(currentLicense.isPaid);
+      setUserPlan(currentLicense.isPaid ? 'pro' : 'free');
+      await exportToPDFClient(
+        allStagesResults,
+        { estate, debts, funeralCosts, bequest, deceasedGender },
+        officeSettings,
+        currentLicense.isPaid,
+      );
+      showToast('تم تصدير PDF بنجاح ✓', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'حدث خطأ أثناء تصدير PDF.', 'error');
+    }
+  }, [
+    allStagesResults, estate, debts, funeralCosts, bequest, deceasedGender,
+    showToast, isCalculatorEmpty, exportToPDFClient, officeSettings,
+  ]);
 
   const handleCopyFullSummary = useCallback(async () => {
     if (isCalculatorEmpty) {
