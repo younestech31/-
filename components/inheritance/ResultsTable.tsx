@@ -49,6 +49,7 @@ export interface StageResult {
   deathOrderNeedsManualReview?: boolean;
   involuntaryKillerNeedsCompensationReview?: boolean;
   missingHeirNeedsManualReview?: boolean;
+  spouseEligibilityNeedsReview?: boolean;
 }
 
 interface ResultsTableProps {
@@ -324,6 +325,22 @@ const ResultsTable = memo(function ResultsTable({
             <p className="font-bold">لا يمكن تحديد نصيب المفقود ضمن مجموعة متعددة — المادة 133</p>
             <p className="mt-1 text-xs leading-relaxed">
               تم تسجيل مفقود ضمن فئة تضم أكثر من وارث، لكن البيانات لا تحدد أي فرد هو المفقود. يعتبر المفقود حياً عند افتتاح التركة، ويُحفظ نصيبه؛ لكن يلزم فصل الأشخاص وأعدادهم قبل حساب ما يوقف وما يوزع على بقية أفراد المجموعة.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.spouseEligibilityNeedsReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-sky-300 bg-sky-50 p-4 text-sm text-sky-950"
+          >
+            <p className="font-bold">يلزم التحقق من سبب الإرث بالزوجية — المواد 130–132</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لم يتم تأكيد صحة عقد الزواج وعدم بطلانه، ولا التحقق من استمرار سبب التوارث وقت الوفاة أو من أثر الطلاق والعدة وفق المادة 132. لم يُصدر المحرك أنصبة آلية ولم يُتح تصدير المستندات لهذه المرحلة.
+            </p>
+            <p className="mt-2 text-[10px] leading-relaxed">
+              هذا الإقرار يوثق استكمال بيانات المراجعة داخل البرنامج، ولا يُعد بديلاً عن فحص العقد والحكم القضائي ووثائق الحالة المدنية.
             </p>
           </div>
         )}
