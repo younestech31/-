@@ -231,53 +231,27 @@ export function getNotarialAttestationData(
 ): NotarialAttestationBlockData {
   const caseRef = settings.documentRefNumber || auditRecord?.caseRef || generateDocumentRefNumber();
   const dateStr = formatBilingualDate(new Date(), lang);
-  const auditHash = auditRecord?.combinedHash || 'SHA256-PENDING-NOTARIAL-SEAL';
-  // A user-editable local flag is not proof of statutory notary accreditation or legal validation.
-  const isVerified = false;
+  const auditHash = auditRecord?.combinedHash || 'SHA256-PENDING-REPORT-INTEGRITY';
 
   if (lang === 'fr') {
-    if (isVerified) {
-      return {
-        title: 'ATTESTATION DE CONFORMITÉ ET VÉRIFICATION CRYPTOGRAPHIQUE',
-        attestationText: `Je soussigné, ${settings.notaryNameAr || 'Maître Notaire'}, titulaire de l'office notarial, certifie la conformité légale des calculs de dévolution successorale ci-dessus établis conformément aux Articles 139 à 180 du Code de la Famille Algérien. Le présent acte comporte une empreinte numérique SHA-256 infalsifiable vérifiable en scannant le code QR ci-contre.`,
-        notaryName: settings.notaryNameAr || 'Maître Notaire',
-        caseRef: `Réf. Acte: ${caseRef}`,
-        formattedDate: `Date d'établissement: ${dateStr}`,
-        auditHash,
-        signatureBoxTitle: 'Sceau et Signature du Notaire',
-      };
-    } else {
-      return {
-        title: 'RAPPORT DE CALCUL — CONTRÔLE REQUIS',
-        attestationText: `Rapport de calcul généré par la plateforme Mawarith à des fins d'aide à la vérification. Il ne constitue pas un acte authentique ni une attestation notariale. Toute validation, signature ou apposition d'un sceau relève exclusivement du professionnel habilité après contrôle indépendant. L'empreinte SHA-256 sert uniquement au contrôle technique d'intégrité.`,
-        notaryName: settings.notaryNameAr || 'Plateforme Mawarith',
-        caseRef: `Réf. Acte: ${caseRef}`,
-        formattedDate: `Date d'établissement: ${dateStr}`,
-        auditHash,
-        signatureBoxTitle: 'Zone réservée à la vérification externe',
-      };
-    }
-  } else {
-    if (isVerified) {
-      return {
-        title: 'إشهاد المصادقة التوثيقية ورمز التحقق التشفيري (SHA-256)',
-        attestationText: `أشهد أنا الموثق الموقّع أدناه، صاحب الديوان العمومي للتوثيق، بصحة ومطابقة عملية تصفية التركة المرفقة للأنصبة الشرعية والمواد 139 إلى 180 من قانون الأسرة الجزائري. تحمل هذه الوثيقة رمز تحقق تشفيري بـ SHA-256 لمنع أي تغيير يدوياً في السهام.`,
-        notaryName: settings.notaryNameAr || 'الموثق',
-        caseRef: `مرجع التقرير: ${caseRef}`,
-        formattedDate: `تاريخ إعداد التقرير: ${dateStr}`,
-        auditHash,
-        signatureBoxTitle: 'توقيع وخاتم الموثق',
-      };
-    } else {
-      return {
-        title: 'تقرير حساب آلي — غير مصادق عليه',
-        attestationText: `تم إعداد هذا التقرير آلياً بواسطة منصة مواريث للمساعدة على الحساب والمراجعة فقط. لا يُعدّ عقداً رسمياً أو إشهاداً توثيقياً أو مصادقة على صحة الوقائع والمعطيات. لا يكتسب أي صفة رسمية إلا بعد المراجعة المستقلة والإجراءات والتوقيع والختم من الجهة المختصة. وتُستخدم بصمة SHA-256 للتحقق التقني من سلامة الملف فقط.`,
-        notaryName: settings.notaryNameAr || 'منصة مواريث الرقمية',
-        caseRef: `رقم مرجع الفريضة: ${caseRef}`,
-        formattedDate: `تاريخ إعداد التقرير: ${dateStr}`,
-        auditHash,
-        signatureBoxTitle: 'مخصص للمراجعة والتحقق الخارجي',
-      };
-    }
+    return {
+      title: 'RAPPORT DE CALCUL — CONTRÔLE REQUIS',
+      attestationText: `Rapport de calcul généré par la plateforme Mawarith à des fins d'aide à la vérification. Il ne constitue pas un acte authentique ni une attestation notariale. Toute validation, signature ou apposition d'un sceau relève exclusivement du professionnel habilité après contrôle indépendant. L'empreinte SHA-256 sert uniquement au contrôle technique d'intégrité.`,
+      notaryName: settings.notaryNameAr || 'Plateforme Mawarith',
+      caseRef: `Réf. rapport: ${caseRef}`,
+      formattedDate: `Date de préparation du rapport: ${dateStr}`,
+      auditHash,
+      signatureBoxTitle: 'Réservé à la vérification externe',
+    };
   }
+
+  return {
+    title: 'تقرير حساب آلي — غير مصادق عليه',
+    attestationText: `تم إعداد هذا التقرير آلياً بواسطة منصة مواريث للمساعدة على الحساب والمراجعة فقط. لا يُعدّ عقداً رسمياً أو إشهاداً توثيقياً أو مصادقة على صحة الوقائع والمعطيات. لا يكتسب أي صفة رسمية إلا بعد المراجعة المستقلة والإجراءات والتوقيع والختم من الجهة المختصة. وتُستخدم بصمة SHA-256 للتحقق التقني من سلامة الملف فقط.`,
+    notaryName: settings.notaryNameAr || 'منصة مواريث الرقمية',
+    caseRef: `مرجع التقرير: ${caseRef}`,
+    formattedDate: `تاريخ إعداد التقرير: ${dateStr}`,
+    auditHash,
+    signatureBoxTitle: 'المراجعة والتحقق الخارجي',
+  };
 }
