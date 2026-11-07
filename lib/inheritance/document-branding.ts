@@ -205,7 +205,7 @@ export const EXPORT_TABLE_COLUMNS = [
 // Canonical filename patterns
 export function EXPORT_FILENAME(name: string, ext: string, notaryName?: string, lang: 'ar' | 'fr' = 'ar'): string {
   const cleanName = name.replace(/[\s\/:*?"<>|]+/g, '_') || (lang === 'fr' ? 'Succession' : 'تركة');
-  const cleanNotary = notaryName ? notaryName.replace(/[\s\/:*?"<>|]+/g, '_') : 'Notaire_Lattab';
+  const cleanNotary = notaryName ? notaryName.replace(/[\s\/:*?"<>|]+/g, '_') : 'Mawarith';
   const dateStr = new Date().toISOString().split('T')[0];
   return `${cleanNotary}_Succes_Faritha_${cleanName}_${lang.toUpperCase()}_${dateStr}.${ext}`;
 }
@@ -239,7 +239,7 @@ export function getNotarialAttestationData(
       return {
         title: 'ATTESTATION DE CONFORMITÉ ET VÉRIFICATION CRYPTOGRAPHIQUE',
         attestationText: `Je soussigné, ${settings.notaryNameAr || 'Maître Notaire'}, titulaire de l'office notarial, certifie la conformité légale des calculs de dévolution successorale ci-dessus établis conformément aux Articles 139 à 180 du Code de la Famille Algérien. Le présent acte comporte une empreinte numérique SHA-256 infalsifiable vérifiable en scannant le code QR ci-contre.`,
-        notaryName: settings.notaryNameAr || 'Maître Lattab Mohamed - Notaire',
+        notaryName: settings.notaryNameAr || 'Maître Notaire',
         caseRef: `Réf. Acte: ${caseRef}`,
         formattedDate: `Date d'établissement: ${dateStr}`,
         auditHash,
@@ -261,7 +261,7 @@ export function getNotarialAttestationData(
       return {
         title: 'إشهاد المصادقة التوثيقية ورمز التحقق التشفيري (SHA-256)',
         attestationText: `أشهد أنا الموثق الموقّع أدناه، صاحب الديوان العمومي للتوثيق، بصحة ومطابقة عملية تصفية التركة المرفقة للأنصبة الشرعية والمواد 139 إلى 180 من قانون الأسرة الجزائري. تحمل هذه الوثيقة رمز تحقق تشفيري بـ SHA-256 لمنع أي تغيير يدوياً في السهام.`,
-        notaryName: settings.notaryNameAr || 'الأستاذ لعطب محمد — موثق',
+        notaryName: settings.notaryNameAr || 'الموثق',
         caseRef: `رقم مرجع الفريضة: ${caseRef}`,
         formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
         auditHash,

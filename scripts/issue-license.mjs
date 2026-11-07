@@ -78,7 +78,7 @@ const payload = {
   issuedAt: issuedAt.toISOString(),
   expiresAt: expiresAt.toISOString(),
   installationId,
-  features: ['professional-exports', 'office-branding', 'professional-templates'],
+  features: ['professional-pdf-export'],
 };
 
 const signature = await webcrypto.subtle.sign(

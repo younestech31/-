@@ -56,6 +56,7 @@ The free calculation engine must not be blocked when a license is missing, expir
 - [x] ECDSA P-256 client verification module.
 - [x] Offline key-generation and license-issuance scripts.
 - [x] Unit tests for signature, expiry, payload tampering, and installation binding.
+- [x] Local activation page with three manually prepaid term options; current Pro entitlement is PDF watermark removal only.
 - [ ] Replace server entitlement lookup with local license status.
 - [ ] Remove server-side PDF finalization and apply export watermark locally.
 - [ ] Remove Cloud Sync UI and cloud case APIs; preserve local encrypted storage and JSON backup.

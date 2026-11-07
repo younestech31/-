@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { webcrypto } from 'node:crypto';
@@ -26,6 +26,7 @@ if (!rotate && (await exists(privatePath) || await exists(publicPath))) {
 }
 
 await mkdir(keyDirectory, { recursive: true, mode: 0o700 });
+await chmod(keyDirectory, 0o700);
 const pair = await webcrypto.subtle.generateKey(
   { name: 'ECDSA', namedCurve: 'P-256' },
   true,
@@ -44,6 +45,8 @@ const privatePem = toPem('PRIVATE KEY', privateDer);
 const publicPem = toPem('PUBLIC KEY', publicDer);
 await writeFile(privatePath, privatePem, { mode: 0o600 });
 await writeFile(publicPath, publicPem, { mode: 0o600 });
+await chmod(privatePath, 0o600);
+await chmod(publicPath, 0o600);
 
 const publicKeyBase64 = publicDer.toString('base64');
 const clientKeySource = [

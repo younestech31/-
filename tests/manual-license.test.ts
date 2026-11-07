@@ -33,7 +33,7 @@ beforeAll(async () => {
     issuedAt: '2026-11-07T11:00:00.000Z',
     expiresAt: '2027-02-05T11:00:00.000Z',
     installationId,
-    features: ['professional-exports', 'office-branding'],
+    features: ['professional-pdf-export'],
   };
   const signature = await webcrypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },

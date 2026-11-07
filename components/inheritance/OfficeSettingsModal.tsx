@@ -136,7 +136,7 @@ export default function OfficeSettingsModal({
                 type="text"
                 value={notaryNameAr}
                 onChange={e => setNotaryNameAr(e.target.value)}
-                placeholder="مثال: الأستاذ لعطب محمد"
+                placeholder="مثال: اسم الموثق أو المكتب"
                 className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38] font-semibold text-[#1e293b]"
               />
             </div>
@@ -160,7 +160,7 @@ export default function OfficeSettingsModal({
                 type="text"
                 value={titleAr}
                 onChange={e => setTitleAr(e.target.value)}
-                placeholder="مثال: موثق لدى محكمة فلاوسن — ولاية وهران"
+                placeholder="مثال: بيانات المكتب أو جهة الاختصاص"
                 className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38]"
               />
             </div>
@@ -172,7 +172,7 @@ export default function OfficeSettingsModal({
                 type="text"
                 value={addressAr}
                 onChange={e => setAddressAr(e.target.value)}
-                placeholder="مثال: حي العقيد لطفي، وهران"
+                placeholder="مثال: العنوان"
                 className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38]"
               />
             </div>
@@ -185,7 +185,7 @@ export default function OfficeSettingsModal({
                   type="text"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
-                  placeholder="مثال: +213 562 29 69 81"
+                  placeholder="مثال: +213 5XX XX XX XX"
                   className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38] text-left"
                   dir="ltr"
                 />
