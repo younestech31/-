@@ -27,6 +27,7 @@ export function useHeirPresence(
       // Any change to the heir roster invalidates the previous Article 167/180
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
+      stage.confirmedDiyahExcluded = false;
 
       const heirs = stage.heirs || [];
       const heir = heirs.find(h => h.heirId === heirId);
@@ -79,6 +80,7 @@ export function useHeirPresence(
       // Any change to the heir roster invalidates the previous Article 167/180
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
+      stage.confirmedDiyahExcluded = false;
 
       stage.heirs = (stage.heirs || []).map(h => {
         if (h.heirId === heirId) {
@@ -106,6 +108,7 @@ export function useHeirPresence(
       // Any change to the heir roster invalidates the previous Article 167/180
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
+      stage.confirmedDiyahExcluded = false;
 
       stage.heirs = (stage.heirs || []).map(h => {
         if (h.heirId === heirId) {
@@ -134,6 +137,7 @@ export function useHeirPresence(
       // Any change to the heir roster invalidates the previous Article 167/180
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
+      stage.confirmedDiyahExcluded = false;
 
       stage.heirs = (stage.heirs || []).map(h => {
         if (h.heirId === heirId) {
@@ -160,6 +164,7 @@ export function useHeirPresence(
       // Any change to the heir roster invalidates the previous Article 167/180
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
+      stage.confirmedDiyahExcluded = false;
 
       stage.heirs = (stage.heirs || []).map(h => {
         if (h.heirId === heirId) {
