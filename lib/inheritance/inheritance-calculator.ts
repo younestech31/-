@@ -1302,7 +1302,19 @@ export function resolveResidue(state: PipelineState): PipelineState {
               addResult('full_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
             }
           }
-        } else if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
+        } else if (
+          sisCount > 0 &&
+          !skipInSiblingSection.has('full_sister') &&
+          !results.some(r =>
+            r.heirId === 'full_sister' &&
+            !r.isBlocked &&
+            r.reason.includes('عصبة مع الغير')
+          )
+        ) {
+          // A full sister may already have received the residue as asaba
+          // ma'a al-ghayr with a daughter/granddaughter under Article 156.
+          // Do not overwrite that residuary award with her standalone fard
+          // (1/2 or 2/3) in the later sibling pass.
           const share = sisCount === 1 ? new Fraction(1, 2) : new Fraction(2, 3);
           addResult('full_sister', share, sisCount === 1 ? '1/2' : '2/3', 'فرضاً لعدم وجود الفرع الوارث والأصل المذكر');
           remainingFraction = remainingFraction.sub(share);
@@ -1311,7 +1323,9 @@ export function resolveResidue(state: PipelineState): PipelineState {
     }
 
     const fullSisterAlreadyAsaba = results.some(
-      r => r.heirId === 'full_sister' && r.reason.includes('تعصيباً')
+      r => r.heirId === 'full_sister' &&
+        !r.isBlocked &&
+        (r.reason.includes('تعصيباً') || r.reason.includes('عصبة مع الغير'))
     );
 
     if ((has('paternal_brother') || has('paternal_sister')) && !isAnyAkdariya) {
