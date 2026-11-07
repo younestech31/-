@@ -614,6 +614,23 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(90000);
   });
 
+  it('marks a stage with a minor heir as requiring judicial partition under Article 181', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى الأصلي',
+      hasMandatoryBequest: false,
+      hasMinorHeir: true,
+      heirs: [present('son'), present('daughter')],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 120000, 0, 0, 0]);
+    expect(result.minorHeirNeedsJudicialPartition).toBe(true);
+    // Shares remain available for preparation, but the UI blocks final exports.
+    expect(amountFor(result.results, 'son')).toBeGreaterThan(0);
+    expect(amountFor(result.results, 'daughter')).toBeGreaterThan(0);
+  });
+
   it('blocks direct Article 173 calculation while pregnancy outcome is pending', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
