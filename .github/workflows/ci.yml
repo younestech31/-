@@ -41,16 +41,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      # Update installed dependencies and package-lock using compatible fixes only.
-      - name: Apply compatible dependency security fixes
-        continue-on-error: true
-        run: npm audit fix --ignore-scripts --no-fund
-
-      # Verify the exact lockfile that will be committed and audited.
-      - name: Reinstall from the updated lockfile
-        run: npm ci --no-audit --no-fund
-
-      # Persist lockfile updates even if the later audit or tests fail.
+      # Security versions are pinned in package.json overrides; do not run
+      # npm audit fix here because npm's resolver can abort on peer conflicts.
+      # Persist the reproducible lockfile generated from package.json.
       - name: Commit synchronized package-lock.json on Gptcoder
         if: github.ref == 'refs/heads/Gptcoder'
         shell: bash
