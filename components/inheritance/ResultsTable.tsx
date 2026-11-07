@@ -48,6 +48,7 @@ export interface StageResult {
   minorHeirNeedsJudicialPartition?: boolean;
   deathOrderNeedsManualReview?: boolean;
   involuntaryKillerNeedsCompensationReview?: boolean;
+  missingHeirNeedsManualReview?: boolean;
 }
 
 interface ResultsTableProps {
@@ -310,6 +311,19 @@ const ResultsTable = memo(function ResultsTable({
             </ul>
             <p className="text-xs mt-2">
               لم يُصدر النظام أنصبة آلية لهذه الصورة لعدم اكتمال بيانات القرابة ودرجتها. يلزم استكمال النموذج أو مراجعة المسألة قانونياً قبل متابعة القسمة.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.missingHeirNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          >
+            <p className="font-bold">لا يمكن تحديد نصيب المفقود ضمن مجموعة متعددة — المادة 133</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              تم تسجيل مفقود ضمن فئة تضم أكثر من وارث، لكن البيانات لا تحدد أي فرد هو المفقود. يعتبر المفقود حياً عند افتتاح التركة، ويُحفظ نصيبه؛ لكن يلزم فصل الأشخاص وأعدادهم قبل حساب ما يوقف وما يوزع على بقية أفراد المجموعة.
             </p>
           </div>
         )}
@@ -766,7 +780,11 @@ const TableView = memo(function TableView({
                     }
                   }}
                 >
-                  {isInvoluntaryKiller ? (
+                  {r.isWithheld ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-800 border border-amber-200">
+                      نصيب موقوف للمفقود — م.133
+                    </span>
+                  ) : isInvoluntaryKiller ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200">
                       يرث المال دون الدية — م.137
                     </span>
