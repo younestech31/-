@@ -40,6 +40,7 @@ interface EstatePanelProps {
   updateStageAlreadyInherited?: (value: number) => void;
   updateStageFinancialField: (field: 'debts' | 'funeralCosts' | 'bequest' | 'ownSeparateAssets', value: number) => void;
   updateStageChildrenFromOtherUnion?: (checked: boolean) => void;
+  updateStageNoDistantKindredConfirmation: (checked: boolean) => void;
   parentHeirName?: string;
 }
 
@@ -69,6 +70,7 @@ const EstatePanel = memo(function EstatePanel({
   updateStageAlreadyInherited,
   updateStageFinancialField,
   updateStageChildrenFromOtherUnion,
+  updateStageNoDistantKindredConfirmation,
   parentHeirName,
 }: EstatePanelProps) {
   return (
@@ -291,6 +293,27 @@ const EstatePanel = memo(function EstatePanel({
             <label htmlFor="secondDeceasedHasChildrenFromOtherUnion" className="text-xs text-[#1e293b] cursor-pointer font-bold leading-normal">
               المتوفى الثاني له فروع (أبناء) من زواج/اتحاد آخر
             </label>
+          </div>
+        )}
+
+        {!(currentStage.heirs || Object.values(currentStage.heirPresence || {})).some(
+          heir => heir.isPresent && heir.count > 0 && !['husband', 'wife'].includes(heir.heirId)
+        ) && (
+          <div className="mb-3 rounded border border-amber-200 bg-amber-50/70 p-3">
+            <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-amber-950">
+              <input
+                type="checkbox"
+                checked={currentStage.confirmedNoDistantKindred === true}
+                onChange={e => updateStageNoDistantKindredConfirmation(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-amber-700"
+              />
+              <span>
+                أؤكد أنني استقصيت عن ذوي الأرحام وفق المادة 168، وتحققت من عدم وجود ذي رحم مستحق لهذه التركة. أعلم أن ترك خانة الوارث فارغة لا يثبت انعدامه.
+              </span>
+            </label>
+            <p className="mt-2 text-[10px] text-amber-800">
+              هذا الإقرار شرط إجرائي لبحث أيلولة الباقي وفق المادتين 167 و180، ولا يغني عن التحقق الفعلي من صلات القرابة.
+            </p>
           </div>
         )}
 
