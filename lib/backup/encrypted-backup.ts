@@ -23,8 +23,8 @@ export interface MawarithBackupPayload {
   format: 'mawarith-backup';
   version: 1;
   exportedAt: string;
-  cases: Record<string, unknown>[];
-  officeSettings: Record<string, unknown>;
+  cases: unknown[];
+  officeSettings: unknown;
 }
 
 interface EncryptedBackupEnvelope {
@@ -76,10 +76,11 @@ function isValidOfficeSettings(value: unknown): value is Record<string, unknown>
     return false;
   }
   if (value.isOfficialMode !== undefined && typeof value.isOfficialMode !== 'boolean') return false;
+  if (value.notaryLicenseVerified !== undefined && typeof value.notaryLicenseVerified !== 'boolean') return false;
   if (value.showDisclaimer !== undefined && typeof value.showDisclaimer !== 'boolean') return false;
   if (value.exportLanguage !== undefined && value.exportLanguage !== 'ar' && value.exportLanguage !== 'fr') return false;
   if (value.digitFormat !== undefined && value.digitFormat !== 'western' && value.digitFormat !== 'arabic-indic') return false;
-  if (value.documentRefNumber !== undefined && typeof value.documentRefNumber !== 'string') return false;
+  if (value.documentRefNumber !== undefined && (typeof value.documentRefNumber !== 'string' || value.documentRefNumber.length > 500)) return false;
   return true;
 }
 
