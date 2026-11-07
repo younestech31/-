@@ -173,7 +173,7 @@ describe('Munasakhat Resolver Tests', () => {
     expect(results[1].netEstate).toBe(150000);
   });
 
-  it('preserves Article 171 prior-gift metadata through the orchestration layer', async () => {
+  it('withholds automated Article 169–172 tanzil when only aggregate deceased-child counts are available', async () => {
     const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
     const stages: MunasakhatStage[] = [
       {
@@ -187,7 +187,26 @@ describe('Munasakhat Resolver Tests', () => {
       },
     ];
     const [result] = runInheritanceOrchestration([stages, 1200000, 0, 0, 0]);
-    expect(result.results.find(row => row.heirId === 'mandatory_bequest')?.amount).toBe(350000);
+    expect(result.tanzilNeedsManualReview).toBe(true);
+    expect(result.results.some(row => row.heirId === 'mandatory_bequest')).toBe(false);
+  });
+
+  it('marks grandfather with both full and paternal sibling lines as requiring manual review', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      {
+        id: 'root',
+        deceasedName: 'المتوفى الأصلي',
+        hasMandatoryBequest: false,
+        heirs: [
+          present('grandfather'),
+          present('full_sister'),
+          present('paternal_brother'),
+        ],
+      },
+    ];
+    const [result] = runInheritanceOrchestration([stages, 90000, 0, 0, 0]);
+    expect(result.requiresManualClassification).toBe(true);
   });
 
   it('keeps an involuntary killer in the per-person group-share denominator', async () => {
