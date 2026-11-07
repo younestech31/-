@@ -203,7 +203,7 @@ const ResultsTable = memo(function ResultsTable({
             <button
               disabled={Boolean(currentStageValidation?.hasUnacknowledgedExclusions || isMunasakhatExportBlocked)}
               onClick={async () => {
-                const lines = buildResultsClipboardText({
+                const clipboardText = buildResultsClipboardText({
                   title: `نتائج التقسيم - ${currentStageIndex === 0 ? 'المسألة الأصلية' : `وفاة: ${currentStage.deceasedName}`}`,
                   problemBase,
                   results,
@@ -214,9 +214,9 @@ const ResultsTable = memo(function ResultsTable({
                     ])
                   ),
                   isPureSharesMode,
-                }).split('\\n');
+                });
                 try {
-                  await navigator.clipboard.writeText(lines.join('\n'));
+                  await navigator.clipboard.writeText(clipboardText);
                   alert('تم نسخ النتائج كنص بنجاح');
                 } catch {
                   alert('فشل نسخ النتائج');
