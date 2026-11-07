@@ -16,7 +16,7 @@ describe('office settings secret persistence', () => {
     expect(data.title).toContain('غير مصادق عليه');
     expect(data.attestationText).toContain('لا يُعدّ عقداً رسمياً');
     expect(data.attestationText).not.toContain('أشهد أنا الموثق');
-    expect(data.signatureBoxTitle).toContain('المراجعة');
+    expect(data.signatureBoxTitle).toBe('المراجعة والتحقق الخارجي');
   });
 
   it('removes legacy server-only settings from persisted office settings', () => {
