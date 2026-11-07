@@ -139,7 +139,6 @@ function isLicensePayload(value: unknown): value is MawarithLicensePayload {
   const allowed = new Set<string>(LICENSE_FEATURES);
   return value.features.every(feature => typeof feature === 'string' && allowed.has(feature))
     && value.features.includes('professional-pdf-export')
-    && value.features.includes('encrypted-backup')
     && new Set(value.features).size === value.features.length;
 }
 
