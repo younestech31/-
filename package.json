@@ -40,7 +40,7 @@
     "nextjs-toploader": "^3.9.17",
     "pdf-lib": "^1.17.1",
     "pg": "^8.22.0",
-    "postcss": "^8.5.6",
+    "postcss": "8.5.23",
     "qrcode": "^1.5.4",
     "react": "19.2.9",
     "react-dom": "19.2.9",
@@ -75,9 +75,8 @@
     "vitest": "^4.1.10"
   },
   "overrides": {
-    "postcss": "$postcss",
+    "postcss": "8.5.23",
     "postcss-selector-parser": "6.1.5",
-    "sharp": "$sharp",
     "uuid": "11.1.1"
   }
 }
