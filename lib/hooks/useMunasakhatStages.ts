@@ -132,7 +132,7 @@ export function useMunasakhatStages(
       const next = [...prev];
       const stage = next[currentStageIndex];
       if (!stage || currentStageIndex === 0) return prev;
-      next[currentStageIndex] = { ...stage, deceasedGender: gender };
+      next[currentStageIndex] = { ...stage, deceasedGender: gender, confirmedSpouseEligibility: false };
       return next;
     });
   }, [currentStageIndex]);
