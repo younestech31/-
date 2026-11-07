@@ -33,7 +33,7 @@ export const LEGAL_INTERPRETATIONS_REGISTRY: Record<string, LegalInterpretation>
     familyCodeArticles: ['المادة 175'],
     fiqhSourceOrCircular: 'المادة 175 من قانون الأسرة الجزائري، التي تنص صراحة على الأخت الشقيقة أو لأب في الأكدرية.',
     schoolOfThought: 'قانون الأسرة الجزائري',
-    descriptionAr: 'تطبيق حكم المسألة الأكدرية على الأخت الشقيقة أو الأخت لأب وفق التكوين المحدد حصراً في المادة 175.'
+    descriptionAr: 'تطبيق حكم المسألة الأكدرية على الأخت الشقيقة أو الأخت لأب وفق التكوين المحدد حصراً في المادة 175.',
     defaultSetting: true,
     lastReviewedBy: 'خيار افتراضي للمنصة',
     lastReviewedDate: '2026-01-15',
@@ -70,7 +70,7 @@ export const LEGAL_INTERPRETATIONS_REGISTRY: Record<string, LegalInterpretation>
     familyCodeArticles: ['المواد 109–115', 'المادة 133'],
     fiqhSourceOrCircular: 'الفصل السادس من النيابة الشرعية (المواد 109–115) والمادة 133 من كتاب الميراث.',
     schoolOfThought: 'قانون الأسرة الجزائري',
-    descriptionAr: 'قواعد الغائب والمفقود وإثبات موته حكماً، مع اعتبار المفقود حياً في باب الإرث إلى أن يثبت موته بحكم وفق الشروط القانونية.'
+    descriptionAr: 'قواعد الغائب والمفقود وإثبات موته حكماً، مع اعتبار المفقود حياً في باب الإرث إلى أن يثبت موته بحكم وفق الشروط القانونية.',
     defaultSetting: true,
     lastReviewedBy: 'خيار افتراضي للمنصة',
     lastReviewedDate: '2026-01-15',
