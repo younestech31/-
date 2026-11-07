@@ -228,7 +228,22 @@ export default function OfficeSettingsModal({
               </div>
 
               {!isOfficialMode && (
-  
+                <div className="flex items-center justify-between pt-2 border-t border-amber-200/50">
+                  <div>
+                    <h4 className="text-xs font-bold text-[#1e293b]">تضمين التنبيه التوضيحي</h4>
+                    <p className="text-[11px] text-[#64748b]">عرض مربع التنبيه في مستند PDF</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showDisclaimer}
+                      onChange={(e) => setShowDisclaimer(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0a5d38]"></div>
+                  </label>
+                </div>
+              )}
             </div>
 
             {/* Mawarith Brand Reminder */}

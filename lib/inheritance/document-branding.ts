@@ -1,4 +1,3 @@
-import { OFFICE_INFO } from '../config';
 import QRCode from 'qrcode';
 import { formatBilingualDate } from '../datetime/hijri';
 import { CalculationAuditRecord } from './calculation-audit';
@@ -67,12 +66,12 @@ export function getPersistedOfficeSettings(settings: OfficeSettings): OfficeSett
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
-  notaryNameAr: 'الأستاذ لعطب محمد',
-  officialDesignationAr: 'الديوان العمومي للتوثيق',
-  titleAr: 'موثق لدى محكمة فلاوسن — ولاية وهران',
-  addressAr: 'حي العقيد لطفي، وهران',
-  phone: '+213 562 29 69 81',
-  email: 'maitrelattabmohamed@gmail.com',
+  notaryNameAr: '',
+  officialDesignationAr: 'بيانات المكتب',
+  titleAr: '',
+  addressAr: '',
+  phone: '',
+  email: '',
   isOfficialMode: false,
   showDisclaimer: true,
   documentRefNumber: '',
@@ -85,19 +84,17 @@ export const EXPORT_FONT_FAMILY = 'Amiri';
 
 // Shared office & legal content
 export const EXPORT_OFFICE_INFO = {
-  notaryNameAr: OFFICE_INFO.notaryFullName,
-  addressAr: 'حي العقيد لطفي، وهران',
-  phone: OFFICE_INFO.phone.display,
-  email: OFFICE_INFO.email,
-  officialDesignationAr: OFFICE_INFO.officialDesignation,
-  titleAr: OFFICE_INFO.title,
-  legalBasisAr: OFFICE_INFO.legalBasis,
-  
-  disclaimerTitleAr: 'تنبيه وإخلاء مسؤولية قانونية رسمية (منصة رقمية مساعدة وليست وسيلة إعلان):',
-  disclaimerTextAr: 'إن العملية الحسابية والوثيقة المرفقة هي تصفية آلية استرشادية تقنية بحتة تم إعدادها لتوفير التسهيل والتدقيق النظري المسبق ولا يعتبر هذا الموقع أو مستخرجاته وسيلة دعاية أو إشهار بأي شكل من الأشكال. كما لا يمكن بأي حال من الأحوال أن تحل هذه الحاسبة محل الفريضة الشرعية الأصلية الموثقة رسمياً تحت مسؤولية الموثق لدى المحاكم والمجالس القضائية.',
-  
-  footerTextAr: 'العنوان: حي العقيد لطفي، وهران - مستخرج إلكتروني رسمي صادر من المنصة الرسمية',
-  footerPageLabelAr: (page: number, total: number) => `الأستاذ الموثق لعطب محمد بوهران | صفحة ${page} من ${total}`,
+  notaryNameAr: '',
+  addressAr: '',
+  phone: '',
+  email: '',
+  officialDesignationAr: 'بيانات المكتب',
+  titleAr: '',
+  legalBasisAr: '',
+  disclaimerTitleAr: 'تنبيه توضيحي:',
+  disclaimerTextAr: 'هذا التقرير أُعدّ باستخدام منصة مواريث لأغراض المراجعة والحساب. راجع جميع المعطيات والنتائج قبل اعتمادها.',
+  footerTextAr: 'تم إعداد هذا التقرير باستخدام منصة مواريث.',
+  footerPageLabelAr: (page: number, total: number) => `مواريث | صفحة ${page} من ${total}`,
 } as const;
 
 /**

@@ -3,7 +3,7 @@ import { Cairo, Amiri } from 'next/font/google';
 import { Suspense } from 'react';
 import Script from 'next/script';
 import './globals.css';
-import { SITE_URL, OFFICE_INFO } from '@/lib/config';
+import { SITE_URL } from '@/lib/config';
 import type { Viewport } from 'next';
 import { FAQ_ITEMS } from '@/data/faq';
 
@@ -38,10 +38,10 @@ export const metadata: Metadata = {
   keywords: [
     'مواريث', 'حاسبة الميراث', 'حساب الميراث', 'الفرائض', 'المواريث', 'قانون الأسرة الجزائري', 'المناسخات', 'الوصية الواجبة', 'العول', 'الرد'
   ],
-  authors: [{ name: 'مكتب الأستاذ لعطب محمد', url: SITE_URL }],
+  authors: [{ name: 'منصة مواريث الرقمية', url: SITE_URL }],
   creator: 'منصة مواريث الرقمية',
   publisher: 'منصة مواريث الرقمية',
-  category: 'legal services',
+  category: 'software',
   alternates: {
     canonical: './',
   },
@@ -88,12 +88,6 @@ export default async function RootLayout({children}: {children: React.ReactNode}
       'name': 'منصة مواريث الرقمية',
       'url': SITE_URL,
       'logo': `${SITE_URL}/logo/logo-horizontal-color.svg`,
-      'contactPoint': {
-        '@type': 'ContactPoint',
-        'telephone': '+213 562 29 69 81',
-        'contactType': 'customer service',
-        'availableLanguage': ['Arabic', 'French'],
-      },
     },
     {
       '@context': 'https://schema.org',
@@ -133,30 +127,6 @@ export default async function RootLayout({children}: {children: React.ReactNode}
         }
       ]
     },
-    {
-      '@context': 'https://schema.org',
-      '@type': 'LegalService',
-      'additionalType': 'https://schema.org/Notary',
-      'name': `${OFFICE_INFO.officialDesignation} — ${OFFICE_INFO.notaryFullName}`,
-      'description': `${OFFICE_INFO.title}. متخصص في حساب المواريث والتركات وفق أحكام قانون الأسرة الجزائري والشريعة الإسلامية.`,
-      'url': SITE_URL,
-      'telephone': OFFICE_INFO.phone.number,
-      'email': OFFICE_INFO.email,
-      'areaServed': 'DZ',
-      'address': {
-        '@type': 'PostalAddress',
-        'addressLocality': 'Oran',
-        'addressRegion': 'Oran Province',
-        'addressCountry': 'DZ'
-      },
-      'knowsAbout': [
-        'قانون الأسرة الجزائري',
-        'حساب المواريث الشرعية',
-        'تقسيم التركات والمقاسمة',
-        'المناسخات والوصية الواجبة',
-        'توثيق العقود العقارية والفرائض'
-      ]
-    }
   ];
 
   return (

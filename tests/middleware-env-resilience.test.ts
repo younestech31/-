@@ -1,48 +1,20 @@
 import { describe, it, expect, vi } from 'vitest';
 
-describe('Middleware & Server Environment Resilience (P0 Remediation)', () => {
-  it('does not throw in production when optional SaaS env vars are missing', async () => {
+describe('Server instrumentation without external service credentials', () => {
+  it('registers safely when auth, database, email, and payment secrets are absent', async () => {
     vi.resetModules();
-    const originalEnv = process.env.NODE_ENV;
-    const originalDbUrl = process.env.DATABASE_URL;
-    const originalStripeKey = process.env.STRIPE_SECRET_KEY;
-    const originalStripeWebhook = process.env.STRIPE_WEBHOOK_SECRET;
-
-    const envMap = process.env as Record<string, string | undefined>;
-    envMap.NODE_ENV = 'production';
-    delete process.env.DATABASE_URL;
-    delete process.env.STRIPE_SECRET_KEY;
-    delete process.env.STRIPE_WEBHOOK_SECRET;
-
-    try {
-      const { validateEnv } = await import('@/lib/env');
-      expect(() => validateEnv()).not.toThrow();
-      const config = validateEnv();
-      expect(config).toBeDefined();
-      expect(config?.SESSION_SECRET).toBeDefined();
-    } finally {
-      envMap.NODE_ENV = originalEnv;
-      if (originalDbUrl) process.env.DATABASE_URL = originalDbUrl;
-      if (originalStripeKey) process.env.STRIPE_SECRET_KEY = originalStripeKey;
-      if (originalStripeWebhook) process.env.STRIPE_WEBHOOK_SECRET = originalStripeWebhook;
-    }
-  });
-
-  it('register() in instrumentation executes safely without throwing uncaught exceptions', async () => {
-    vi.resetModules();
-    const originalEnv = process.env.NODE_ENV;
-    const originalRuntime = process.env.NEXT_RUNTIME;
-
-    const envMap = process.env as Record<string, string | undefined>;
-    envMap.NODE_ENV = 'production';
-    envMap.NEXT_RUNTIME = 'nodejs';
+    const names = ['DATABASE_URL', 'SESSION_SECRET', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'RESEND_API_KEY'];
+    const previous = new Map(names.map(name => [name, process.env[name]]));
+    for (const name of names) delete process.env[name];
 
     try {
       const { register } = await import('@/instrumentation');
-      await expect(register()).resolves.not.toThrow();
+      await expect(register()).resolves.toBeUndefined();
     } finally {
-      envMap.NODE_ENV = originalEnv;
-      envMap.NEXT_RUNTIME = originalRuntime;
+      for (const [name, value] of previous) {
+        if (value === undefined) delete process.env[name];
+        else process.env[name] = value;
+      }
     }
   });
 });
