@@ -45,7 +45,7 @@ export function resolveNoHeirsPolicy(
   redistributeTo?: CalculationResult[];
 } {
   if (stage.confirmedNoDistantKindred !== true) {
-    throw new Error('Cannot route the residue to treasury before explicit Article 167/180 confirmation that no entitled distant kindred exists.');
+    throw new Error('Cannot route the residue to treasury or return it to a spouse before explicit Article 167/180 confirmation that no entitled blood agnate, relative fixed-share heir, or distant kindred exists.');
   }
 
   // المادة 180 تطبق على تركة كل متوفى على حدة: أصحاب الفروض، ثم العصبة،
