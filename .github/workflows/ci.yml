@@ -46,7 +46,14 @@ jobs:
       # --package-lock-only avoids mutating node_modules before the clean install.
       # Never use --force: incompatible major upgrades require deliberate review.
       - name: Apply compatible security fixes
-        run: npm audit fix --package-lock-only --ignore-scripts --no-fund
+        shell: bash
+        run: |
+          # npm audit fix may exit 1 when only non-blocking moderate advisories remain.
+          # Preserve its non-breaking lockfile updates, then let the explicit high/critical
+          # audit gate below decide whether the dependency tree blocks CI.
+          if ! npm audit fix --package-lock-only --ignore-scripts --no-fund; then
+            echo "::warning::Some npm advisories remain after compatible lockfile fixes; the high/critical audit step is the blocking security gate."
+          fi
 
       - name: Install dependencies from lockfile
         run: npm ci --no-audit --no-fund
