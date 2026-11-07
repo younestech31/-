@@ -73,6 +73,7 @@ export interface PipelineContext {
   deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[];
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn';
   hasUnbornHeir: boolean;
+  confirmedNoDistantKindred: boolean;
 }
 
 export interface PipelineState {
@@ -118,7 +119,8 @@ export function calculateInheritance(
   hasMandatoryBequest: boolean = false,
   deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[] = [],
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn' = 'stillborn',
-  hasUnbornHeir: boolean = false
+  hasUnbornHeir: boolean = false,
+  confirmedNoDistantKindred: boolean = false
 ): CalculationResult[] {
   // Pre-process: Map original heirs to active heirs with counts matching non-impeded individuals
   const activeHeirs = heirs.map(h => {
@@ -149,7 +151,8 @@ export function calculateInheritance(
     hasMandatoryBequest,
     deceasedChildren,
     unbornOutcome,
-    hasUnbornHeir
+    hasUnbornHeir,
+    confirmedNoDistantKindred
   );
 
   // Post-process: Merge internal results back to construct individual levels
@@ -319,7 +322,8 @@ export function createInitialPipelineState(
   hasMandatoryBequest: boolean,
   deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[],
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn',
-  hasUnbornHeir: boolean
+  hasUnbornHeir: boolean,
+  confirmedNoDistantKindred: boolean
 ): PipelineState {
   const estateFrac = new Fraction(estate);
   const debtsFrac = new Fraction(debts);
@@ -338,6 +342,7 @@ export function createInitialPipelineState(
       deceasedChildren,
       unbornOutcome,
       hasUnbornHeir,
+      confirmedNoDistantKindred,
     },
     estateFrac,
     debtsFrac,
@@ -394,20 +399,20 @@ export function withholdForUnbornHeir(state: PipelineState): PipelineState {
     } else if (ctx.unbornOutcome === 'pending') {
       const normalResults = calculateInheritance(
         activeHeirs.map(h => ({ ...h })),
-        ctx.estate, ctx.debts, ctx.funeralCosts, ctx.bequest, ctx.hasMandatoryBequest, ctx.deceasedChildren, 'stillborn', false
+        ctx.estate, ctx.debts, ctx.funeralCosts, ctx.bequest, ctx.hasMandatoryBequest, ctx.deceasedChildren, 'stillborn', false, ctx.confirmedNoDistantKindred
       );
 
       const sonHeirs = activeHeirs.map(h => ({ ...h }));
       const sExist = sonHeirs.find(h => h.heirId === 'son');
       if (sExist) { sExist.count += 1; sExist.isPresent = true; }
       else { sonHeirs.push({ heirId: 'son', count: 1, isPresent: true }); }
-      const sonResults = calculateInheritance(sonHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false);
+      const sonResults = calculateInheritance(sonHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false), ctx.confirmedNoDistantKindred;
 
       const daughterHeirs = activeHeirs.map(h => ({ ...h }));
       const dExist = daughterHeirs.find(h => h.heirId === 'daughter');
       if (dExist) { dExist.count += 1; dExist.isPresent = true; }
       else { daughterHeirs.push({ heirId: 'daughter', count: 1, isPresent: true }); }
-      const daughterResults = calculateInheritance(daughterHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false);
+      const daughterResults = calculateInheritance(daughterHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false), ctx.confirmedNoDistantKindred;
 
       let hasFullBlock = false;
       for (const nr of normalResults) {
@@ -608,18 +613,34 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
   const presentHeirs = activeHeirs.filter(h => h.isPresent && h.count > 0 && !h.isImpeded);
 
   if (presentHeirs.length === 0) {
-    if (!results.some(r => r.heirId === 'treasury')) {
+    if (state.ctx.confirmedNoDistantKindred) {
       results.push({
         heirId: 'treasury',
-        nameAr: 'بيت المال / الباقي',
-        share: 'الباقي',
+        nameAr: 'الخزينة العمومية',
+        share: 'كامل التركة بعد تطبيق الأولويات القانونية',
         shareDecimal: 1,
         shareFraction: new Fraction(1),
         shares: 0,
         problemBase: 0,
         amount: netEstate,
         isBlocked: false,
-        reason: 'لعدم وجود مستحق للرد أو عصبة — م.180',
+        reason: 'بعد التأكد من عدم وجود ذوي أرحام مستحقين وفق المادتين 168 و180',
+        article: 180,
+        count: 1
+      });
+    } else {
+      results.push({
+        heirId: 'article_180_review',
+        nameAr: 'استقصاء ذوي الأرحام — المادة 180',
+        share: 'معلق',
+        shareDecimal: 0,
+        shareFraction: new Fraction(0),
+        shares: 0,
+        problemBase: 0,
+        amount: 0,
+        isBlocked: false,
+        reason: 'لا يمكن إسناد التركة إلى الخزينة قبل التحقق من عدم وجود ذوي أرحام مستحقين وفق ترتيب المادة 168، وتأكيد ذلك صراحة.',
+        article: 180,
         count: 1
       });
     }
@@ -1459,19 +1480,39 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
     } else {
       const spouses = inheritanceResults.filter(r => !r.isBlocked && (r.heirId === 'husband' || r.heirId === 'wife') && r.shareFraction.compare(0) > 0);
 
-      if (spouses.length > 0) {
+      if (spouses.length > 0 && state.ctx.confirmedNoDistantKindred) {
+        // Under Article 167, the residue is returned to a spouse only after
+        // confirming that there is no blood asaba, relative fixed-share heir,
+        // or entitled distant kindred.
         calcType = 'radd';
         spouses.forEach(spouse => {
           spouse.shareFraction = spouse.shareFraction.add(remainingFraction.div(spouses.length));
           spouse.amount = spouse.shareFraction.valueOf() * netEstate;
-          spouse.reason += ' (رداً)';
+          spouse.reason += ' (رداً بعد التحقق من عدم وجود ذوي أرحام — م.167)';
         });
         traditionalBase = inheritanceResults.filter(r => !r.isBlocked && r.shareFraction.compare(0) > 0)
           .reduce((acc, r) => lcm(acc, Number(r.shareFraction.d)), 1);
-      } else {
+      } else if (spouses.length > 0) {
+        if (!results.some(r => r.heirId === 'article_180_review')) {
+          results.push({
+            heirId: 'article_180_review',
+            nameAr: 'استقصاء ذوي الأرحام — المادتان 167 و168',
+            share: 'الباقي معلق',
+            shareDecimal: 0,
+            shareFraction: new Fraction(0),
+            shares: 0,
+            problemBase: 0,
+            amount: 0,
+            isBlocked: false,
+            reason: 'لا يُرد باقي التركة إلى الزوج أو الزوجة قبل التحقق من عدم وجود ذوي أرحام مستحقين، عملاً بالمادة 167.',
+            article: 167,
+            count: 1
+          });
+        }
+      } else if (state.ctx.confirmedNoDistantKindred) {
         results.push({
           heirId: 'treasury',
-          nameAr: 'بيت المال / الباقي',
+          nameAr: 'الخزينة العمومية / الباقي',
           share: 'الباقي',
           shareDecimal: remainingFraction.valueOf(),
           shareFraction: remainingFraction,
@@ -1479,11 +1520,29 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
           problemBase: 0,
           amount: remainingFraction.valueOf() * netEstate,
           isBlocked: false,
-          reason: 'لعدم وجود مستحق للرد أو عصبة',
+          reason: 'بعد التحقق من عدم وجود ذوي أرحام مستحقين — م.168 و180',
+          article: 180,
           count: 1
         });
         traditionalBase = results.filter(r => !r.isBlocked && r.shareFraction.compare(0) > 0)
           .reduce((acc, r) => lcm(acc, Number(r.shareFraction.d)), 1);
+      } else {
+        if (!results.some(r => r.heirId === 'article_180_review')) {
+          results.push({
+            heirId: 'article_180_review',
+            nameAr: 'استقصاء ذوي الأرحام — المادة 180',
+            share: 'الباقي معلق',
+            shareDecimal: 0,
+            shareFraction: new Fraction(0),
+            shares: 0,
+            problemBase: 0,
+            amount: 0,
+            isBlocked: false,
+            reason: 'لا يمكن إسناد الباقي إلى الخزينة قبل التحقق من عدم وجود ذوي أرحام مستحقين وفق المادة 168.',
+            article: 180,
+            count: 1
+          });
+        }
       }
     }
   }
@@ -1619,7 +1678,8 @@ export function calculateInheritanceInternal(
   hasMandatoryBequest: boolean = false,
   deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[] = [],
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn' = 'stillborn',
-  hasUnbornHeir: boolean = false
+  hasUnbornHeir: boolean = false,
+  confirmedNoDistantKindred: boolean = false
 ): CalculationResult[] {
   let state = createInitialPipelineState(
     heirs,
@@ -1630,7 +1690,8 @@ export function calculateInheritanceInternal(
     hasMandatoryBequest,
     deceasedChildren,
     unbornOutcome,
-    hasUnbornHeir
+    hasUnbornHeir,
+    confirmedNoDistantKindred
   );
 
   state = withholdForUnbornHeir(state);
