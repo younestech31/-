@@ -41,6 +41,7 @@ interface EstatePanelProps {
   updateStageFinancialField: (field: 'debts' | 'funeralCosts' | 'bequest' | 'ownSeparateAssets', value: number) => void;
   updateStageChildrenFromOtherUnion?: (checked: boolean) => void;
   updateStageNoDistantKindredConfirmation: (checked: boolean) => void;
+  requiresNoDistantKindredConfirmation?: boolean;
   parentHeirName?: string;
 }
 
@@ -71,6 +72,7 @@ const EstatePanel = memo(function EstatePanel({
   updateStageFinancialField,
   updateStageChildrenFromOtherUnion,
   updateStageNoDistantKindredConfirmation,
+  requiresNoDistantKindredConfirmation = false,
   parentHeirName,
 }: EstatePanelProps) {
   return (
@@ -296,9 +298,7 @@ const EstatePanel = memo(function EstatePanel({
           </div>
         )}
 
-        {!(currentStage.heirs?.length ? currentStage.heirs : Object.values(currentStage.heirPresence || {})).some(
-          heir => heir.isPresent && heir.count > 0 && !['husband', 'wife'].includes(heir.heirId)
-        ) && (
+        {(requiresNoDistantKindredConfirmation || currentStage.confirmedNoDistantKindred === true) && (
           <div className="mb-3 rounded border border-amber-200 bg-amber-50/70 p-3">
             <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-amber-950">
               <input
