@@ -41,6 +41,8 @@ interface EstatePanelProps {
   updateStageFinancialField: (field: 'debts' | 'funeralCosts' | 'bequest' | 'ownSeparateAssets', value: number) => void;
   updateStageChildrenFromOtherUnion?: (checked: boolean) => void;
   updateStageNoDistantKindredConfirmation: (checked: boolean) => void;
+  updateStagePregnancy: (hasUnbornHeir: boolean, outcome: NonNullable<MunasakhatStage['unbornOutcome']>) => void;
+  updateStagePregnancyDisputed: (checked: boolean) => void;
   requiresNoDistantKindredConfirmation?: boolean;
   parentHeirName?: string;
 }
@@ -72,6 +74,8 @@ const EstatePanel = memo(function EstatePanel({
   updateStageFinancialField,
   updateStageChildrenFromOtherUnion,
   updateStageNoDistantKindredConfirmation,
+  updateStagePregnancy,
+  updateStagePregnancyDisputed,
   requiresNoDistantKindredConfirmation = false,
   parentHeirName,
 }: EstatePanelProps) {
@@ -316,6 +320,70 @@ const EstatePanel = memo(function EstatePanel({
             </p>
           </div>
         )}
+
+        <div className="mb-3 rounded border border-sky-200 bg-sky-50/60 p-3">
+          <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-sky-950">
+            <input
+              type="checkbox"
+              checked={currentStage.hasUnbornHeir === true}
+              onChange={e => updateStagePregnancy(
+                e.target.checked,
+                e.target.checked
+                  ? (currentStage.unbornOutcome && currentStage.unbornOutcome !== 'stillborn' ? currentStage.unbornOutcome : 'pending')
+                  : 'stillborn'
+              )}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-sky-700"
+            />
+            <span className="font-semibold">يوجد حمل قائم وقت وفاة المورّث يمكن أن يشارك في الإرث (المادة 173)</span>
+          </label>
+
+          {currentStage.hasUnbornHeir === true && (
+            <div className="mt-3 space-y-2">
+              <label className="block text-[11px] font-semibold text-sky-900" htmlFor="unborn-outcome">
+                حالة الحمل أو نتيجة الولادة
+              </label>
+              <select
+                id="unborn-outcome"
+                value={currentStage.unbornOutcome || 'pending'}
+                onChange={e => updateStagePregnancy(
+                  true,
+                  e.target.value as NonNullable<MunasakhatStage['unbornOutcome']>
+                )}
+                className="w-full rounded border border-sky-200 bg-white p-2 text-xs text-slate-800"
+              >
+                <option value="pending">لم يولد بعد / الجنس غير معلوم</option>
+                <option value="born_male">وُلد حياً ذكراً</option>
+                <option value="born_female">وُلدت حية أنثى</option>
+                <option value="stillborn">وُلد ميتاً</option>
+                <option value="twins_male_female">توأم: ذكر وأنثى</option>
+                <option value="twins_males">توأم: ذكران</option>
+                <option value="twins_females">توأم: أنثيان</option>
+              </select>
+              {(currentStage.unbornOutcome === 'born_male' || currentStage.unbornOutcome === 'born_female') && (
+                <p className="text-[10px] leading-relaxed text-sky-800">
+                  سيضيف المحرك المولود تلقائياً إلى الورثة؛ لا تُدخل الطفل نفسه مرة ثانية في قائمة الأبناء.
+                </p>
+              )}
+              {(currentStage.unbornOutcome === 'twins_male_female' || currentStage.unbornOutcome === 'twins_males' || currentStage.unbornOutcome === 'twins_females') && (
+                <p className="text-[10px] leading-relaxed font-semibold text-amber-800">
+                  الحمل المتعدد غير مدعوم في الحساب الآلي الحالي؛ ستُعلّق الأنصبة والتقارير للمراجعة اليدوية.
+                </p>
+              )}
+              <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={currentStage.pregnancyDisputed === true}
+                  onChange={e => updateStagePregnancyDisputed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-amber-700"
+                />
+                <span>يوجد نزاع أو إنكار من الورثة بشأن ادعاء الحمل (المادة 174).</span>
+              </label>
+              <p className="text-[10px] leading-relaxed text-sky-800">
+                في حالة الحمل غير المحسوم يوقف المحرك أكبر نصيب محتمل لابن أو بنت، وإذا كان احتمال الحمل يحجب وارثاً حجب حرمان يوقف كامل التركة إلى حين اتضاح الأمر، وفق المادة 173.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Mandatory bequest toggle */}
         <div className="mb-3 flex items-center gap-2 p-2 bg-[#f8fafc] rounded border border-[#e2e8f0]">
