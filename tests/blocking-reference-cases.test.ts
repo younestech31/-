@@ -18,6 +18,12 @@ type RuleCase = {
   counts?: Record<string, number>;
 };
 
+const stagePresent = (heirId: string, count = 1): HeirPresence => ({
+  heirId,
+  count,
+  isPresent: true,
+});
+
 /**
  * These expectations are deliberately written as a separate statutory
  * fixture. They do not import BLOCKING_RULES or derive expected outcomes
@@ -179,8 +185,8 @@ describe('Fail-closed guard for unmodelled grandson / granddaughter degrees', ()
       parentHeirId: '',
       parentStageId: '',
       heirPresence: {
-        son_son: present('son_son'),
-        granddaughter: present('granddaughter'),
+        son_son: stagePresent('son_son'),
+        granddaughter: stagePresent('granddaughter'),
       },
       hasMandatoryBequest: false,
       confirmedSpouseEligibility: true,
@@ -193,7 +199,7 @@ describe('Fail-closed guard for unmodelled grandson / granddaughter degrees', ()
     expect(result.requiresManualClassification).toBe(true);
     expect(result.results).toHaveLength(0);
     expect(
-      result.excludedHeirWarnings.some(
+      result.excludedHeirWarnings?.some(
         warning => warning.heirId === 'granddaughter_son_son_degree',
       ),
     ).toBe(true);
