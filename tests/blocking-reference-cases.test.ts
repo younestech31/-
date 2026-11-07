@@ -36,7 +36,7 @@ const statutoryBlockingCases: RuleCase[] = [
   { id: 'art161-grandfather-blocks-paternal-grandmother', article: 161, heir: 'paternal_grandmother', blockers: ['grandfather'] },
 
   { id: 'art162-father-blocks-true-grandfather', article: 162, heir: 'grandfather', blockers: ['father'] },
-  { id: 'art162-son-blocks-grandson', article: 163, heir: 'son_son', blockers: ['son'] },
+  { id: 'art163-son-blocks-grandson', article: 163, heir: 'son_son', blockers: ['son'] },
   { id: 'art162-son-blocks-full-nephew', article: 162, heir: 'full_nephew', blockers: ['son'] },
   { id: 'art162-grandson-blocks-paternal-nephew', article: 162, heir: 'paternal_nephew', blockers: ['son_son'] },
   { id: 'art162-father-blocks-paternal-nephew', article: 162, heir: 'paternal_nephew', blockers: ['father'] },
