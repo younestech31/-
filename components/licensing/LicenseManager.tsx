@@ -103,10 +103,11 @@ export default function LicenseManager() {
 
   const whatsappNumber = process.env.NEXT_PUBLIC_MAWARITH_WHATSAPP?.trim() || '';
   const supportEmail = process.env.NEXT_PUBLIC_MAWARITH_SUPPORT_EMAIL?.trim() || '';
-  const whatsappUrl = whatsappNumber
-    ? 'https://wa.me/' + whatsappNumber.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(requestMessage)
+  const normalizedWhatsAppNumber = whatsappNumber.replace(/[^0-9]/g, '');
+  const whatsappUrl = normalizedWhatsAppNumber.length >= 8 && normalizedWhatsAppNumber.length <= 15
+    ? 'https://wa.me/' + normalizedWhatsAppNumber + '?text=' + encodeURIComponent(requestMessage)
     : '';
-  const emailUrl = supportEmail
+  const emailUrl = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(supportEmail)
     ? 'mailto:' + supportEmail + '?subject=' + encodeURIComponent('طلب تفعيل مواريث Pro') + '&body=' + encodeURIComponent(requestMessage)
     : '';
   const hasConfiguredContact = Boolean(whatsappUrl || emailUrl);
@@ -266,7 +267,7 @@ export default function LicenseManager() {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-600">
           <h2 className="font-bold text-slate-900">ما يبقى متاحاً مجاناً؟</h2>
-          <p>الحسابات، جميع مسائل المواريث المتاحة في المحرك، الأمثلة، الحفظ المحلي، والاستيراد والتصدير الاحتياطي تبقى متاحة دون اشتراك. ترخيص Pro يزيل العلامة التوضيحية من تقارير PDF.</p>
+          <p>الحسابات وجميع مسائل المواريث المتاحة في المحرك والأمثلة والحفظ المحلي ونسخ JSON العادية وتصدير Word وExcel تبقى متاحة دون اشتراك. يضيف Pro تصدير PDF دون العلامة المائية ونسخاً احتياطية مشفّرة قابلة للاستعادة.</p>
         </section>
 
         <footer className="text-center">
