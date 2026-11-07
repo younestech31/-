@@ -1217,14 +1217,25 @@ export function resolveResidue(state: PipelineState): PipelineState {
         const sisCount = getCount('full_sister');
 
         if (broCount > 0) {
-          const totalParts = new Fraction(broCount).mul(2).add(sisCount);
-          const partShare = remainingFraction.div(totalParts);
+          if (remainingFraction.compare(0) > 0) {
+            const totalParts = new Fraction(broCount).mul(2).add(sisCount);
+            const partShare = remainingFraction.div(totalParts);
 
-          if (!skipInSiblingSection.has('full_brother')) addResult('full_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
-          if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
-            addResult('full_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
+            if (!skipInSiblingSection.has('full_brother')) addResult('full_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
+            if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
+              addResult('full_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
+            }
+            remainingFraction = new Fraction(0);
+          } else {
+            // Asaba do not receive a negative residue. Preserve the negative
+            // balance so applyAwlIfNeeded can proportionally reduce the fard shares.
+            if (!skipInSiblingSection.has('full_brother')) {
+              addResult('full_brother', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            }
+            if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
+              addResult('full_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            }
           }
-          remainingFraction = new Fraction(0);
         } else if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
           const share = sisCount === 1 ? new Fraction(1, 2) : new Fraction(2, 3);
           addResult('full_sister', share, sisCount === 1 ? '1/2' : '2/3', 'فرضاً لعدم وجود الفرع الوارث والأصل المذكر');
@@ -1249,19 +1260,32 @@ export function resolveResidue(state: PipelineState): PipelineState {
         const sisCount = getCount('paternal_sister');
 
         if (broCount > 0) {
-          const totalParts = new Fraction(broCount).mul(2).add(sisCount);
-          const partShare = remainingFraction.div(totalParts);
+          if (remainingFraction.compare(0) > 0) {
+            const totalParts = new Fraction(broCount).mul(2).add(sisCount);
+            const partShare = remainingFraction.div(totalParts);
 
-          addResult('paternal_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
-          if (sisCount > 0) {
-            addResult('paternal_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
+            addResult('paternal_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
+            if (sisCount > 0) {
+              addResult('paternal_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
+            }
+            remainingFraction = new Fraction(0);
+          } else {
+            // Do not assign negative shares to residuary paternal siblings.
+            // Keep the negative balance intact for the Awl stage.
+            addResult('paternal_brother', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            if (sisCount > 0) {
+              addResult('paternal_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            }
           }
-          remainingFraction = new Fraction(0);
         } else if (sisCount > 0 && !skipInSiblingSection.has('paternal_sister')) {
           if (hasFemaleDirectDescendant && !hasGrandfather) {
             const relationName = hasDaughter ? 'مع البنت' : 'مع بنت الابن';
-            addResult('paternal_sister', remainingFraction, 'الباقي تعصيباً', `عصبة مع الغير (${relationName})`);
-            remainingFraction = new Fraction(0);
+            if (remainingFraction.compare(0) > 0) {
+              addResult('paternal_sister', remainingFraction, 'الباقي تعصيباً', `عصبة مع الغير (${relationName})`);
+              remainingFraction = new Fraction(0);
+            } else {
+              addResult('paternal_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب مع الغير بعد استغراق الفروض — العول');
+            }
           } else {
             let share = new Fraction(0);
             let reason = '';
