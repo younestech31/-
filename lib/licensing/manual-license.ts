@@ -52,12 +52,14 @@ export interface LicenseStatus {
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 const MAX_LICENSE_BYTES = 32 * 1024;
 
-/** Returns true only when a plausible P-256 SPKI verification key is configured. */
+/** Returns true only for a correctly encoded P-256 SPKI verification key. */
 export function isPublicKeyConfigured(publicKeySpkiBase64 = LICENSE_PUBLIC_KEY_SPKI): boolean {
-  if (!publicKeySpkiBase64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(publicKeySpkiBase64)) return false;
+  if (!publicKeySpkiBase64 || !/^[A-Za-z0-9+/]{120,124}={0,2}$/.test(publicKeySpkiBase64)) return false;
   try {
     const decoded = decodeBase64(publicKeySpkiBase64);
-    return decoded.byteLength >= 80 && decoded.byteLength <= 256;
+    // DER SubjectPublicKeyInfo prefix for id-ecPublicKey + prime256v1, followed by 65-byte uncompressed point.
+    const expectedPrefix = [0x30,0x59,0x30,0x13,0x06,0x07,0x2a,0x86,0x48,0xce,0x3d,0x02,0x01,0x06,0x08,0x2a,0x86,0x48,0xce,0x3d,0x03,0x01,0x07,0x03,0x42,0x00,0x04];
+    return decoded.byteLength === 91 && expectedPrefix.every((byte, index) => decoded[index] === byte);
   } catch {
     return false;
   }
