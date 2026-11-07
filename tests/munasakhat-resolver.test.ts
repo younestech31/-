@@ -125,6 +125,7 @@ describe('Munasakhat Resolver Tests', () => {
       debts: 0,
       funeralCosts: 0,
       bequest: 0,
+      confirmedNoDistantKindred: true,
     };
 
     const priorAgnate = [{ heirId: 'full_brother', amount: 50000 }] as unknown as Parameters<typeof resolveNoHeirsPolicy>[2];
@@ -133,6 +134,73 @@ describe('Munasakhat Resolver Tests', () => {
     expect(result.amount).toBe(150000);
     expect(result.messageAr).toContain('تؤول تركة (أحمد المتوفى ثانيا) إلى الخزينة العامة');
     expect(result.redistributeTo).toBeUndefined();
+  });
+
+  it('refuses treasury routing when Article 167/180 distant-kindred confirmation is missing', () => {
+    const stage: MunasakhatStage = {
+      id: 'stage-unconfirmed',
+      deceasedName: 'متوفى ثانيا',
+      parentHeirId: 'son',
+      hasMandatoryBequest: false,
+    };
+
+    expect(() => resolveNoHeirsPolicy(stage, 150000, [])).toThrow(/Article 167\/180 confirmation/);
+  });
+
+  it('holds an empty estate case for Article 180 review instead of assigning it to treasury', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([], 150000, 0, 0, 0);
+    expect(results.some(result => result.heirId === 'article_180_review')).toBe(true);
+    expect(results.some(result => result.heirId === 'treasury')).toBe(false);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(0);
+  });
+
+  it('routes an empty estate case to treasury only after explicit no-distant-kindred confirmation', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([], 150000, 0, 0, 0, false, [], 'stillborn', false, true);
+    expect(results.find(result => result.heirId === 'treasury')?.amount).toBe(150000);
+    expect(results.some(result => result.heirId === 'article_180_review')).toBe(false);
+  });
+
+  it('does not return a spouse-only residue to the spouse before Article 167 distant-kindred review', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([present('husband')], 240000, 0, 0, 0);
+    expect(amountFor(results, 'husband')).toBe(120000);
+    expect(results.some(result => result.heirId === 'article_180_review')).toBe(true);
+    expect(results.some(result => result.heirId === 'treasury')).toBe(false);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
+  });
+
+  it('returns spouse-only residue only after confirmation that no entitled distant kindred exists', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([present('husband')], 240000, 0, 0, 0, false, [], 'stillborn', false, true);
+    expect(amountFor(results, 'husband')).toBe(240000);
+    expect(results.some(result => result.heirId === 'article_180_review')).toBe(false);
+  });
+
+  it('marks a secondary no-heirs stage as unresolved until the Article 180 confirmation is provided', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      {
+        id: 'root',
+        deceasedName: 'المتوفى الأول',
+        hasMandatoryBequest: false,
+        heirs: [present('son')],
+      },
+      {
+        id: 'stage-empty',
+        deceasedName: 'المتوفى الثاني',
+        parentHeirId: 'son',
+        parentStageId: 'root',
+        hasMandatoryBequest: false,
+        inheritedAmount: 150000,
+        heirs: [],
+      },
+    ];
+    const [root, second] = runInheritanceOrchestration([stages, 150000, 0, 0, 0]);
+    expect(root.noHeirsNeedsManualReview).toBe(false);
+    expect(second.noHeirsNeedsManualReview).toBe(true);
+    expect(second.results.some(result => result.heirId === 'treasury')).toBe(false);
   });
 
   it('proves combined total (inheritedFromParentAmount + ownSeparateAssets) flows into stage calculateInheritance', async () => {
