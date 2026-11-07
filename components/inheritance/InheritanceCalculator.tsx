@@ -23,6 +23,7 @@ import { formatDZDAmount } from '@/lib/inheritance/document-branding';
 export interface MunasakhatStage {
   id: string;
   deceasedName?: string;
+  deceasedGender?: 'male' | 'female';
   estate?: number;
   parentHeirId?: string;
   deceasedHeirId?: string;
@@ -143,7 +144,7 @@ export default function InheritanceCalculator({
     savedCases, setSavedCases,
     toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, updateImpediment,
     addMunasakhatStage, removeStage,
-    updateStageName, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
+    updateStageName, updateStageGender, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
     acknowledgeStageExclusion,
     resetCalculator, saveCurrentCase, updateSavedCase, loadCase,
