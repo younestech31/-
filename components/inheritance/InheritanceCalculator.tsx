@@ -156,6 +156,7 @@ export default function InheritanceCalculator({
     updateStageName, updateStageGender, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
     updateStageNoDistantKindredConfirmation,
+    updateStageSpouseEligibilityConfirmation,
     updateStagePregnancy,
     updateStagePregnancyDisputed,
     updateStageMinorHeirPresent,
@@ -190,7 +191,8 @@ export default function InheritanceCalculator({
       || Boolean(stageResult.minorHeirNeedsJudicialPartition)
       || Boolean(stageResult.deathOrderNeedsManualReview)
       || Boolean(stageResult.involuntaryKillerNeedsCompensationReview)
-      || Boolean(stageResult.missingHeirNeedsManualReview);
+      || Boolean(stageResult.missingHeirNeedsManualReview)
+      || Boolean(stageResult.spouseEligibilityNeedsReview);
   });
 
   useEffect(() => {
@@ -484,7 +486,7 @@ export default function InheritanceCalculator({
             currentStageIndex={currentStageIndex}
             currentNetEstate={currentNetEstate}
             estate={estate} debts={debts} funeralCosts={funeralCosts} bequest={bequest} netEstate={netEstate}
-            deceasedGender={deceasedGender} setDeceasedGender={setDeceasedGender}
+            deceasedGender={deceasedGender} setDeceasedGender={(gender) => { setDeceasedGender(gender); updateStageSpouseEligibilityConfirmation(false); }}
             setEstate={(value) => { setEstate(value); updateStageDiyahExcludedConfirmation(false); }} setDebts={setDebts} setFuneralCosts={setFuneralCosts} setBequest={setBequest}
             updateStageName={updateStageName}
             updateStageMandatoryBequest={updateStageMandatoryBequest}
@@ -493,6 +495,7 @@ export default function InheritanceCalculator({
             updateStageFinancialField={updateStageFinancialField}
             updateStageChildrenFromOtherUnion={updateStageChildrenFromOtherUnion}
             updateStageNoDistantKindredConfirmation={updateStageNoDistantKindredConfirmation}
+            updateStageSpouseEligibilityConfirmation={updateStageSpouseEligibilityConfirmation}
             updateStagePregnancy={updateStagePregnancy}
             updateStagePregnancyDisputed={updateStagePregnancyDisputed}
             updateStageMinorHeirPresent={updateStageMinorHeirPresent}
