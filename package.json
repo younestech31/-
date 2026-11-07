@@ -14,7 +14,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
-    "clean": "next clean"
+    "clean": "next clean",
+    "license:keys": "node scripts/license-keys.mjs",
+    "license:issue": "node scripts/issue-license.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
