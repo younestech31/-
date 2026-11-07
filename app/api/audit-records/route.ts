@@ -61,8 +61,8 @@ export async function GET(_req: NextRequest) {
       .from(auditRecords)
       .orderBy(asc(auditRecords.createdAt));
 
-    // This is a graph of client-created hash chains, not one global sequential
-    // chain. Validate every predecessor reference against the stored hashes.
+    // This checks predecessor references only. Hashes are client-submitted and
+    // this endpoint does not recompute payload hashes or verify digital signatures.
     const hashes = new Set(records.map(record => record.combinedHash));
     let chainValid = true;
     let brokenAtRecord: string | null = null;
@@ -78,9 +78,12 @@ export async function GET(_req: NextRequest) {
     }
 
     return NextResponse.json({
-      chainValid,
+      predecessorReferencesPresent: chainValid,
       totalRecords: records.length,
       brokenAtRecord,
+      verificationScope: 'predecessor-reference-only',
+      cryptographicIntegrityVerified: false,
+      digitalSignatureVerified: false,
     });
   } catch {
     return NextResponse.json({ error: 'Unable to read audit ledger' }, { status: 500 });
@@ -132,8 +135,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Database connection unavailable' }, { status: 503 });
     }
 
-    // Records are append-only. A repeated identical submission is idempotent;
-    // a conflicting payload with the same hash is rejected, never overwritten.
+    // Records are append-only, but the hash is supplied by the client and is
+    // not recomputed here. This endpoint is a metadata ledger, not a signature authority.
+    // A repeated identical submission is idempotent; conflicting metadata is rejected.
     const existing = await db
       .select()
       .from(auditRecords)
