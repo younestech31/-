@@ -76,7 +76,11 @@ export default function SavedCasesModal({
         ? await exportEncryptedBackup(backupPassphrase)
         : await importEncryptedBackup(backupFile as File, backupPassphrase);
       if (completed) {
-        closeBackupDialog();
+        setBackupMode(null);
+        setBackupPassphrase('');
+        setBackupPassphraseConfirmation('');
+        setBackupFile(null);
+        setBackupError('');
       } else {
         setBackupError('لم تكتمل العملية. راجع رسالة التنبيه وتحقق من صلاحية ترخيص Pro.');
       }

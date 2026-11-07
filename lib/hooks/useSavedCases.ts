@@ -346,7 +346,7 @@ export function useSavedCases(
           existingIds.add(savedCase.id);
           return savedCase;
         }
-        const replacementId = `case-import-${globalThis.crypto.randomUUID()}`;
+        const replacementId = `case-import-${globalThis.crypto.randomUUID?.() ?? Array.from(globalThis.crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')}`;
         existingIds.add(replacementId);
         return { ...savedCase, id: replacementId };
       });
