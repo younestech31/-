@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyExportToken } from '@/lib/auth/session';
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib';
 
-const MAX_PDF_BYTES = 20 * 1024 * 1024;
+// Keep base64 + JSON framing safely below Vercel Functions' 4.5 MB body limit.
+const MAX_PDF_BYTES = 3 * 1024 * 1024;
 const MAX_BASE64_CHARS = Math.ceil(MAX_PDF_BYTES / 3) * 4;
 const MAX_REQUEST_BYTES = MAX_BASE64_CHARS + 4096;
 
