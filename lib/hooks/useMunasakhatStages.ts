@@ -330,6 +330,20 @@ export function useMunasakhatStages(
     });
   }, [currentStageIndex]);
 
+  const updateStageDeathOrderUncertain = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          deathOrderUncertain: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
   const acknowledgeStageExclusion = useCallback((heirId: string) => {
     setMunasakhatStages(prev => {
       const next = [...prev];
@@ -378,6 +392,7 @@ export function useMunasakhatStages(
     updateStagePregnancy,
     updateStagePregnancyDisputed,
     updateStageMinorHeirPresent,
+    updateStageDeathOrderUncertain,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
   };
