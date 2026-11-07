@@ -107,7 +107,7 @@ export default function LicenseManager() {
   const whatsappUrl = normalizedWhatsAppNumber.length >= 8 && normalizedWhatsAppNumber.length <= 15
     ? 'https://wa.me/' + normalizedWhatsAppNumber + '?text=' + encodeURIComponent(requestMessage)
     : '';
-  const emailUrl = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(supportEmail)
+  const emailUrl = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail)
     ? 'mailto:' + supportEmail + '?subject=' + encodeURIComponent('طلب تفعيل مواريث Pro') + '&body=' + encodeURIComponent(requestMessage)
     : '';
   const hasConfiguredContact = Boolean(whatsappUrl || emailUrl);
