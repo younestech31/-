@@ -1463,7 +1463,9 @@ export function resolveResidue(state: PipelineState): PipelineState {
 // Stage 6: Awl (العول) Application
 export function applyAwlIfNeeded(state: PipelineState): PipelineState {
   const { results, netEstate } = state;
-  const inheritanceResults = results.filter(r => r.heirId !== 'voluntary_bequest' && r.heirId !== 'mandatory_bequest');
+  const inheritanceResults = results.filter(r =>
+    !['voluntary_bequest', 'mandatory_bequest', 'unborn_withholding'].includes(r.heirId)
+  );
 
   let traditionalBase = inheritanceResults.filter(r => !r.isBlocked && r.shareFraction.compare(0) > 0)
     .reduce((acc, r) => lcm(acc, Number(r.shareFraction.d)), 1);
@@ -1504,7 +1506,9 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
   const { results, netEstate, activeHeirs, remainingFraction } = state;
   let { calcType, traditionalBase } = state;
 
-  const inheritanceResults = results.filter(r => r.heirId !== 'voluntary_bequest' && r.heirId !== 'mandatory_bequest');
+  const inheritanceResults = results.filter(r =>
+    !['voluntary_bequest', 'mandatory_bequest', 'unborn_withholding'].includes(r.heirId)
+  );
   const totalShares = inheritanceResults.reduce((sum, r) => sum.add(r.isBlocked ? new Fraction(0) : r.shareFraction), new Fraction(0));
 
   if (totalShares.compare(1) < 0 && remainingFraction.compare(0) > 0) {
@@ -1645,7 +1649,11 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
   distributeAmounts(results, netEstate);
 
   // Tas-hih (Correction factor)
-  const activeCalculatedHeirs = results.filter(r => !r.isBlocked && r.shareFraction.compare(0) !== 0);
+  // The pregnancy reserve is a held amount from the pre-distribution estate,
+  // not an heir fraction in the residual estate. Keep it outside the heir base.
+  const activeCalculatedHeirs = results.filter(r =>
+    r.heirId !== 'unborn_withholding' && !r.isBlocked && r.shareFraction.compare(0) !== 0
+  );
   let tasHihFactor = 1;
   activeCalculatedHeirs.forEach(r => {
     const activeCount = Math.max(1, r.count);
@@ -1660,6 +1668,14 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
   const finalBase = traditionalBase * tasHihFactor;
 
   results.forEach(r => {
+    if (r.heirId === 'unborn_withholding') {
+      // It is already an absolute reserved amount and is not part of the
+      // post-reservation inheritance base.
+      r.problemBase = 0;
+      r.shares = 0;
+      r.calculationType = calcType;
+      return;
+    }
     r.problemBase = finalBase;
     r.shares = Math.round(r.shareFraction.mul(finalBase).valueOf());
     r.calculationType = calcType;
@@ -1688,7 +1704,9 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
 }
 
 function distributeAmounts(res: CalculationResult[], totalNetEstate: number) {
-  const heirsToDistribute = res.filter(r => r.heirId !== 'mandatory_bequest' && r.heirId !== 'voluntary_bequest' && !r.isBlocked);
+  const heirsToDistribute = res.filter(r =>
+    !['mandatory_bequest', 'voluntary_bequest', 'unborn_withholding'].includes(r.heirId) && !r.isBlocked
+  );
 
   const totalSharesFraction = heirsToDistribute.reduce((sum, r) => sum.add(r.shareFraction), new Fraction(0));
   if (totalSharesFraction.compare(0) === 0) return;
