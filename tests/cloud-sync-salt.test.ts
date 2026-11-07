@@ -38,7 +38,7 @@ async function loadGetRoute(options: LoadOptions) {
   }));
 
   const updateSet = vi.fn((values: { cloudSyncSalt: string }) => ({
-    where: async () => ({
+    where: () => ({
       returning: async () => updateRows !== undefined
         ? updateRows
         : [{ cloudSyncSalt: values.cloudSyncSalt }],
