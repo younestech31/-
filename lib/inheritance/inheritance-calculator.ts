@@ -1449,16 +1449,21 @@ export function resolveResidue(state: PipelineState): PipelineState {
             const totalParts = new Fraction(broCount).mul(2).add(sisCount);
             const partShare = remainingFraction.div(totalParts);
 
-            addResult('paternal_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
-            if (sisCount > 0) {
+            if (!pbBlocking.isBlocked && !skipInSiblingSection.has('paternal_brother')) {
+              addResult('paternal_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
+            }
+            if (sisCount > 0 && !psBlocking.isBlocked && !skipInSiblingSection.has('paternal_sister')) {
               addResult('paternal_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
             }
             remainingFraction = new Fraction(0);
           } else {
             // Do not assign negative shares to residuary paternal siblings.
-            // Keep the negative balance intact for the Awl stage.
-            addResult('paternal_brother', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
-            if (sisCount > 0) {
+            // Preserve an already allocated mu'adadah award in the branch
+            // above; the later sibling pass must not overwrite it with zero.
+            if (!pbBlocking.isBlocked && !skipInSiblingSection.has('paternal_brother')) {
+              addResult('paternal_brother', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            }
+            if (sisCount > 0 && !psBlocking.isBlocked && !skipInSiblingSection.has('paternal_sister')) {
               addResult('paternal_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
             }
           }
