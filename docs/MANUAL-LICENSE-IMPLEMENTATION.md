@@ -11,6 +11,10 @@ The proposed pilot periods and prices are product decisions, not technical const
 
 Prices belong in one presentation/configuration layer. They must not affect calculation formulas or the inheritance engine.
 
+## Offline build assets
+
+Arabic Cairo and Amiri font assets are served from `public/fonts/` and loaded with `next/font/local`. This avoids a Google Fonts network dependency during CI and Vercel builds. Keep the repository font files as the single source of truth; do not switch back to remote `next/font/google` imports.
+
 ## Trust boundaries
 
 1. The customer's browser creates a random installation ID and stores it locally.
