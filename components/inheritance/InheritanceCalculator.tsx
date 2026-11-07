@@ -44,6 +44,7 @@ export interface MunasakhatStage {
   bequest?: number;
   secondDeceasedHasChildrenFromOtherUnion?: boolean;
   hasChildrenFromOtherUnion?: boolean;
+  confirmedNoDistantKindred?: boolean;
   acknowledgedExclusions?: string[];
   heirs?: import('@/lib/inheritance/inheritance-calculator').HeirPresence[];
 }
@@ -147,6 +148,7 @@ export default function InheritanceCalculator({
     addMunasakhatStage, removeStage,
     updateStageName, updateStageGender, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
+    updateStageNoDistantKindredConfirmation,
     acknowledgeStageExclusion,
     resetCalculator, saveCurrentCase, updateSavedCase, loadCase,
     deleteCase, confirmDelete, exportData, importData, loadClassicCase, exportToExcelApplet, exportToWordApplet, exportToPDFApplet,
@@ -472,6 +474,7 @@ export default function InheritanceCalculator({
             updateStageAlreadyInherited={updateStageAlreadyInherited}
             updateStageFinancialField={updateStageFinancialField}
             updateStageChildrenFromOtherUnion={updateStageChildrenFromOtherUnion}
+            updateStageNoDistantKindredConfirmation={updateStageNoDistantKindredConfirmation}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}
             className={expandedSection === 'estate' || mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
           />
