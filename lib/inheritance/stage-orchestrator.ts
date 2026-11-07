@@ -128,6 +128,9 @@ export function runInheritanceOrchestration(
       stageBequest,
       stage.hasMandatoryBequest && !tanzilNeedsManualReview,
       deceasedChildrenForCalculation,
+      'stillborn',
+      false,
+      stage.confirmedNoDistantKindred === true,
     );
 
     if (hasUnverifiedOverride) {
@@ -141,6 +144,7 @@ export function runInheritanceOrchestration(
     const net = stageEstate - stageDebts - stageFuneral - actualBequest - mandatoryBequest;
 
     let noHeirsRedistribution: StageResult['noHeirsRedistribution'] = null;
+    const noHeirsNeedsManualReview = res.some(result => result.heirId === 'article_180_review');
 
     if (index > 0 && stage.parentHeirId) {
       const activeHeirs = res.filter(
@@ -150,7 +154,7 @@ export function runInheritanceOrchestration(
              r.heirId !== 'treasury'
       );
 
-      if (activeHeirs.length === 0 && net > 0) {
+      if (activeHeirs.length === 0 && net > 0 && stage.confirmedNoDistantKindred === true) {
         const parentStageData = stagesData.find(
           sd => sd.stage.id === stage.parentStageId
         );
@@ -170,6 +174,7 @@ export function runInheritanceOrchestration(
       hasUnverifiedOverride,
       requiresManualClassification,
       tanzilNeedsManualReview,
+      noHeirsNeedsManualReview,
     });
   }
 
