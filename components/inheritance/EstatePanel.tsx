@@ -345,7 +345,7 @@ const EstatePanel = memo(function EstatePanel({
                 {TANZEEL_RULES.conditions.map(cond => (
                   <li key={cond.id} className="flex flex-col gap-1 text-amber-700 text-xs">
                     <div className="flex items-start gap-2">
-                      <span className="mt-0.5 text-green-600 shrink-0">✓</span>
+                      <span className="mt-0.5 text-amber-600 shrink-0">•</span>
                       <span>{cond.conditionAr} (م.{cond.article})</span>
                     </div>
                     {cond.fieldKey && (
@@ -364,8 +364,8 @@ const EstatePanel = memo(function EstatePanel({
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-[10px] text-amber-600">
-                تأكد من انطباق هذه الشروط قبل تفعيل التنزيل
+              <p className="mt-2 text-[10px] text-amber-700 font-semibold">
+                هذه قائمة مراجعة وليست إثباتاً آلياً لتحقق الشروط. عند وجود أحفاد، يُعلّق حساب التنزيل الآلي إلى أن تتوفر بيانات كل فرع ومستفيد على حدة.
               </p>
             </div>
           </>
