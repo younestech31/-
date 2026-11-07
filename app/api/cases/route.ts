@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyPaidSubscription } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/client';
 import { savedCases, organizations } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import crypto from 'crypto';
 
@@ -37,15 +37,42 @@ export async function GET(_req: NextRequest) {
       .from(organizations)
       .where(eq(organizations.id, session.organizationId));
 
-    let cloudSyncSalt = orgRows.length > 0 ? orgRows[0].cloudSyncSalt : null;
+    const organization = orgRows[0];
+    if (!organization) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    }
+
+    let cloudSyncSalt: string | null = organization.cloudSyncSalt;
     if (!cloudSyncSalt) {
-      cloudSyncSalt = crypto.randomBytes(16).toString('hex');
-      if (orgRows.length > 0) {
-        await db
-          .update(organizations)
-          .set({ cloudSyncSalt })
+      // Claim the unset salt atomically. Concurrent first-time requests may
+      // generate candidates, but only one can populate the NULL database value.
+      const candidateSalt = crypto.randomBytes(16).toString('hex');
+      const updatedOrganizations = await db
+        .update(organizations)
+        .set({ cloudSyncSalt: candidateSalt })
+        .where(and(
+          eq(organizations.id, session.organizationId),
+          isNull(organizations.cloudSyncSalt)
+        ))
+        .returning({ cloudSyncSalt: organizations.cloudSyncSalt });
+
+      cloudSyncSalt = updatedOrganizations[0]?.cloudSyncSalt ?? null;
+
+      if (!cloudSyncSalt) {
+        // Another concurrent request won the claim; use its persisted value.
+        const latestOrganizations = await db
+          .select()
+          .from(organizations)
           .where(eq(organizations.id, session.organizationId));
+        cloudSyncSalt = latestOrganizations[0]?.cloudSyncSalt ?? null;
       }
+    }
+
+    if (!cloudSyncSalt || !/^[a-f0-9]{32}$/i.test(cloudSyncSalt)) {
+      return NextResponse.json(
+        { error: 'Cloud encryption salt is unavailable or invalid. No fallback salt was used.' },
+        { status: 503 }
+      );
     }
 
     const cases = await db
