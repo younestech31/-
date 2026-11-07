@@ -474,3 +474,56 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
     });
   });
 });
+
+describe('Centime-precision estate distribution', () => {
+  it('preserves every centime when one heir receives the whole distributable estate', () => {
+    const estate = 1_000.55;
+    const results = calculateInheritance(
+      [{ heirId: 'son', count: 1, isPresent: true }],
+      estate,
+      0,
+      0,
+      0,
+    );
+    const son = results.find(result => result.heirId === 'son');
+
+    expect(son?.amount).toBe(estate);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(estate);
+  });
+
+  it('uses largest remainders in centimes for a two-to-one residue split', () => {
+    const estate = 1_000.55;
+    const results = calculateInheritance(
+      [
+        { heirId: 'son', count: 1, isPresent: true },
+        { heirId: 'daughter', count: 1, isPresent: true },
+      ],
+      estate,
+      0,
+      0,
+      0,
+    );
+    const son = results.find(result => result.heirId === 'son');
+    const daughter = results.find(result => result.heirId === 'daughter');
+
+    // 100,055 centimes at 2:1: the extra centime goes to the larger remainder.
+    expect(son?.amount).toBe(667.03);
+    expect(daughter?.amount).toBe(333.52);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(estate);
+    for (const result of [son, daughter]) {
+      expect(Number.isInteger(Math.round((result?.amount ?? 0) * 100))).toBe(true);
+    }
+  });
+
+  it('does not round a one-centime estate down to zero', () => {
+    const results = calculateInheritance(
+      [{ heirId: 'son', count: 1, isPresent: true }],
+      0.01,
+      0,
+      0,
+      0,
+    );
+
+    expect(results.find(result => result.heirId === 'son')?.amount).toBe(0.01);
+  });
+});
