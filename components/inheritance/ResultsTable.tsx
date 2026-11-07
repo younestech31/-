@@ -292,9 +292,9 @@ const ResultsTable = memo(function ResultsTable({
             aria-live="assertive"
             className="p-4 mb-4 bg-rose-50 border-2 border-rose-300 text-rose-950 text-sm rounded-lg shadow-sm"
           >
-            <p className="font-bold">تم حجب عرض الأنصبة مؤقتًا لوجود استبعادات غير مراجعة</p>
+            <p className="font-bold">تم تعليق عرض الأنصبة مؤقتًا لوجود صلات قرابة غير محسومة</p>
             <p className="text-xs mt-1 leading-relaxed">
-              لن نعرض توزيعًا قد يُفهم على أنه نتيجة نهائية بينما توجد أسماء أُسقطت تلقائيًا وفق قواعد المناسخة. راجع كل حالة أدناه: أزل اختيار من لا يدخل في المسألة، أو أكّد أن قاعدة الاستبعاد لا تنطبق لإدراج الوارث بعد مراجعتك.
+              هذه تنبيهات مراجعة وليست أحكام استبعاد. لم يعد النظام يسقط هذه الفئات تلقائيًا؛ راجع هوية كل شخص وحياته وصلته وقت الوفاة. أزل من لا يدخل في المسألة، أو أكّد إدراج من ثبتت أهليته.
             </p>
             <ul className="mt-3 space-y-2">
               {(currentStageValidation.unacknowledgedExclusions || []).map(warning => (
@@ -316,9 +316,9 @@ const ResultsTable = memo(function ResultsTable({
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <p className="font-bold">تنبيه هام: تم تجاوز استبعاد الميراث يدوياً في هذه المرحلة</p>
+              <p className="font-bold">تنبيه: تم إدراج وارث بعد تأكيد مراجعة صلة القرابة</p>
               <p className="text-xs text-amber-700 mt-1">
-                لقد تم تفعيل خيار تجاوز الاستبعاد التلقائي للوارث في هذه المرحلة يدوياً. هذا التجاوز يعتبر غير معتمد فقهياً/قانونياً وفقاً لقواعد تصفية المناسخات، ولذلك تم حظر إصدار المستندات الرسمية (المصادقة التوثيقية) لهذه القضية.
+                أُدرج الوارث بعد تأكيد المستخدم أن تنبيه المراجعة لا يمنع أهليته. يلزم التحقق المستقل من هوية الشخص وحالته وقرابته؛ لذلك تبقى صادرات المستندات الرسمية معطلة لهذه القضية.
               </p>
             </div>
           </div>
@@ -327,7 +327,7 @@ const ResultsTable = memo(function ResultsTable({
         {currentStageValidation?.hasUnacknowledgedExclusions ? (
           <div className="p-4 mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-900 text-sm">
             <p className="font-bold">النتيجة الحسابية مخفية حتى إتمام المراجعة</p>
-            <p className="text-xs mt-1">بعد مراجعة التحذيرات وإزالة أسباب الالتباس، ستظهر الأنصبة تلقائيًا. لا يمكن تصدير المستندات أو نسخ النتائج مع بقاء هذه المراجعة معلّقة.</p>
+            <p className="text-xs mt-1">بعد مراجعة كل حالة، أزل من لا يدخل في التركة أو أكد إدراج من ثبتت أهليته. ستظهر الأنصبة بعد اكتمال المراجعة، وتظل الصادرات الرسمية محظورة إذا تم تأكيد إدراج حالة تحتاج إلى مراجعة مستقلة.</p>
           </div>
         ) : results.length > 0 ? (
           viewMode === 'table' ? (

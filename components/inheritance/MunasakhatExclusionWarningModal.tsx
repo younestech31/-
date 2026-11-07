@@ -38,7 +38,7 @@ export default function MunasakhatExclusionWarningModal({
         <div className="flex justify-between items-center p-4 border-b border-[#e2e8f0] bg-amber-50 shrink-0 rounded-t-lg">
           <div className="flex items-center gap-2 text-amber-800">
             <AlertTriangle size={20} className="text-amber-600" />
-            <h3 className="font-bold text-sm">تنبيه: استبعاد ورثة محتمل في المناسخة</h3>
+            <h3 className="font-bold text-sm">تنبيه: صلة قرابة تحتاج إلى مراجعة في المناسخة</h3>
           </div>
           <button onClick={onClose} className="text-[#64748b] hover:text-[#0f172a] transition-colors">
             <X size={20} />
@@ -48,8 +48,8 @@ export default function MunasakhatExclusionWarningModal({
         {/* Body */}
         <div className="p-5 bg-white flex-grow">
           <p className="text-xs text-[#334155] mb-4 leading-relaxed">
-            تم اكتشاف ورثة تم تحديدهم للمتوفى الفرعي ولكنهم قد يكونون مستبعدين فقهياً بناءً على صلتهم بالمسألة الأصلية.
-            يرجى مراجعة كل حالة وتأكيد ما إذا كان الوارث ينطبق عليه الاستبعاد أم أنه وارث حقيقي مستقل (مثلاً: ابن من زواج آخر للمتوفاة):
+            لا يستطيع النظام حسم أهلية شخص بعينه من فئة القرابة وحدها. تحقق من هويته، وحالته وقت وفاة صاحب هذه التركة، وصلته التفصيلية، وما إذا كان هو ذات الوارث المتوفى في مرحلة سابقة.
+            إذا لم يكن مستحقاً فأزله من قائمة الورثة؛ وإذا ثبتت أهليته فأكد إدراجه. هذا التنبيه ليس حكماً شرعياً نهائياً:
           </p>
 
           <div className="space-y-3 mb-5 max-h-60 overflow-y-auto">
@@ -68,7 +68,7 @@ export default function MunasakhatExclusionWarningModal({
                     </span>
                     {warning.source && (
                       <span className="text-[10px] text-slate-500 leading-normal block mt-1">
-                        المرجع المسجل: {warning.source}
+                        ملاحظة مرجعية للمراجعة فقط: {warning.source}
                       </span>
                     )}
                   </div>
@@ -79,7 +79,7 @@ export default function MunasakhatExclusionWarningModal({
                   className="mt-1 flex items-center justify-center gap-1.5 w-full bg-[#0a5d38] hover:bg-[#084e2e] text-white py-1.5 px-3 rounded-md text-[11px] font-bold transition-all shadow-sm"
                 >
                   <Check size={13} />
-                  <span>أؤكد أن هذا الوارث لا ينطبق على هذه الحالة (إدراج في الحساب)</span>
+                  <span>أؤكد أن هذا الشخص حيّ ومستحق في هذه التركة (إدراجه مع منع التصدير الرسمي)</span>
                 </button>
               </div>
             ))}

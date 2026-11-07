@@ -1,14 +1,18 @@
-// خريطة وسجل استبعاد الورثة في المسائل الثانوية (المناسخات)
-// يتضمن كل قانون استبعاد مرجعاً شرعياً أو نصاً من قانون الأسرة الجزائري أو سابقة توثيقية
+// قواعد مراجعة مبدئية لفئات القرابة في المسائل الثانوية (المناسخات).
+// هذه القواعد مأخوذة من ملاحظات قديمة ولا تكفي وحدها لاستبعاد شخص بعينه؛
+ // يجب التحقق من هوية الوارث وحياته وقرابته التفصيلية وقت وفاة كل مورث.
 
 export interface MunasakhatExclusionRule {
   parentHeirId: string;
+  /** Legacy category matches used only to raise a manual review prompt. */
   excludedHeirIds: string[];
+  /** Legacy note explaining why this category should be reviewed, not excluded. */
   reason: string;
-  source: string; // مرجع فقهي أو قانوني إجباري
+  /** Historical source note; not an executable legal authority. */
+  source: string;
 }
 
-export const MUNASAKHAT_EXCLUSION_RULES: MunasakhatExclusionRule[] = [
+export const MUNASAKHAT_REVIEW_RULES: MunasakhatExclusionRule[] = [
   {
     parentHeirId: 'son',
     excludedHeirIds: ['father', 'grandfather', 'paternal_grandmother', 'mother', 'maternal_grandmother', 'full_brother', 'paternal_brother', 'full_sister', 'paternal_sister'],
@@ -87,46 +91,37 @@ export const MUNASAKHAT_EXCLUSION_RULES: MunasakhatExclusionRule[] = [
     reason: 'مستبعد: استنتاج غير منطقي (انقطاع الرابطة الزوجية بالوفاة)',
     source: 'المادة 130 و 139 من قانون الأسرة الجزائري (انحلال عقد الزواج بالوفاة والشرط التوثيقي المعمول به)',
   },
-];
+ ];
+
+/** @deprecated Legacy name retained for saved integrations; entries are review prompts, not exclusion decisions. */
+export const MUNASAKHAT_EXCLUSION_RULES = MUNASAKHAT_REVIEW_RULES;
 
 export const isHeirExcludedInMunasakhat = (
   heirId: string,
   parentHeirId: string,
   secondDeceasedHasChildrenFromOtherUnion: boolean = false
-): { excluded: boolean; reason: string; source: string } => {
-  if (
-    secondDeceasedHasChildrenFromOtherUnion &&
-    ['father', 'mother'].includes(parentHeirId) &&
-    ['son', 'daughter', 'son_son', 'granddaughter'].includes(heirId)
-  ) {
-    return { excluded: false, reason: '', source: '' };
+): { excluded: boolean; requiresReview: boolean; reason: string; source: string } => {
+  const rule = MUNASAKHAT_REVIEW_RULES.find(
+    candidate => candidate.parentHeirId === parentHeirId
+      && candidate.excludedHeirIds.includes(heirId)
+  );
+
+  if (!rule) {
+    return { excluded: false, requiresReview: false, reason: '', source: '' };
   }
 
-  const rule = MUNASAKHAT_EXCLUSION_RULES.find(r => r.parentHeirId === parentHeirId);
-  
-  if (rule && rule.excludedHeirIds.includes(heirId)) {
-    let reason = rule.reason;
-    
-    if (['father', 'mother', 'grandfather', 'paternal_grandmother', 'maternal_grandmother', 'maternal_grandfather'].includes(heirId)) {
-      reason = 'مستبعد: الأصول مشتركة مع المسألة الأم';
-    } else if (['full_brother', 'full_sister', 'paternal_brother', 'paternal_sister'].includes(heirId)) {
-      reason = 'مستبعد: الإخوة/الأخوات هم ورثة في الأساس (كأعمام أو غيرهم)';
-    } else if (['son', 'daughter', 'son_son', 'granddaughter'].includes(heirId) && ['father', 'mother'].includes(parentHeirId)) {
-      reason = 'مستبعد: الفرع النازل هو المتوفى الأصلي';
-    } else if (['husband', 'wife'].includes(heirId) && ['husband', 'wife'].includes(parentHeirId)) {
-      reason = 'مستبعد: استنتاج غير منطقي (لا يمكن أن يرث الزوج زوجته المتوفاة بعده)';
-    }
+  const otherUnionContext = secondDeceasedHasChildrenFromOtherUnion
+    ? ' ويوجد تصريح بوجود أبناء من اتحاد آخر؛ يجب التحقق من هوية كل ابن وصلته بالمتوفى.'
+    : '';
 
-    return {
-      excluded: true,
-      reason,
-      source: rule.source,
-    };
-  }
-
-  return { excluded: false, reason: '', source: '' };
+  return {
+    // Relationship categories alone never prove that a specific person is barred.
+    excluded: false,
+    requiresReview: true,
+    reason: 'تتطلب هذه الصلة مراجعة فردية. تحقق من هوية الشخص، وحياته وقت وفاة صاحب هذه التركة، وصلته التفصيلية، وما إذا كان هو ذات الوارث المتوفى في مرحلة سابقة.' + otherUnionContext,
+    source: 'ملاحظة مرجعية قديمة للمراجعة القانونية فقط — ليست قاعدة استبعاد آليًا: ' + rule.source,
+  };
 };
-
 export function validateMunasakhatStageExclusions(
   stage: { deceasedHeirId?: string; acknowledgedExclusions?: string[]; heirs?: { heirId: string; isPresent?: boolean; count?: number }[]; hasChildrenFromOtherUnion?: boolean },
   _prevRes: unknown,
@@ -154,7 +149,7 @@ export function validateMunasakhatStageExclusions(
           parentHeirId,
           stage.hasChildrenFromOtherUnion ?? false
         );
-        if (exclusion.excluded) {
+        if (exclusion.requiresReview) {
           const item = { heirId: h.heirId, reason: exclusion.reason, source: exclusion.source };
           if (acknowledged.includes(h.heirId)) {
             acknowledgedExclusionsList.push(item);

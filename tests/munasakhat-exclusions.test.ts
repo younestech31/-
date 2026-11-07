@@ -1,55 +1,117 @@
 import { describe, it, expect } from 'vitest';
-import { isHeirExcludedInMunasakhat, MUNASAKHAT_EXCLUSION_RULES } from '../data/munasakhat-exclusions';
+import {
+  isHeirExcludedInMunasakhat,
+  MUNASAKHAT_REVIEW_RULES,
+  validateMunasakhatStageExclusions,
+} from '../data/munasakhat-exclusions';
+import { runInheritanceOrchestration } from '../lib/inheritance/stage-orchestrator';
+import type { MunasakhatStage } from '../components/inheritance/InheritanceCalculator';
 
-describe('Munasakhat Exclusions Data Matrix & Source Citations Tests', () => {
-  it('requires every rule in MUNASAKHAT_EXCLUSION_RULES to have a non-empty source citation', () => {
-    expect(MUNASAKHAT_EXCLUSION_RULES.length).toBeGreaterThan(0);
-    MUNASAKHAT_EXCLUSION_RULES.forEach(rule => {
-      expect(rule.parentHeirId).toBeDefined();
-      expect(typeof rule.parentHeirId).toBe('string');
+describe('Munasakhat relationship review rules', () => {
+  it('keeps legacy category rules documented as review prompts with source notes', () => {
+    expect(MUNASAKHAT_REVIEW_RULES.length).toBeGreaterThan(0);
+    MUNASAKHAT_REVIEW_RULES.forEach(rule => {
+      expect(rule.parentHeirId).toBeTruthy();
       expect(rule.excludedHeirIds.length).toBeGreaterThan(0);
-      expect(rule.source).toBeDefined();
-      expect(typeof rule.source).toBe('string');
       expect(rule.source.trim().length).toBeGreaterThan(10);
     });
   });
 
-  it('excludes parents and grand-parents when deceased secondary heir is a descendant (son/daughter)', () => {
-    const resSonFather = isHeirExcludedInMunasakhat('father', 'son');
-    expect(resSonFather.excluded).toBe(true);
-    expect(resSonFather.reason).toContain('مستبعد: الأصول مشتركة مع المسألة الأم');
-    expect(resSonFather.source.length).toBeGreaterThan(5);
-
-    const resDaughterMother = isHeirExcludedInMunasakhat('mother', 'daughter');
-    expect(resDaughterMother.excluded).toBe(true);
-    expect(resDaughterMother.source.length).toBeGreaterThan(5);
+  it('flags a mother in a son estate for review without automatically excluding her', () => {
+    const assessment = isHeirExcludedInMunasakhat('mother', 'son');
+    expect(assessment.excluded).toBe(false);
+    expect(assessment.requiresReview).toBe(true);
+    expect(assessment.reason).toContain('مراجعة فردية');
+    expect(assessment.source).toContain('ليست قاعدة استبعاد');
   });
 
-  it('excludes siblings when parentHeirId is a sibling', () => {
-    const resFullBrother = isHeirExcludedInMunasakhat('full_brother', 'full_brother');
-    expect(resFullBrother.excluded).toBe(true);
-    expect(resFullBrother.reason).toContain('مستبعد: الإخوة/الأخوات هم ورثة في الأساس');
-    expect(resFullBrother.source.length).toBeGreaterThan(5);
+  it('flags siblings in a sibling estate for review without automatically excluding them', () => {
+    const assessment = isHeirExcludedInMunasakhat('full_brother', 'full_brother');
+    expect(assessment.excluded).toBe(false);
+    expect(assessment.requiresReview).toBe(true);
   });
 
-  it('excludes descendant of deceased original when parentHeirId is a father or mother', () => {
-    const resFatherSon = isHeirExcludedInMunasakhat('son', 'father');
-    expect(resFatherSon.excluded).toBe(true);
-    expect(resFatherSon.reason).toContain('مستبعد: الفرع النازل هو المتوفى الأصلي');
-    expect(resFatherSon.source.length).toBeGreaterThan(5);
+  it('flags descendant categories after an ascendant death for individual review', () => {
+    const assessment = isHeirExcludedInMunasakhat('son', 'father');
+    expect(assessment.excluded).toBe(false);
+    expect(assessment.requiresReview).toBe(true);
   });
 
-  it('excludes spouse inheritance loop (husband/wife)', () => {
-    const resSpouse = isHeirExcludedInMunasakhat('husband', 'wife');
-    expect(resSpouse.excluded).toBe(true);
-    expect(resSpouse.reason).toContain('مستبعد: استنتاج غير منطقي');
-    expect(resSpouse.source.length).toBeGreaterThan(5);
+  it('keeps the other-union context as a review prompt rather than an automatic decision', () => {
+    const assessment = isHeirExcludedInMunasakhat('son', 'mother', true);
+    expect(assessment.excluded).toBe(false);
+    expect(assessment.requiresReview).toBe(true);
+    expect(assessment.reason).toContain('اتحاد آخر');
   });
 
-  it('allows non-excluded heir combinations', () => {
-    const resWifeSon = isHeirExcludedInMunasakhat('wife', 'son');
-    expect(resWifeSon.excluded).toBe(false);
-    expect(resWifeSon.reason).toBe('');
-    expect(resWifeSon.source).toBe('');
+  it('validates unreviewed and acknowledged relationships separately', () => {
+    const stage = {
+      deceasedHeirId: 'son',
+      heirs: [{ heirId: 'mother', isPresent: true, count: 1 }],
+    };
+    const pending = validateMunasakhatStageExclusions(stage, [], 1);
+    expect(pending.hasUnacknowledgedExclusions).toBe(true);
+    expect(pending.unacknowledgedExclusions).toHaveLength(1);
+
+    const acknowledged = validateMunasakhatStageExclusions(
+      { ...stage, acknowledgedExclusions: ['mother'] },
+      [],
+      1
+    );
+    expect(acknowledged.hasUnacknowledgedExclusions).toBe(false);
+    expect(acknowledged.acknowledgedExclusions).toHaveLength(1);
+  });
+
+  function buildStages(acknowledgedExclusions: string[] = []): MunasakhatStage[] {
+    return [
+      {
+        id: 'root',
+        deceasedName: 'المتوفى الأصلي',
+        deceasedNameAr: 'المتوفى الأصلي',
+        deceasedGender: 'male',
+        hasMandatoryBequest: false,
+        heirs: [
+          { heirId: 'wife', count: 1, isPresent: true },
+          { heirId: 'son', count: 1, isPresent: true },
+        ],
+      },
+      {
+        id: 'stage-secondary',
+        deceasedName: 'الابن المتوفى',
+        deceasedNameAr: 'الابن المتوفى',
+        deceasedGender: 'male',
+        deceasedHeirId: 'son',
+        parentHeirId: 'son',
+        parentStageId: 'root',
+        parentHeirIndex: 0,
+        inheritedAmount: 120000,
+        hasMandatoryBequest: false,
+        acknowledgedExclusions,
+        heirs: [{ heirId: 'mother', count: 1, isPresent: true }],
+      },
+    ];
+  }
+
+  it('keeps a potentially eligible shared mother in the secondary calculation pending review', () => {
+    const stageResults = runInheritanceOrchestration([buildStages(), 100000, 0, 0, 0]);
+    const secondary = stageResults[1];
+
+    expect(secondary.excludedHeirWarnings?.some(warning => warning.heirId === 'mother')).toBe(true);
+    expect(secondary.results.some(result => result.heirId === 'mother')).toBe(true);
+    expect(secondary.hasUnverifiedOverride).toBe(false);
+  });
+
+  it('marks an acknowledged relationship match as non-exportable', () => {
+    const stageResults = runInheritanceOrchestration([
+      buildStages(['mother']),
+      100000,
+      0,
+      0,
+      0,
+    ]);
+    const secondary = stageResults[1];
+
+    expect(secondary.results.some(result => result.heirId === 'mother')).toBe(true);
+    expect(secondary.hasUnverifiedOverride).toBe(true);
   });
 });

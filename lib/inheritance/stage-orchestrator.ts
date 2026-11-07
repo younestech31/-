@@ -32,13 +32,13 @@ export function runInheritanceOrchestration(
     for (const h of heirsToCheck) {
       if (index === 0 || !parentHeirId) continue;
       
-      const { excluded, reason, source } = isHeirExcludedInMunasakhat(
+      const { requiresReview, reason, source } = isHeirExcludedInMunasakhat(
         h.heirId,
         parentHeirId,
         hasOtherUnion
       );
       
-      if (excluded) {
+      if (requiresReview) {
         const heirDetails = HEIRS.find(x => x.id === h.heirId);
         excludedHeirWarnings.push({
           heirId: h.heirId,
@@ -49,28 +49,19 @@ export function runInheritanceOrchestration(
       }
     }
 
-    // Second pass: filter the presence list, keeping acknowledged exclusions or those bypassed by other unions
-    let hasUnverifiedOverride = false;
+    // Review prompts are not legal exclusion decisions. Keep all selected heirs
+    // in the calculation, then hold result display until every prompt is reviewed.
+    // A user-acknowledged inclusion remains marked as unverified and cannot be exported.
+    const hasUnverifiedOverride = heirsToCheck.some(h => {
+      if (index === 0 || !parentHeirId) return false;
+      const { requiresReview } = isHeirExcludedInMunasakhat(
+        h.heirId,
+        parentHeirId,
+        hasOtherUnion
+      );
+      return requiresReview && Boolean(stage.acknowledgedExclusions?.includes(h.heirId));
+    });
     const sanitizedPresence = presenceList
-      .filter(h => {
-        if (index === 0 || !parentHeirId) return true;
-
-        const { excluded } = isHeirExcludedInMunasakhat(
-          h.heirId,
-          parentHeirId,
-          hasOtherUnion
-        );
-
-        if (excluded) {
-          const isAcknowledged = stage.acknowledgedExclusions?.includes(h.heirId);
-          if (isAcknowledged) {
-            hasUnverifiedOverride = true;
-          }
-          return isAcknowledged ?? false;
-        }
-
-        return true;
-      })
       .map(({ customNames: _customNames, ...rest }) => rest);
 
     const sonsCount = stage.deceasedSonsCount ?? (stage.deceasedChildren?.filter(c => c.type === 'son').reduce((sum, c) => sum + c.count, 0) || 0);
