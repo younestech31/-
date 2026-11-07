@@ -112,10 +112,9 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
     (globalThis as unknown as Record<string, unknown>).self = originalSelf;
   });
 
-  it('rejects malformed payloads and returns structured errors on safeParse failure', async () => {
+  it('rejects structurally malformed worker payloads and routes invalid amounts to shared review handling', async () => {
     const badPayloads = [
       { id: 999 }, // missing args
-      { id: 102, args: [sampleStages, -100, 0, 0, 0] }, // negative estate
       { id: 103, args: ["not an array", 100, 0, 0, 0] }, // wrong types
       { id: 104, args: [sampleStages, 100, 0, 0] }, // missing arguments in tuple
     ];
@@ -142,6 +141,26 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
     expect(responseMsg.id).toBe(105);
     expect(responseMsg.error).toBe('invalid_worker_input');
     expect(responseMsg.details).toBeDefined();
+
+    // Numeric domain errors are handled by the same orchestrator used by the
+    // synchronous UI; the worker schema only rejects structurally malformed data.
+    const negativeFinancialPayload = {
+      id: 106,
+      args: [sampleStages, -100, 0, 0, 0],
+    };
+    expect(WorkerInputSchema.safeParse(negativeFinancialPayload).success).toBe(true);
+    handleWorkerMessage({ data: negativeFinancialPayload } as MessageEvent);
+
+    expect(messages.length).toBe(2);
+    const financialResponse = messages[1] as {
+      id: number;
+      error?: string;
+      data?: Array<{ financialInputNeedsManualReview?: boolean; results: unknown[] }>;
+    };
+    expect(financialResponse.id).toBe(106);
+    expect(financialResponse.error).toBeUndefined();
+    expect(financialResponse.data?.[0].financialInputNeedsManualReview).toBe(true);
+    expect(financialResponse.data?.[0].results).toEqual([]);
 
     (globalThis as unknown as Record<string, unknown>).self = originalSelf;
   });
