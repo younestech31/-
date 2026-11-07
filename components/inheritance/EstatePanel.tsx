@@ -161,6 +161,7 @@ const EstatePanel = memo(function EstatePanel({
           {currentStageIndex === 0 ? (
             <input
               type="number"
+              min="0"
               value={estate === 0 ? '' : estate}
               onChange={e => setEstate(e.target.value === '' ? 0 : Number(e.target.value))}
               className="w-full p-2.5 border rounded font-mono text-lg font-bold focus:outline-none border-[#0a5d38] bg-white text-[#0a5d38]"
@@ -183,6 +184,7 @@ const EstatePanel = memo(function EstatePanel({
                 </label>
                 <input
                   type="number"
+                  min="0"
                   value={currentStage.ownSeparateAssets === undefined || currentStage.ownSeparateAssets === 0 ? '' : currentStage.ownSeparateAssets}
                   onChange={e => updateStageFinancialField('ownSeparateAssets', e.target.value === '' ? 0 : Number(e.target.value))}
                   className="w-full p-2 border border-[#e2e8f0] rounded font-mono text-sm focus:outline-none focus:border-[#0a5d38]"
@@ -232,6 +234,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1">الديون العينية</label>
               <input
                 type="number"
+                min="0"
                 value={debts === 0 ? '' : debts}
                 onChange={e => setDebts(e.target.value === '' ? 0 : Number(e.target.value))}
                 className="w-full p-2 border border-[#e2e8f0] rounded font-mono text-sm focus:outline-none focus:border-[#0a5d38]"
@@ -242,6 +245,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1">مصاريف الجنازة</label>
               <input
                 type="number"
+                min="0"
                 value={funeralCosts === 0 ? '' : funeralCosts}
                 onChange={e => setFuneralCosts(e.target.value === '' ? 0 : Number(e.target.value))}
                 className="w-full p-2 border border-[#e2e8f0] rounded font-mono text-sm focus:outline-none focus:border-[#0a5d38]"
@@ -252,6 +256,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1">الوصية (في حدود الثلث)</label>
               <input
                 type="number"
+                min="0"
                 value={bequest === 0 ? '' : bequest}
                 onChange={e => setBequest(e.target.value === '' ? 0 : Number(e.target.value))}
                 className="w-full p-2 border border-[#e2e8f0] rounded font-mono text-sm focus:outline-none focus:border-[#0a5d38]"
@@ -265,6 +270,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1 font-bold text-[#0a5d38]">ديون الوارث المتوفى (خاصة به)</label>
               <input
                 type="number"
+                min="0"
                 value={currentStage.debts === undefined || currentStage.debts === 0 ? '' : currentStage.debts}
                 onChange={e => updateStageFinancialField('debts', e.target.value === '' ? 0 : Number(e.target.value))}
                 className="w-full p-2 border border-[#e2e8f0] rounded font-mono text-sm focus:outline-none focus:border-[#0a5d38]"
@@ -275,6 +281,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1 font-bold text-[#0a5d38]">مصاريف جنازة الوارث المتوفى</label>
               <input
                 type="number"
+                min="0"
                 value={currentStage.funeralCosts === undefined || currentStage.funeralCosts === 0 ? '' : currentStage.funeralCosts}
                 onChange={e => updateStageFinancialField('funeralCosts', e.target.value === '' ? 0 : Number(e.target.value))}
                 className="w-full p-2 border border-[#e2e8f0] rounded font-mono text-sm focus:outline-none focus:border-[#0a5d38]"
@@ -285,6 +292,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1 font-bold text-[#0a5d38]">وصية الوارث المتوفى (بحدود الثلث)</label>
               <input
                 type="number"
+                min="0"
                 value={currentStage.bequest === undefined || currentStage.bequest === 0 ? '' : currentStage.bequest}
                 onChange={e => updateStageFinancialField('bequest', e.target.value === '' ? 0 : Number(e.target.value))}
                 className="w-full p-2 border border-[#e2e8f0] rounded font-mono text-sm focus:outline-none focus:border-[#0a5d38]"
