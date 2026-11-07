@@ -188,7 +188,8 @@ export default function InheritanceCalculator({
       || Boolean(stageResult.pregnancyNeedsManualReview)
       || Boolean(stageResult.minorHeirNeedsJudicialPartition)
       || Boolean(stageResult.deathOrderNeedsManualReview)
-      || Boolean(stageResult.involuntaryKillerNeedsCompensationReview);
+      || Boolean(stageResult.involuntaryKillerNeedsCompensationReview)
+      || Boolean(stageResult.missingHeirNeedsManualReview);
   });
 
   useEffect(() => {
