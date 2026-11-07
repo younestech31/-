@@ -155,6 +155,7 @@ export default function InheritanceCalculator({
     updateStageNoDistantKindredConfirmation,
     updateStagePregnancy,
     updateStagePregnancyDisputed,
+    updateStageMinorHeirPresent,
     acknowledgeStageExclusion,
     resetCalculator, saveCurrentCase, updateSavedCase, loadCase,
     deleteCase, confirmDelete, exportData, importData, loadClassicCase, exportToExcelApplet, exportToWordApplet, exportToPDFApplet,
@@ -180,7 +181,8 @@ export default function InheritanceCalculator({
       || Boolean(stageResult.requiresManualClassification)
       || Boolean(stageResult.tanzilNeedsManualReview)
       || Boolean(stageResult.noHeirsNeedsManualReview)
-      || Boolean(stageResult.pregnancyNeedsManualReview);
+      || Boolean(stageResult.pregnancyNeedsManualReview)
+      || Boolean(stageResult.minorHeirNeedsJudicialPartition);
   });
 
   useEffect(() => {
@@ -485,6 +487,7 @@ export default function InheritanceCalculator({
             updateStageNoDistantKindredConfirmation={updateStageNoDistantKindredConfirmation}
             updateStagePregnancy={updateStagePregnancy}
             updateStagePregnancyDisputed={updateStagePregnancyDisputed}
+            updateStageMinorHeirPresent={updateStageMinorHeirPresent}
             requiresNoDistantKindredConfirmation={Boolean(currentStageResult?.noHeirsNeedsManualReview)}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}
             className={expandedSection === 'estate' || mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
