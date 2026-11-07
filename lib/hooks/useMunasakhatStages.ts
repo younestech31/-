@@ -73,6 +73,7 @@ export function useMunasakhatStages(
       deceasedName: heirName,
       deceasedNameAr: heirName,
       deceasedHeirId: heirId,
+      deceasedGender: inferDeceasedGender(heirId) ?? undefined,
       inheritedAmount: amount,
       heirs: defaultHeirs,
       hasMandatoryBequest: false,
