@@ -34,6 +34,8 @@ export interface MunasakhatStage {
   secondDeceasedHasChildrenFromOtherUnion?: boolean;
   /** Explicit Article 167/180 confirmation that no entitled distant kindred exists. */
   confirmedNoDistantKindred?: boolean;
+  /** Articles 130–132: spouse's legal inheritance eligibility has been verified. */
+  confirmedSpouseEligibility?: boolean;
   /** Article 181: any minor among the heirs requires judicial partition. */
   hasMinorHeir?: boolean;
   /** Article 129: two or more deaths with an unproven order of death. */
