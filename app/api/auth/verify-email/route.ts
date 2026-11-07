@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyEmailVerificationToken } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/client';
 import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -23,10 +23,15 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    await db
+    const verifiedUsers = await db
       .update(users)
       .set({ emailVerified: true, updatedAt: new Date() })
-      .where(eq(users.id, payload.userId));
+      .where(and(eq(users.id, payload.userId), eq(users.email, payload.email)))
+      .returning({ id: users.id });
+
+    if (verifiedUsers.length === 0) {
+      return NextResponse.redirect(new URL('/login?error=invalid_token', req.url));
+    }
 
     return NextResponse.redirect(new URL('/login?info=email_verified', req.url));
   } catch (err) {
