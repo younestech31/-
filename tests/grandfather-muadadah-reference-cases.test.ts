@@ -127,7 +127,7 @@ const referenceCases: ReferenceCase[] = [
       paternal_brother: { fraction: '1/27', amount: 20_000 },
       paternal_sister: { fraction: '1/54', amount: 10_000 },
     },
-  },,
+  },
   {
     id: 'art158-grandfather-one-full-brother-muqasama-half',
     basis: 'Article 158 / Zayd method: one brother gives the grandfather one half by muqasama, better than one third of the whole',
