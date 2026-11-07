@@ -259,6 +259,23 @@ describe('Munasakhat Resolver Tests', () => {
     expect(results[1].netEstate).toBe(150000);
   });
 
+  it('withholds shares when more than one grandmother is entered without degree details under Articles 149 and 161', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى الأصلي',
+      hasMandatoryBequest: false,
+      heirs: [
+        present('husband'),
+        present('maternal_grandmother', 2),
+      ],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 120000, 0, 0, 0]);
+    expect(result.requiresManualClassification).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
   it('withholds all share results when Article 155 granddaughter cousin degree needs review', async () => {
     const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
     const stages: MunasakhatStage[] = [{
