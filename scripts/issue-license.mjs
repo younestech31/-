@@ -40,7 +40,7 @@ const customerName = readOption('customer');
 const days = Number(readOption('days'));
 const privateKeyPath = path.resolve(root, readOption('private-key', '.license-keys/private-key.pem'));
 const publicKeyPath = path.resolve(root, readOption('public-key', '.license-keys/public-key.pem'));
-const publicKeySourcePath = path.join(root, 'lib', 'licensing', 'public-key.ts');
+const publicKeySourcePath = path.resolve(root, readOption('public-key-source', 'lib/licensing/public-key.ts'));
 const licenseId = readOption('license-id', 'MW-' + randomUUID());
 const outputPath = path.resolve(root, readOption('output', 'mawarith-' + licenseId.replace(/[^A-Za-z0-9_-]/g, '_') + '.mwlicense'));
 
