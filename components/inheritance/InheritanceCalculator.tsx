@@ -152,6 +152,8 @@ export default function InheritanceCalculator({
     updateStageName, updateStageGender, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
     updateStageNoDistantKindredConfirmation,
+    updateStagePregnancy,
+    updateStagePregnancyDisputed,
     acknowledgeStageExclusion,
     resetCalculator, saveCurrentCase, updateSavedCase, loadCase,
     deleteCase, confirmDelete, exportData, importData, loadClassicCase, exportToExcelApplet, exportToWordApplet, exportToPDFApplet,
@@ -176,7 +178,8 @@ export default function InheritanceCalculator({
       || Boolean(stageResult.hasUnverifiedOverride)
       || Boolean(stageResult.requiresManualClassification)
       || Boolean(stageResult.tanzilNeedsManualReview)
-      || Boolean(stageResult.noHeirsNeedsManualReview);
+      || Boolean(stageResult.noHeirsNeedsManualReview)
+      || Boolean(stageResult.pregnancyNeedsManualReview);
   });
 
   useEffect(() => {
@@ -479,6 +482,8 @@ export default function InheritanceCalculator({
             updateStageFinancialField={updateStageFinancialField}
             updateStageChildrenFromOtherUnion={updateStageChildrenFromOtherUnion}
             updateStageNoDistantKindredConfirmation={updateStageNoDistantKindredConfirmation}
+            updateStagePregnancy={updateStagePregnancy}
+            updateStagePregnancyDisputed={updateStagePregnancyDisputed}
             requiresNoDistantKindredConfirmation={Boolean(currentStageResult?.noHeirsNeedsManualReview)}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}
             className={expandedSection === 'estate' || mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
