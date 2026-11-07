@@ -38,6 +38,15 @@ async function handleRegisterAction(formData: FormData) {
     redirect('/register?error=missing_fields');
   }
 
+  if (
+    name.length > 120
+    || firmName.length > 180
+    || email.length > 254
+    || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)
+  ) {
+    redirect('/register?error=invalid_input');
+  }
+
   // Rate limiting check
   const headerList = await headers();
   const ip = headerList.get('x-forwarded-for')?.split(',')[0].trim() || headerList.get('x-real-ip') || '127.0.0.1';
@@ -48,7 +57,7 @@ async function handleRegisterAction(formData: FormData) {
   }
 
   // Password policy check
-  if (password.length < 10 || COMMON_PASSWORDS.has(password.toLowerCase())) {
+  if (password.length < 10 || new TextEncoder().encode(password).byteLength > 72 || COMMON_PASSWORDS.has(password.toLowerCase())) {
     redirect('/register?error=weak_password');
   }
 
