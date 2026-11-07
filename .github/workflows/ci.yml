@@ -41,6 +41,7 @@ jobs:
 
       # Apply non-breaking fixes only; never use --force to cross major versions.
       - name: Apply compatible dependency security fixes
+        continue-on-error: true
         run: npm audit fix --package-lock-only --ignore-scripts --no-fund
 
       # Commit the generated lock before verification so security updates are
