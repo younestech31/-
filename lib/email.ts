@@ -19,23 +19,37 @@ export async function sendEmail({
   html: string;
 }): Promise<boolean> {
   const resend = getResendClient();
-  if (resend) {
-    try {
-      await resend.emails.send({
-        from: process.env.EMAIL_FROM || 'Mawarith Notary Platform <no-reply@mawarith.dz>',
-        to,
-        subject,
-        html,
-      });
-      return true;
-    } catch (err) {
-      console.error('Failed to send email via Resend:', err);
+  if (!resend) {
+    if (process.env.NODE_ENV === 'production') {
+      // Never log verification links or pretend an email was sent in production.
+      console.error('[email] RESEND_API_KEY is required to deliver production email.');
+      return false;
     }
+
+    // Local-only simulation. Do not print the HTML body, which may contain
+    // one-time verification tokens or other sensitive links.
+    console.info(`[EMAIL DISPATCH SIMULATION] To: ${to} | Subject: ${subject}`);
+    return true;
   }
 
-  // Fallback logging for environments where RESEND_API_KEY is not configured
-  console.log(`[EMAIL DISPATCH SIMULATION] To: ${to} | Subject: ${subject}\nHTML: ${html}`);
-  return true;
+  try {
+    const result = await resend.emails.send({
+      from: process.env.EMAIL_FROM || 'Mawarith Notary Platform <no-reply@mawarith.dz>',
+      to,
+      subject,
+      html,
+    });
+
+    if (result.error) {
+      console.error('Failed to send email via Resend:', result.error.message);
+      return false;
+    }
+
+    return Boolean(result.data?.id);
+  } catch (err) {
+    console.error('Failed to send email via Resend:', err);
+    return false;
+  }
 }
 
 export async function sendAccountAlreadyExistsNotice(email: string) {
@@ -60,10 +74,10 @@ export async function sendAccountAlreadyExistsNotice(email: string) {
   });
 }
 
-export async function sendVerificationEmail(email: string, token: string) {
+export async function sendVerificationEmail(email: string, token: string): Promise<boolean> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${encodeURIComponent(token)}`;
-  await sendEmail({
+  return sendEmail({
     to: email,
     subject: 'تأكيد البريد الإلكتروني - منصة مواريث الرقمية للتوثيق',
     html: `
