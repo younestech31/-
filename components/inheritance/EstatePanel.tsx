@@ -45,6 +45,7 @@ interface EstatePanelProps {
   updateStagePregnancyDisputed: (checked: boolean) => void;
   updateStageMinorHeirPresent: (checked: boolean) => void;
   updateStageDeathOrderUncertain: (checked: boolean) => void;
+  updateStageDiyahExcludedConfirmation: (checked: boolean) => void;
   requiresNoDistantKindredConfirmation?: boolean;
   parentHeirName?: string;
 }
@@ -80,6 +81,7 @@ const EstatePanel = memo(function EstatePanel({
   updateStagePregnancyDisputed,
   updateStageMinorHeirPresent,
   updateStageDeathOrderUncertain,
+  updateStageDiyahExcludedConfirmation,
   requiresNoDistantKindredConfirmation = false,
   parentHeirName,
 }: EstatePanelProps) {
@@ -322,6 +324,29 @@ const EstatePanel = memo(function EstatePanel({
             <p className="mt-2 text-[10px] text-amber-800">
               هذا الإقرار شرط إجرائي لبحث أيلولة الباقي وفق المادتين 167 و180، ولا يغني عن التحقق الفعلي من صلات القرابة.
             </p>
+          </div>
+        )}
+
+        {(currentStage.heirs?.length ? currentStage.heirs : Object.values(currentStage.heirPresence || {})).some(
+          heir => heir.isPresent && (
+            heir.impedimentReasonId === 'involuntary_killer' ||
+            heir.impedimentReasonIds?.includes('involuntary_killer')
+          )
+        ) && (
+          <div className="mb-3 rounded border border-orange-200 bg-orange-50/70 p-3">
+            <p className="mb-2 text-xs font-bold text-orange-950">قاتل خطأ ضمن الورثة — المادة 137</p>
+            <p className="mb-2 text-[10px] leading-relaxed text-orange-900">
+              القاتل خطأ يرث من المال دون الدية أو التعويض. يجب فصل مبلغ الدية/التعويض وعدم إدخاله ضمن قيمة المال التي ستقسمها هذه الحاسبة؛ فالحاسبة لا توزع هذا المبلغ في مسار مستقل.
+            </p>
+            <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-orange-950">
+              <input
+                type="checkbox"
+                checked={currentStage.confirmedDiyahExcluded === true}
+                onChange={e => updateStageDiyahExcludedConfirmation(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-orange-700"
+              />
+              <span>أؤكد أن قيمة المال المدخلة لا تشمل الدية أو التعويض، وأنني سأعالج مستحقاتهما خارج هذه القسمة.</span>
+            </label>
           </div>
         )}
 
