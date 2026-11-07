@@ -1,156 +1,157 @@
-# Mawarith — Commercial Readiness & Revenue Audit
-**Review date:** 7 November 2026  
-**Repository:** `younestech31/-`  
-**Working branch:** `work/mawarith`  
-**Production branch:** `main` (must remain untouched during this audit)
+# مواريث — تدقيق الجاهزية التجارية وخطة تحقيق الإيرادات
+**تاريخ المراجعة:** 7 نوفمبر 2026  
+**المستودع:** `younestech31/-`  
+**فرع العمل:** `work/mawarith`  
+**فرع الإنتاج:** `main` — يجب أن يبقى دون تغيير خلال هذه المراجعة.
 
-## Executive decision
+## القرار التنفيذي
 
-**Do not start collecting customer money through the current public activation page yet.** The application has a workable low-cost manual licensing foundation, but the product is not commercially launch-ready: the pinned browser public key is still empty, no official support channel is configured, the license issue flow needed stronger key-pair validation, and the legal operating model for selling a remotely delivered software license in Algeria has not been confirmed.
+**لا تبدأ بتحصيل أموال العملاء عبر صفحة التفعيل الحالية بعد.** توجد قاعدة تقنية قابلة للبناء عليها للترخيص اليدوي، لكن التطبيق لم يصل بعد إلى جاهزية الإطلاق التجاري: المفتاح العام المثبّت في التطبيق فارغ، وقنوات التواصل غير مضبوطة، كما أن الوضع القانوني لطريقة بيع ترخيص برمجي عبر الإنترنت في الجزائر يحتاج إلى تأكيد من الجهة المختصة.
 
-The chosen approach remains deliberately lightweight: no customer accounts, no cloud storage of inheritance cases, no paid database, no payment gateway dependency, and no automatic renewal. The application remains useful in its free tier. This reduces operating cost and protects customer case data, but makes sales, renewals, support, device changes, and revocation a manual business process.
+النموذج المقترح يظل بسيطاً وقليل التكلفة: لا حسابات مستخدمين، لا تخزين سحابي لملفات التركات، لا قاعدة بيانات مدفوعة، لا بوابة دفع خارجية، ولا تجديد تلقائي. هذا يحافظ على خصوصية ملفات التركات ويخفض التكاليف، لكنه يجعل المبيعات والتجديد والدعم وتغيير الجهاز وإلغاء التراخيص عمليات يدوية يتحملها مالك المنتج.
 
-## 1. Product and current monetization
+## 1. المنتج وما الذي يمكن بيعه؟
 
-### Existing product
-Mawarith is a local-first inheritance calculation and estate-settlement tool. Inheritance inputs, saved cases, exports, and ordinary backups are handled in the browser. The current commercial model is a fixed-duration Professional license, activated by importing a signed `.mwlicense` file.
+### الوضع الحالي
+مواريث أداة محلية لحساب مسائل الميراث وتصفية التركات. بيانات المسائل والحالات المحفوظة والتصدير والنسخ الاحتياطية العادية تتم في المتصفح. النموذج التجاري الحالي هو ترخيص Professional محدد المدة، يُفعّل باستيراد ملف `.mwlicense` موقع رقمياً.
 
-### Current Free / Pro division
-| Free | Pro |
+### الفرق الحالي بين المجاني وPro
+
+| مجاني | Pro |
 |---|---|
-| Inheritance calculation engine and currently available cases | Clean PDF export without the Mawarith watermark |
-| Saved cases and ordinary JSON backup/import | Password-protected encrypted backup export/import |
-| Word and Excel exports | The same local-first privacy model; no case files sent to Mawarith |
+| محرك حساب المواريث والمسائل المتاحة | تصدير PDF دون العلامة المائية التعريفية |
+| حفظ المسائل محلياً | النسخ الاحتياطي المشفّر والاستعادة |
+| تصدير Word وExcel | نفس نموذج الخصوصية المحلية؛ لا تُرسل ملفات التركات إلى مواريث |
+| النسخ الاحتياطي العادي بصيغة JSON | لا يحتاج العميل إلى حساب أو اشتراك سحابي |
 
-The free tier must remain useful. Do not paywall the correctness of inheritance calculations or hide legal warnings behind the license.
+يجب أن تبقى الحسابات الأساسية وتصحيحات الأخطاء القانونية والحسابية متاحة لجميع المستخدمين. لا ينبغي تحويل إصلاح خطأ في أنصبة الورثة إلى ميزة مدفوعة.
 
-### Pilot prices currently hard-coded
-| Duration | Price displayed | Approx. monthly equivalent |
+### الأسعار التجريبية الحالية
+
+| المدة | السعر المعروض | المتوسط الشهري التقريبي |
 |---|---:|---:|
-| 30 days | 1,000 DZD | 1,000 DZD |
-| 90 days | 2,500 DZD | 833 DZD |
-| 365 days | 8,000 DZD | 667 DZD |
+| 30 يوماً | 1,000 دج | 1,000 دج |
+| 90 يوماً | 2,500 دج | 833 دج |
+| 365 يوماً | 8,000 دج | 667 دج |
 
-These are **unvalidated pilot hypotheses**, not evidence of market price or willingness to pay. The annual offer is about 20% below four quarterly purchases and about 33% below twelve monthly purchases. Do not treat that discount as correct until customers have tested the product and renewed.
+هذه **فرضيات أسعار تجريبية وليست أسعاراً مثبتة بدراسة استعداد العملاء للدفع**. الاشتراك السنوي أقل بنحو 20% من شراء أربع رخص ربع سنوية، وأقل بنحو 33% من شراء اثنتي عشرة رخصة شهرية. لا نعتمد هذا الخصم قبل تجربة البيع والتجديد فعلياً.
 
-Illustrative gross revenue at the displayed annual price, before taxes, refunds, support, and other costs:
-- 10 annual licenses: 80,000 DZD
-- 25 annual licenses: 200,000 DZD
-- 50 annual licenses: 400,000 DZD
+أمثلة حسابية للإيراد الإجمالي بالسعر السنوي الحالي، قبل الضرائب والتكاليف والدعم والاسترجاع:
+- 10 رخص سنوية: 80,000 دج.
+- 25 رخصة سنوية: 200,000 دج.
+- 50 رخصة سنوية: 400,000 دج.
 
-These are arithmetic scenarios only. The product has no automatic renewal, so none of this revenue is recurring unless customers voluntarily renew.
+هذه سيناريوهات حسابية وليست توقعات مبيعات. لا يوجد تجديد آلي، لذلك لا يصبح الإيراد متكرراً إلا عندما يقرر العميل التجديد ويدفع مرة أخرى.
 
-### Publicly advertised local comparison points (not like-for-like)
-A limited scan of publicly indexed Algerian software offers found:
-- Notaire.Local lists a subscription renewal at **20,160 DZD** and a mini-server bundle at **200,000 DZD**. Its listing describes broader office-management functions such as indexing, accounting, registration, publication, and a knowledge base; the exact billing period and package inclusions must be reconfirmed with the seller before using it as a unit-price benchmark. https://shop.localnotaire.com/ and https://localnotaire.com/product-category/software/
-- JazairSoft lists **ALMOATHIK** (notarial management) at **85,000 DZD**. The public listing does not establish whether this is a perpetual license, a time-limited license, or a bundle with support, so it is not directly comparable to Mawarith's 30/90/365-day browser license. https://jazairsoft.com/logiciels?lang=fr
-- Mouhami markets an office subscription with bilingual document editing, PDF/DOCX export, backups, support, and DZD payment methods, but it is a legal-office workflow product rather than an inheritance calculator. https://mouhami.app/fr/pricing
+### مقارنة محلية أولية
+تُظهر مراجعة محدودة للعروض المنشورة لبرامج المكاتب القانونية والتوثيق وجود سوق يدفع مقابل البرامج المهنية، لكن هذه المنتجات أوسع من مواريث ولا يجوز اعتبار أسعارها مقارنة مباشرة:
+- **Notaire.Local** يعرض تجديد اشتراك بسعر ظاهر قدره 20,160 دج، كما يعرض حزمة خادم مصغر بسعر 200,000 دج. وصف المنتج يتضمن مهام أوسع مثل الفهرسة والمحاسبة والتسجيل والشهر وقاعدة معرفة. يجب التأكد من مدة الاشتراك ومحتويات كل حزمة مباشرة من البائع قبل المقارنة السعرية. https://shop.localnotaire.com/ وhttps://localnotaire.com/product-category/software/
+- **JazairSoft** يعرض برنامج ALMOATHIK لإدارة التوثيق بسعر منشور 85,000 دج. الصفحة لا تثبت بوضوح هل السعر لرخصة دائمة أم محددة المدة أم يشمل الدعم والتحديثات. https://jazairsoft.com/logiciels?lang=fr
+- **Mouhami** يسوق نموذج اشتراك لإدارة أعمال المكاتب القانونية يتضمن تحرير الوثائق وتصدير PDF/DOCX والنسخ الاحتياطي والدعم ووسائل دفع بالدينار، لكنه ليس حاسبة متخصصة في المواريث. https://mouhami.app/fr/pricing
 
-These listings show that Algerian legal-office software is a monetized category, but they do **not** prove Mawarith's target price. The closest product has a much broader scope. Validate Mawarith's prices with real notary offices and compare the value and support included, not just the sticker price.
+النتيجة ليست أن مواريث يجب أن يرفع أسعاره إلى تلك المستويات؛ بل إن السوق المهني موجود، لكن علينا إثبات قيمة مواريث المحددة: صحة الحساب، توضيح خطواته، توفير وقت إعداد الفريضة، وسهولة حفظ الحالات واسترجاعها. لا نعتمد السعر قبل مقابلة موثقين وتجربة بيع فعلية.
 
-## 2. Technical audit findings
+## 2. نتائج التدقيق التقني والتعديلات
 
-### Blockers before the first paid license
-1. `lib/licensing/public-key.ts` currently contains an empty `LICENSE_PUBLIC_KEY_SPKI`. The UI correctly fails closed and hides the purchase/activation controls while the key is missing. Do not insert a placeholder key.
-2. `NEXT_PUBLIC_MAWARITH_WHATSAPP` is blank in the example environment. A copy-request button alone is not a complete sales channel. An optional public support email has been added as `NEXT_PUBLIC_MAWARITH_SUPPORT_EMAIL`; set a real, monitored contact channel before inviting customers.
-3. The offline issuer previously signed with whichever private key was supplied, without proving it matched the browser's pinned public key. The issuer now checks the PEM public key against the pinned client key and performs a sign/verify challenge before writing a license.
-4. Pro entitlements are now explicit: `professional-pdf-export` and `encrypted-backup`. The encrypted-backup actions check that specific entitlement rather than merely checking a generic paid flag. Existing valid PDF-only licenses remain parseable, but do not receive the encrypted-backup entitlement.
-5. The issuer and verifier must remain in lockstep. New licenses include both current Pro features; the public key must be generated once by the owner and retained with a secure offline backup of the private key.
+### نقاط كانت تمنع الجاهزية التجارية
+1. **المفتاح العام فارغ:** الملف `lib/licensing/public-key.ts` كان يحتوي على `LICENSE_PUBLIC_KEY_SPKI = ''`. التطبيق يتصرف بشكل صحيح في هذه الحالة ويرفض التفعيل ولا يعرض دعوة للدفع. لا نضع مفتاحاً وهمياً أو مفتاحاً خاصاً داخل التطبيق.
+2. **قناة تواصل غير مهيأة:** متغير `NEXT_PUBLIC_MAWARITH_WHATSAPP` فارغ في ملف البيئة النموذجي، وأضيف `NEXT_PUBLIC_MAWARITH_SUPPORT_EMAIL` كقناة بديلة اختيارية. أضيف فحص لصحة البريد ورقم واتساب، وتنبيه صريح بعدم تحويل الأموال عند غياب قناة رسمية موثوقة.
+3. **الصلاحيات غير مفصّلة:** أصبحت رخصة Pro الجديدة تعلن عن ميزتين صريحتين هما `professional-pdf-export` و`encrypted-backup`. عمليات النسخ الاحتياطي المشفّر تفحص صلاحية الميزة ذاتها، لا مجرد كون الترخيص مدفوعاً. تبقى الرخص القديمة السارية التي تمنح PDF فقط قابلة للقراءة، ولا تحصل تلقائياً على صلاحية النسخ المشفّر.
+4. **مطابقة مفاتيح الإصدار:** أداة الإصدار كانت تستطيع توقيع الترخيص بمفتاح خاص لا يطابق المفتاح المثبّت في نسخة العميل. أضيف فحص يطابق المفتاح العام بصيغة PEM مع المفتاح المثبّت في مصدر التطبيق، ثم اختبار توقيع/تحقق عشوائي بالمفتاحين قبل كتابة ملف الترخيص.
+5. **التواصل والقيمة المعروضة:** أضيف شرح واضح لما يحصل عليه عميل Pro، مع توضيح أن الحسابات وWord وExcel والحفظ العادي تبقى مجانية، وأن الترخيص لا يتجدد تلقائياً ويرتبط بملف المتصفح الحالي.
+6. **الصفة القانونية للمخرجات:** كان بالإمكان تفعيل وصف توثيقي رسمي عبر إعداد محلي قابل للتعديل من المستخدم. أزيلت عبارات الإشهاد والتصديق التي قد توحي بأن البرنامج يثبت اعتماد الموثق أو يصدر عقداً رسمياً. أصبحت الترويسة قالباً مهنياً ببيانات مكتب يدخلها المستخدم، مع بيان أن التقرير ليس محرراً رسمياً ولا يثبت صحة الوقائع أو اعتماد الموثق. بصمة SHA-256 مخصصة للتحقق التقني من سلامة الملف فقط.
 
-### Known licensing limits
-- The license is bound to a browser-local installation ID, not proven hardware identity. Clearing site data, switching browser profiles, or changing devices may require a replacement license.
-- A local license cannot be remotely revoked or checked against a central payment ledger.
-- A technically capable user can tamper with the local clock or client JavaScript. This is a deterrent to casual sharing, not unbreakable DRM.
-- No payment is verified by the application. The owner must independently confirm that funds have actually arrived before issuing a license.
-- Never upload `.license-keys/private-key.pem`, a customer `.mwlicense` file, or a customer's inheritance backup to GitHub, Vercel, an online form, or a support chat.
+### حدود نظام الترخيص المحلي
+- الترخيص مرتبط بمعرّف محفوظ في المتصفح، وليس إثباتاً لهوية جهاز مادية. حذف بيانات الموقع أو تغيير المتصفح أو الملف الشخصي قد يستلزم إصدار ترخيص بديل.
+- لا يمكن للنظام المحلي إلغاء ترخيص صادر فوراً عن بعد أو التحقق مركزياً من الدفع.
+- يستطيع مستخدم متقدم التلاعب بساعة الجهاز أو JavaScript؛ لذلك فهذا النظام يحد من مشاركة الترخيص العفوية ولا يمثل DRM غير قابل للكسر.
+- التطبيق لا يتحقق من وصول الأموال. على مالك المنتج التأكد بشكل مستقل من وصول المبلغ فعلياً قبل إصدار الترخيص.
+- لا ترفع المفتاح الخاص `.license-keys/private-key.pem` أو ملفات العملاء `.mwlicense` أو نسخ التركات إلى GitHub أو Vercel أو نموذج دعم عام أو محادثة غير موثوقة.
 
-### Professional document integrity
-The PDF office-mode controls previously used language such as “official act” and “approved notary” based on user-editable local settings. That wording could imply legal validation the application cannot establish. The PDF labels and office-settings control have been changed to describe a professional review template and user-entered office details, not an official act or accreditation. A SHA-256 digest or QR code is a technical integrity reference; it is not a qualified electronic signature, a notarial seal, or proof that the legal calculation is correct.
+## 3. الإطار القانوني وطرق الدفع في الجزائر
 
-## 3. Algerian legal and payment checks
+هذا القسم تدقيق معلوماتي أولي وليس استشارة قانونية. يجب الحصول على جواب مكتوب من الجهة المختصة أو مستشار قانوني/محاسبي جزائري قبل قبول الطلبات المدفوعة.
 
-This is a product-readiness review, **not a legal opinion**. Obtain a written answer from the competent authority or a qualified Algerian adviser before accepting paid orders.
+### قانون التجارة الإلكترونية 18-05
+يعرف القانون رقم 18-05 التجارة الإلكترونية ضمن إطار عرض أو توفير المورد الإلكتروني سلعاً أو خدمات عن بعد بواسطة الاتصالات الإلكترونية. قد يندرج ترخيص الوصول إلى برنامج يُعرض ويُطلب عبر الإنترنت ضمن هذا الإطار، لكن يجب تأكيد تصنيف هذا النموذج تحديداً: ترخيص برنامج طوّره صاحبه، محدد المدة، ويُدفع ثمنه يدوياً ثم يُرسل ملف تفعيله.
 
-### Potential application of Law 18-05 on electronic commerce
-Law 18-05 defines electronic commerce broadly around an electronic supplier offering or providing goods/services remotely through electronic communications. A time-limited software license advertised online and requested through an online activation page may fall within this framework; the exact classification of the proposed manual software-license flow needs confirmation.
+إذا اعتُبرت العملية تجارة إلكترونية، فهناك متطلبات ينبغي مراجعتها، من بينها:
+- المادة 8 تتناول التسجيل في السجل التجاري أو سجل الصناعة التقليدية والحرف، ونشر موقع أو صفحة مستضافة في الجزائر باسم نطاق `.com.dz` مع وسائل توثيق المورد الإلكتروني.
+- المادة 9 تتناول القيد في سجل الموردين الإلكترونيين لدى المركز الوطني للسجل التجاري.
+- المادة 10 تشترط أن تسبق المعاملةَ الإلكترونيةَ عرضةٌ تجارية إلكترونية، وأن توثق المعاملة بعقد إلكتروني يقبله المستهلك الإلكتروني.
+- المادة 11 تحدد معلومات ينبغي أن يتضمنها العرض، مثل هوية المورد ووسائل الاتصال وبيانات التسجيل، وطبيعة الخدمة وسعرها والرسوم والضرائب، وشروط الدفع والتسليم والإلغاء والدعم وخطوات المعاملة.
 
-If the activity is treated as electronic commerce, the official text includes important requirements:
-- Article 8 addresses registration in the commercial register or artisan register and publication of a website/page hosted in Algeria with a `.com.dz` extension, with means to authenticate the supplier website.
-- Article 9 provides for a national register/file of electronic suppliers at CNRC and domain filing.
-- Article 10 requires an electronic commercial offer before each electronic commercial transaction and documentation by an electronic contract accepted by the e-consumer.
-- Article 11 specifies information for the offer, including supplier identification/contact and registration details, the nature and price of the service (including applicable taxes), delivery, terms, after-sales support, payment, cancellation, and other transaction steps.
+النطاق الحالي `mawarith.vercel.app` ليس نطاق `.com.dz`، ولا توجد في الصفحة الحالية عرضة تجارية مكتملة بجميع البيانات والشروط المذكورة. هذا **مانع يجب حسمه قبل الإطلاق** وليس حكماً بأن المشروع خالف القانون بالفعل. اسأل مديرية التجارة وCNRC عن انطباق القانون على نموذج ترخيص البرنامج هذا، ومتطلبات التسجيل والاستضافة واسم النطاق. ولا تفترض أن التحويل البنكي اليدوي يعفي تلقائياً من متطلبات التجارة الإلكترونية.
 
-The current public address is `mawarith.vercel.app`, not a `.com.dz` domain, and the current license page is not a complete statutory commercial offer or contract. This is a **legal readiness blocker to resolve**, not a conclusion that the project is already in breach. Ask the Directorate of Commerce/CNRC whether this exact software-license model and manual transfer process are covered, and what hosting/domain and supplier-registration arrangements are required.
+كما أن القانون يتناول استثناءات لبعض المعاملات التي تتطلب خدماتها عقداً رسمياً. بيع برنامج للمساعدة الحسابية يختلف عن تحرير الفريضة أو العقد الرسمي نفسه؛ ويجب إبقاء هذا الفصل واضحاً في التسويق وفي مستندات التصدير. التقرير الذي ينتجه مواريث لا يحل محل عمل الموثق ولا يكتسب صفة رسمية بمجرد إضافة اسمه أو شعار مكتبه.
 
-Law 18-05 also distinguishes transactions involving services for which an official contract is required. Mawarith sells access to software; it must not present its generated calculation report as the official notarial act itself. The revised interface and PDF wording now make that distinction clearer.
+### صفة المقاول الذاتي والنشاط
+تتضمن قائمة ANAE المنشورة الرمز **020103 — مطور برمجيات / Développeur logiciel** ضمن الخدمات الرقمية. هذا نشاط ذو صلة ينبغي الاستفسار عنه، لكنه لا يثبت وحده أن بيع ترخيص مؤقت لبرنامج مملوك للمطور يصنف تلقائياً ضمن نفس النشاط. يجب سؤال ANAE كتابياً عما إذا كان وصف النشاط يغطي تطوير البرنامج ونشره وترخيصه وبيعه وصيانته، وهل يطابق الصفة القانونية المراد اعتمادها. لا نستنتج الأهلية من عنوان الرمز فقط، كما أن قانون 22-23 يحدد قائمة الأنشطة المؤهلة ويستثني أنشطة مهنية أو منظمة أو حرفية بحسب شروطه.
 
-### Auto-entrepreneur route
-The official ANAE activity list includes code **020103 — Développeur logiciel / مطور برمجيات** under digital services. This is a relevant activity to ask about, but the listing by itself does not prove that selling a time-limited license to a self-developed software product is classified identically to providing software-development services. Law 22-23 limits the status to eligible activities and excludes liberal, regulated, and craft activities. Ask ANAE in writing whether the specific activity description covers development, publication, licensing, maintenance, and sale of this software, and whether it fits the intended legal form. Do not infer eligibility from the code title alone.
+### الدفع الإلكتروني
+توضح SATIM أن دمج الدفع بالبطاقة للتاجر الإلكتروني يمر عبر البنك المستحوذ وإجراءات الترخيص لدى GIE Monétique، ثم الإجراءات والاختبارات التقنية اللازمة. وتعرض GIE Monétique مسار اعتماد التاجر الإلكتروني والاختبار والشهادة والترخيص. لذلك:
+- لا نبنِ نموذجنا على Stripe أو بوابة أجنبية غير متحقق من قانونية إتاحتها للتاجر الجزائري.
+- لا نجمع بيانات البطاقات داخل مواريث ولا ننفذ واجهة دفع شكلية.
+- نبدأ بطريقة دفع محلية موثقة بعد تأكيد الوضع القانوني والضريبي للتاجر.
+- ندرس CIB/Edahabia عند استكمال المتطلبات البنكية وموافقة الجهة المختصة والاعتماد التقني.
 
-### Electronic payment
-SATIM explains that online card payment integration requires a process involving an acquiring bank and authorization from GIE Monétique, followed by technical certification. GIE Monétique documents the web-merchant authorization/certification workflow. Therefore:
-- Do not plan around Stripe or an unverified foreign gateway.
-- Do not add a payment API or collect card details in the Mawarith app.
-- Start only with a lawful, documented, reconciled payment method after confirming the seller's legal/tax status.
-- Consider CIB/Edahabia online payment only after the bank, GIE Monétique, and SATIM requirements are met.
+### التوقيع الإلكتروني ورمز QR
+أدرجت وزارة البريد والمواصلات السلكية واللاسلكية القانون 26-02 المؤرخ في 17 فبراير 2026 ضمن النصوص المتعلقة بخدمات الثقة والتعريف الإلكتروني. توقيع ECDSA المستخدم في مواريث يوقع **ملف ترخيص البرنامج فقط**. ولا يجوز تسويقه كتوقيع إلكتروني مؤهل أو شهادة هوية أو ختم توثيقي أو مصادقة قانونية على فريضة. أي ادعاء مستقبلي من هذا النوع يحتاج مسار اعتماد ومراجعة قانونية وتقنية منفصلة.
 
-### Electronic signatures and QR codes
-Law 26-02 (17 February 2026) now appears in the Ministry of Post and Telecommunications' official list of laws concerning trust services and electronic identification. Mawarith's ECDSA key signs a **software entitlement file** only. Do not market this as a qualified electronic signature, identity certificate, official notarial authentication, or legally certified deed. Any future feature claiming such status requires the competent certification/trust-service framework and a separate legal/technical review.
+## 4. خطة عملية لجني الإيرادات
 
-## 4. Recommended revenue plan
+### المرحلة صفر — الاستعداد قبل أخذ أي مبلغ
+- حسم الصفة القانونية للنشاط، والرمز المناسب، والفوترة والضرائب، ومدى انطباق قانون 18-05 على بيع ترخيص البرنامج.
+- التأكد هل يمكن الإبقاء على النطاق والاستضافة الحاليين للعملية التجارية، أم يلزم نطاق `.com.dz` واستضافة مستوفية للشروط.
+- إنشاء زوج مفاتيح الإنتاج على جهاز موثوق خاص بالمالك، وحفظ المفتاح الخاص دون اتصال في نسختين احتياطيتين محميتين، ثم إدراج المفتاح العام فقط في فرع التطبيق.
+- ضبط قناة تواصل رسمية ومراقبة، وإعداد بيانات البائع وشروط الدعم والتجديد والاسترجاع والإلغاء وسياسة الخصوصية وحدود رخصة الجهاز.
+- اختبار طلب الترخيص والدفع والتحقق من وصوله وإصداره وتفعيله وانتهائه ورفض التلاعب به على متصفح نظيف وببيانات تجريبية.
 
-### Phase 0 — prepare before taking money
-- Confirm legal structure, activity code, invoicing/tax obligations, and whether Law 18-05 applies to this license-sales flow.
-- Decide whether the current domain/hosting can be retained for commercial transactions or whether a compliant Algerian-hosted `.com.dz` presence is required.
-- Generate the production key pair on the owner's trusted device, back up the private key offline in two controlled locations, and commit only the public key to the working branch.
-- Configure one official support channel and publish business identity, support hours, refund/renewal/cancellation terms, privacy policy, and a clear description of the license/device policy.
-- Test the complete flow in a clean browser: request, payment reconciliation, license issuance, activation, expiry, wrong installation, malformed file, and free-tier fallback.
+### المرحلة الأولى — تجربة صغيرة بعد حسم الوضع القانوني
+ابدأ مع 5 إلى 10 مكاتب توثيق، وليس بإطلاق عام. اعرض البرنامج ببيانات وهمية، وقس:
+- مدى استعمال البرنامج في العمل الفعلي.
+- الوقت الذي يوفره في مسألة نموذجية.
+- أي صيغ تصدير يستعملها الموثق فعلياً.
+- قيمة النسخ الاحتياطي المشفّر ومدى فهمه.
+- استعداد المكتب للدفع والتجديد عند كل مستوى سعري.
+- عدد طلبات الدعم والمشاكل والأخطاء التي تواجه المستخدم.
 
-### Phase 1 — small, manual pilot after legal clearance
-Start with 5–10 notary offices, not a broad public launch. Demonstrate the product on sample data only. Collect structured feedback on:
-- How often the office uses the tool in real work.
-- Time saved on a typical case.
-- Which exports are actually useful.
-- Whether encrypted backup is valuable and understood.
-- Whether the office would renew at each price.
-- Support burden, errors, and required legal explanations.
+لا تجمع بيانات ورثة حقيقيين أو بيانات زبائن المكتب لأغراض التسويق. ولا تنشر شهادة عميل دون إذنه. قِس التحويل إلى دفع والتجديد، لا عدد التسجيلات أو عبارات الإعجاب فقط.
 
-Do not collect real heirs' or clients' inheritance data for marketing. Do not use pilot testimonials without permission. Measure paid conversion and renewal, not only sign-ups or compliments.
+### المرحلة الثانية — زيادة قيمة Pro قبل التوسع
+ميزات يمكن بحثها بعد اختبار الاستخدام والمراجعة القانونية:
+- قوالب تقارير مهنية قابلة للتخصيص ببيانات المكتب، مع بيان واضح أنها تنسيق يحدده المستخدم وليست إثباتاً لاعتماد الموثق.
+- تحديثات مرجعية وقانونية مؤرخة مع سجل تغييرات ومصفوفة اختبارات.
+- استيراد واستعادة أكثر موثوقية، وإرشاد لتغيير المتصفح أو نقل الجهاز.
+- رخص متعددة الأجهزة أو المستخدمين بعد وضع سياسة دعم وإلغاء واضحة.
+- دعم وصيانة اختيارية فقط إذا كان الفريق قادراً فعلياً على تقديمهما.
 
-### Phase 2 — improve the Pro value before scaling
-Potential additions, subject to usability and legal audit:
-- Reusable professional report templates and office branding, clearly labelled as user-configured formatting rather than verified notary accreditation.
-- Versioned legal/reference updates with a dated changelog and test matrix.
-- Reliable local export and restoration workflows, plus guided device-migration support.
-- Multi-device or multi-seat licensing only after the product has a clear support and revocation policy.
-- Optional maintenance/support tier only if the team can actually deliver it.
+لا تجعل تصحيح خطأ معروف في الحسابات القانونية ميزة مدفوعة. الإصلاحات التي تمس صحة المحرك يجب أن تصل إلى الجميع.
 
-Do not charge for changes that are necessary to correct a known legal-calculation defect. All calculation fixes should reach every user.
+### المرحلة الثالثة — مبيعات ودفع منظم
+بعد الموافقات القانونية والبنكية:
+- دمج وسيلة دفع محلية معتمدة.
+- إصدار إيصال أو فاتورة وسجل ترخيص واضح للعميل.
+- الاحتفاظ بسجل محدود لدى المالك: مرجع العملية، اسم العميل/المكتب، الخطة، رقم الترخيص، تاريخ الإصدار والانتهاء، وحالة الدعم. لا تخزن تفاصيل التركات في سجل المبيعات.
+- وضع تذكير تجديد يحترم الخصوصية؛ لا تصف الخدمة بأنها تتجدد تلقائياً ما لم يكن ذلك مطبقاً ومصرحاً به فعلاً.
 
-### Phase 3 — formalized sales and payments
-After legal and banking approval:
-- Add an appropriate compliant local payment integration.
-- Generate an order receipt/invoice and a customer-facing license record.
-- Maintain a minimal owner-side ledger: transaction reference, customer/business name, plan, license ID, issue date, expiry date, and support status. Do not store estate details.
-- Add a privacy-conscious renewal reminder process; do not call the license “auto-renewing” unless it really is.
+## 5. سياسة الفروع والنشر
 
-## 5. Branch and deployment policy
+كل تغييرات هذه المراجعة على `work/mawarith` فقط. فرع `main` بقي فرع الإنتاج ولم ندمج إليه. أضيف في `vercel.json` الخاص بفرع العمل تعطيل النشر التلقائي لهذا الفرع، مع إبقاء `main` مفعلاً. أظهر فحص Vercel عدم وجود أي نشر مسجل لفرع `work/mawarith` حتى وقت آخر تحقق.
 
-All code and documentation changes in this review are on `work/mawarith`. The `main` branch must remain unchanged. `vercel.json` on the work branch sets `git.deploymentEnabled.work/mawarith` to `false`, while keeping `main` enabled. The Vercel API showed zero deployments for `work/mawarith` before and after the change.
+لا تنفذ نشرًا يدوياً أو ترقية أو ربط نطاق أو دمجاً لهذا الفرع ضمن هذه المراجعة. بعد كل دفعة تغييرات، تحقق من استمرار عدد نشرات فرع العمل عند صفر. وجود commit في GitHub لا يعني أنه نُشر إلى Vercel.
 
-Do not manually deploy, promote, alias, or merge this branch as part of this audit. Confirm zero branch deployments after future pushes. A GitHub commit is not the same as a Vercel deployment.
+## 6. المصادر الأولية للمراجعة
 
-## 6. External primary references
+- وزارة التجارة الجزائرية — القانون 18-05: https://commerce.gov.dz/reglementation/loi-n-deg-18-05
+- الجريدة الرسمية — النص القانوني 18-05: https://commerce.gov.dz/telecharger/reglementation/872/article
+- قائمة نشاطات ANAE — الرمز 020103 مطور برمجيات: https://activities.anae.dz/activities/020100/
+- الوكالة الوطنية للمقاول الذاتي: https://anae.dz/fr/
+- القانون 22-23 المتعلق بالمقاول الذاتي، الجريدة الرسمية: https://www.joradp.dz/FTP/jo-francais/2022/F2022085.pdf
+- SATIM — الدفع الإلكتروني للتجار: https://satim.dz/index.php/fr/services-cib/paiement-en-ligne
+- GIE Monétique — إجراءات اعتماد التاجر الإلكتروني: https://www.giemonetique.dz/activites/homologation/processus-homologation/autorisation-dun-web-marchand/
+- وزارة البريد والمواصلات السلكية واللاسلكية — القوانين والأوامر: https://www.mpt.gov.dz/lois-et-ordonnances/
 
-- Algerian Ministry of Commerce — Law 18-05: https://commerce.gov.dz/reglementation/loi-n-deg-18-05
-- Official Journal, Law 18-05 (Arabic text): https://commerce.gov.dz/telecharger/reglementation/872/article
-- ANAE activity list, 020103 software developer: https://activities.anae.dz/activities/020100/
-- ANAE eligibility and activity-list overview: https://anae.dz/fr/
-- Law 22-23 (auto-entrepreneur status), Official Journal: https://www.joradp.dz/FTP/jo-francais/2022/F2022085.pdf
-- SATIM — online payment for web merchants: https://satim.dz/index.php/fr/services-cib/paiement-en-ligne
-- GIE Monétique — web-merchant authorization: https://www.giemonetique.dz/activites/homologation/processus-homologation/autorisation-dun-web-marchand/
-- Ministry of Post and Telecommunications — laws including Law 26-02: https://www.mpt.gov.dz/lois-et-ordonnances/
+## قرار الإطلاق
 
-## Release status
-
-**Not ready for public paid launch.** The engineering changes improve licensing correctness and legal wording, but a paid launch remains blocked by the absent production key, unconfigured contact channel, untested end-to-end activation, unconfirmed legal seller structure, and incomplete commercial disclosures. Keep the free product available while resolving these items.
+**غير جاهز بعد لبدء البيع على نطاق عام.** التحسينات التقنية ترفع موثوقية نظام الترخيص وتقلل الإيحاءات القانونية الخاطئة، لكن الإطلاق المدفوع يظل متوقفاً على إنشاء مفتاح الإنتاج العام والخاص بالطريقة الآمنة، وضبط قناة التواصل، واختبار التفعيل كاملاً، وحسم الصفة القانونية والضريبية للتاجر وشروط العرض التجاري. يستمر توفير النسخة المجانية إلى حين إكمال هذه الشروط.
