@@ -52,19 +52,25 @@ The free calculation engine must not be blocked when a license is missing, expir
 
 ## Implementation checklist
 
-- [x] Isolated feature branch created from main.
-- [x] ECDSA P-256 client verification module.
-- [x] Offline key-generation and license-issuance scripts.
-- [x] Unit tests for signature, expiry, payload tampering, and installation binding.
-- [x] Local activation page with three manually prepaid term options; current Pro entitlement is PDF watermark removal only.
-- [ ] Replace server entitlement lookup with local license status.
-- [ ] Remove server-side PDF finalization and apply export watermark locally.
-- [ ] Remove Cloud Sync UI and cloud case APIs; preserve local encrypted storage and JSON backup.
-- [ ] Remove account registration/login/email verification and server sessions.
-- [ ] Remove Stripe, Neon/Drizzle/PostgreSQL, Resend, and unused dependencies/lockfile entries.
-- [ ] Add activation and manual-payment information UI; communication remains manual.
-- [ ] Review identity/branding and update README, environment example, and metadata.
-- [ ] Run tests, lint, type-check, production build, inspect branch diff, and verify the live production deployment still points to the original main.
+- [x] Create an isolated hardening branch from the current production `main` without changing `main`.
+- [x] Replace server entitlement lookup with local signature verification and local license status.
+- [x] Remove server-side PDF finalization; generate and watermark PDF locally.
+- [x] Remove account registration/login/session, payment gateway, cloud sync, and server-side customer-case routes from the deployed application tree.
+- [x] Remove Stripe, Neon/Drizzle/PostgreSQL, Resend, and related unused packages from the active package manifest and lockfile.
+- [x] Keep local encrypted case storage, local audit history, and user-controlled backup/import/export.
+- [x] Add manual prepaid license request UI, installation binding, signed license import, and no automatic renewal.
+- [x] Keep all core inheritance calculations available in the free edition.
+- [x] Make the license page fail closed: do not show purchase instructions or accept activation while the public verification key is absent or malformed.
+- [x] Restrict issuer durations to the three presented plans: 30, 90, and 365 days.
+- [x] Add tests for signature verification, expiry, installation binding, payload tampering, key readiness, and issuer-to-verifier integration.
+- [x] Make CI read-only and reproducible; move dependency update proposals to free Dependabot PRs.
+- [x] Align declared npm engine with the npm version provided by Vercel's Node 22 build image.
+- [x] Remove legacy office branding from the independent Mawarith identity.
+- [ ] Complete the latest GitHub Actions run and latest Vercel Preview build after the final SPKI byte-validation fix.
+- [ ] Generate the production key pair on the owner's trusted device; commit only the public key and keep the private key offline.
+- [ ] Run a clean-browser end-to-end test with a test license: issue, import, expiry, wrong installation, tampering, and free-tier fallback.
+- [ ] Revisit the Pro value proposition: current entitlement is PDF watermark removal only; decide whether office branding/templates should be added before public launch.
+- [ ] Review the final branch diff and production/preview separation before any merge.
 
 ## Release gate
 

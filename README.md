@@ -4,7 +4,7 @@
 
 ## المتطلبات
 - Node.js 22
-- npm 11.6 أو أحدث
+- npm 10.9.9 أو أحدث
 
 ## التشغيل
 
@@ -50,4 +50,4 @@ npm run license:issue -- --installation-id "<ID>" --customer "اسم المكت�
 
 ## فرع التطوير
 
-تُنفذ أعمال نموذج الترخيص على `feat/manual-license-monetization`. لا تدمج التغييرات إلى `main` قبل اكتمال CI واختبارات التفعيل ومراجعة معاينات Vercel.
+تُنفذ أعمال نموذج الترخيص والتحصين على `chore/manual-license-hardening`. لا تدمج التغييرات إلى `main` قبل اكتمال CI واختبارات التفعيل ومراجعة معاينات Vercel.
