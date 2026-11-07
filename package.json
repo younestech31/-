@@ -37,10 +37,10 @@
     "next": "15.5.29",
     "nextjs-toploader": "^3.9.17",
     "pdf-lib": "^1.17.1",
-    "postcss": "8.5.23",
+    "postcss": "8.5.32",
     "qrcode": "^1.5.4",
-    "react": "19.2.9",
-    "react-dom": "19.2.9",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.6.7"
   },
@@ -66,7 +66,7 @@
     "vitest": "^4.1.10"
   },
   "overrides": {
-    "postcss": "8.5.23",
+    "postcss": "8.5.32",
     "postcss-selector-parser": "6.1.5",
     "uuid": "11.1.1"
   },
