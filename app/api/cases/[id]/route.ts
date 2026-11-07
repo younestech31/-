@@ -40,7 +40,7 @@ export async function PUT(
 
     const { caseNameEncrypted, caseDateEncrypted, notaryIdEncrypted, isCloudSynced, encryptedPayload } = parsed.data;
 
-    await db
+    const updatedRows = await db
       .update(savedCases)
       .set({
         caseNameEncrypted,
@@ -50,7 +50,12 @@ export async function PUT(
         encryptedPayload,
         updatedAt: new Date(),
       })
-      .where(and(eq(savedCases.id, id), eq(savedCases.organizationId, session.organizationId)));
+      .where(and(eq(savedCases.id, id), eq(savedCases.organizationId, session.organizationId)))
+      .returning({ id: savedCases.id });
+
+    if (updatedRows.length === 0) {
+      return NextResponse.json({ error: 'Case not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true, id });
   } catch (err: unknown) {
@@ -78,9 +83,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Database not available' }, { status: 500 });
     }
 
-    await db
+    const deletedRows = await db
       .delete(savedCases)
-      .where(and(eq(savedCases.id, id), eq(savedCases.organizationId, session.organizationId)));
+      .where(and(eq(savedCases.id, id), eq(savedCases.organizationId, session.organizationId)))
+      .returning({ id: savedCases.id });
+
+    if (deletedRows.length === 0) {
+      return NextResponse.json({ error: 'Case not found' }, { status: 404 });
+    }
 
     return NextResponse.json({ success: true, id });
   } catch (err: unknown) {
