@@ -21,7 +21,7 @@ export function runInheritanceOrchestration(
     const stageBequest = index === 0 ? debouncedBequest      : (stage.bequest || 0);
 
     // Normalize presence array / record
-    const presenceList = stage.heirs || (stage.heirPresence ? Object.values(stage.heirPresence) : []);
+    const presenceList = stage.heirs?.length ? stage.heirs : (stage.heirPresence ? Object.values(stage.heirPresence) : []);
     const parentHeirId = stage.parentHeirId || stage.deceasedHeirId;
     const hasOtherUnion = stage.secondDeceasedHasChildrenFromOtherUnion ?? stage.hasChildrenFromOtherUnion ?? false;
 
