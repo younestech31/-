@@ -53,15 +53,15 @@ export interface OfficeSettings {
   documentRefNumber?: string;    // Unique document reference number
   exportLanguage?: 'ar' | 'fr';  // Language toggle for export documents
   digitFormat?: 'western' | 'arabic-indic'; // Numeral formatting toggle
-  auditLedgerOptIn?: boolean;   // Opt-in toggle for server-side audit ledger
-  cloudSyncPassphrase?: string;  // Session-only passphrase; never persist this field
 }
 
-/** Return office settings safe to persist; the cloud passphrase is memory-only. */
-export function getPersistedOfficeSettings(
-  settings: OfficeSettings
-): Omit<OfficeSettings, 'cloudSyncPassphrase'> {
-  const persisted = { ...settings };
+/** Remove legacy server-only fields before persisting settings locally. */
+export function getPersistedOfficeSettings(settings: OfficeSettings): OfficeSettings {
+  const persisted = { ...settings } as OfficeSettings & {
+    auditLedgerOptIn?: unknown;
+    cloudSyncPassphrase?: unknown;
+  };
+  delete persisted.auditLedgerOptIn;
   delete persisted.cloudSyncPassphrase;
   return persisted;
 }
@@ -78,7 +78,6 @@ export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
   documentRefNumber: '',
   exportLanguage: 'ar',
   digitFormat: 'western',
-  auditLedgerOptIn: false,
 };
 
 // Unified Arabic font family for all documents

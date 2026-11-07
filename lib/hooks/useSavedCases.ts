@@ -94,17 +94,17 @@ export function useSavedCases(
       if (rawSettings) {
         const parsedSettings = JSON.parse(rawSettings);
         if (parsedSettings && typeof parsedSettings === 'object' && !Array.isArray(parsedSettings)) {
-          const hadStoredPassphrase = Object.prototype.hasOwnProperty.call(parsedSettings, 'cloudSyncPassphrase');
+          const hadLegacyServerSettings = Object.prototype.hasOwnProperty.call(parsedSettings, 'cloudSyncPassphrase') || Object.prototype.hasOwnProperty.call(parsedSettings, 'auditLedgerOptIn');
           const safeSettings = getPersistedOfficeSettings(parsedSettings as OfficeSettings);
           setOfficeSettings({ ...DEFAULT_OFFICE_SETTINGS, ...safeSettings });
 
           // Migrate older settings that stored the cloud passphrase in plaintext.
-          if (hadStoredPassphrase) {
+          if (hadLegacyServerSettings) {
             try {
               localStorage.setItem(OFFICE_SETTINGS_KEY, JSON.stringify(safeSettings));
             } catch (migrationError) {
-              console.error('Failed to remove the legacy plaintext cloud passphrase:', migrationError);
-              setStorageError('تعذر حذف عبارة مرور المزامنة القديمة من التخزين المحلي. افتح إعدادات المتصفح وامسح بيانات الموقع بعد حفظ نسخة آمنة من القضايا.');
+              console.error('Failed to remove legacy server-only settings:', migrationError);
+              setStorageError('تعذر تنظيف إعدادات الخادم القديمة من التخزين المحلي. يمكن متابعة استعمال الحفظ المحلي كالمعتاد.');
             }
           }
         }

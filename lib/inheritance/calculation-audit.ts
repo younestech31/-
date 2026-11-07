@@ -43,7 +43,7 @@ export async function createCalculationAuditRecord(
   inputState: Record<string, unknown>,
   outputResults: unknown[],
   caseRef: string = 'REF-DZD-NOTARY',
-  auditLedgerOptIn: boolean = false,
+  _legacyServerLedgerOptIn: boolean = false,
   previousRecordHash?: string
 ): Promise<CalculationAuditRecord> {
   const cryptoApi = globalThis.crypto;
@@ -90,21 +90,6 @@ export async function createCalculationAuditRecord(
   if (typeof window !== 'undefined') {
     saveAuditRecordToIndexedDB(record).catch(err => console.warn('IndexedDB audit save warning:', err));
 
-    if (auditLedgerOptIn) {
-      fetch('/api/audit-records', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          combinedHash: record.combinedHash,
-          previousRecordHash: record.previousRecordHash,
-          auditId: record.auditId,
-          registryVersion: record.registryVersion,
-          timestamp: record.timestamp,
-          buildId: record.buildId,
-          summary: record.summary,
-        }),
-      }).catch(err => console.warn('Server audit ledger sync warning:', err));
-    }
   }
 
   return record;
@@ -114,7 +99,7 @@ export async function createCalculationAuditRecord(
  * Generates a QR Code Data URL embedding offline verification data & verification URL.
  */
 export async function generateAuditQRCodeDataUrl(record: CalculationAuditRecord): Promise<string> {
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://notaire-lattab.dz';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://mawarith.vercel.app';
   const verifyUrl = `${origin}/verify?hash=${record.combinedHash}&ref=${encodeURIComponent(record.caseRef)}&id=${record.auditId}`;
 
   const qrPayload = JSON.stringify({

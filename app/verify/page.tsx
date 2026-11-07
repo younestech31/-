@@ -16,7 +16,7 @@ function VerifyContent() {
   const [inputHash, setInputHash] = useState(hashParam);
   const [loading, setLoading] = useState(false);
   const [record, setRecord] = useState<CalculationAuditRecord | null>(null);
-  const [recordSource, setRecordSource] = useState<'local' | 'server' | null>(null);
+  const [recordSource, setRecordSource] = useState<'local' | null>(null);
   const [searched, setSearched] = useState(false);
   const [allRecords, setAllRecords] = useState<CalculationAuditRecord[]>([]);
 
@@ -40,44 +40,15 @@ function VerifyContent() {
     setLoading(true);
 
     try {
-      // 1. Try local IndexedDB store
+      // Audit records are device-local. No server lookup or remote record storage is used.
       const foundLocal = await getAuditRecordFromIndexedDB(cleanHash);
       if (foundLocal) {
         setRecord(foundLocal);
         setRecordSource('local');
-        return;
+      } else {
+        setRecord(null);
+        setRecordSource(null);
       }
-
-      // 2. Fallback to server-side audit ledger endpoint if local IndexedDB returns null
-      const res = await fetch(`/api/audit-records/${encodeURIComponent(cleanHash)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.record) {
-          const remoteRecord: CalculationAuditRecord = {
-            auditId: data.record.auditId,
-            inputHash: '',
-            sharesHash: '',
-            combinedHash: data.record.combinedHash,
-            previousRecordHash: data.record.previousRecordHash || 'GENESIS',
-            registryVersion: data.record.registryVersion,
-            timestamp: data.record.timestamp,
-            buildId: data.record.buildId,
-            // The server ledger intentionally does not store a case reference.
-            caseRef: '',
-            summary: data.record.summary,
-          };
-          setRecord(remoteRecord);
-          setRecordSource('server');
-          return;
-        }
-      }
-
-      setRecord(null);
-      setRecordSource(null);
-    } catch (err) {
-      console.error('Verification query failed:', err);
-      setRecord(null);
-      setRecordSource(null);
     } finally {
       setLoading(false);
     }
@@ -95,7 +66,7 @@ function VerifyContent() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-white tracking-wide">التحقق من سجل البصمة الرقمية</h1>
-              <p className="text-sm text-slate-400">البحث عن سجل محفوظ والتحقق من مرجعه؛ لا يصدر هذا الفحص شهادة بصحة الفريضة</p>
+              <p className="text-sm text-slate-400">فحص البصمات المحفوظة على هذا الجهاز فقط</p>
             </div>
           </div>
           <Link
@@ -112,7 +83,7 @@ function VerifyContent() {
           <Lock className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
           <div className="text-sm text-slate-300 leading-relaxed">
             <strong className="text-white block mb-1">ما الذي يثبته هذا السجل؟</strong>
-            يحتفظ الخادم ببصمة مرسلة من المتصفح وبيانات وصفية ومجاميع إحصائية، دون أسماء الورثة أو تفاصيلهم. العثور على البصمة يثبت وجود سجل يحملها فقط؛ ولا يعيد هذا الفحص حساب البصمة من المدخلات والنتائج الأصلية، ولا يثبت صحة القسمة أو هوية من أنشأ السجل أو وجود توقيع رقمي.
+            تُحفظ سجلات التدقيق محلياً في قاعدة بيانات المتصفح (IndexedDB) ولا تُرسل إلى خادم. العثور على السجل يتيح إعادة فحص البصمة محلياً، لكنه لا يثبت بذاته صحة القسمة أو هوية من أنشأ السجل.
           </div>
         </div>
 
@@ -153,7 +124,7 @@ function VerifyContent() {
                     <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                     <div>
                       <h2 className="text-xl font-bold text-emerald-400">تم العثور على سجل بهذه البصمة</h2>
-                      <p className="text-xs text-slate-400">{recordSource === 'local' ? 'السجل موجود في ذاكرة هذا المتصفح' : 'السجل موجود في دفتر التدقيق الخادمي'}</p>
+                      <p className="text-xs text-slate-400">السجل موجود في ذاكرة هذا المتصفح</p>
                     </div>
                   </div>
                   <span className="px-3 py-1 bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-xs font-mono rounded-full">
@@ -168,7 +139,7 @@ function VerifyContent() {
                   </div>
                   <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/50 space-y-2">
                     <span className="text-slate-400 text-xs block">رقم مرجع الفريضة (Case Ref):</span>
-                    <span className="font-mono text-white font-bold block">{record.caseRef || 'غير محفوظ في السجل الخادمي'}</span>
+                    <span className="font-mono text-white font-bold block">{record.caseRef || 'غير متاح في هذا السجل'}</span>
                   </div>
                   <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/50 space-y-2">
                     <span className="text-slate-400 text-xs block">تاريخ الإصدار والتسجيل:</span>
@@ -203,7 +174,7 @@ function VerifyContent() {
                   </div>
                 </div>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  في نظام الخصوصية المطلقة (Zero-Trust)، تُحفظ السجلات محلياً في ذاكرة جهاز الموثق. إذا تم إصدار الوثيقة من جهاز آخر، يُرجى مسح كود QR المطبوع مباشرة أو إجراء مطابقة من الحاسبة الأصلية.
+                  تُحفظ هذه السجلات في المتصفح الذي أنشأها فقط. عند فتح رمز QR على جهاز آخر، لن يظهر السجل إلا بعد استيراد البيانات أو استخدام المتصفح الأصلي.
                 </p>
               </div>
             )}
