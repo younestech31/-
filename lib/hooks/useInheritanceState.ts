@@ -18,6 +18,7 @@ export function useInheritanceState() {
   // Professional access is verified locally; no session, billing API, or database is queried.
   const [userPlan, setUserPlan] = useState<'free' | 'pro' | 'notary'>('free');
   const [isPaid, setIsPaid] = useState<boolean>(false);
+  const [hasEncryptedBackup, setHasEncryptedBackup] = useState<boolean>(false);
   const [isEntitlementsLoading, setIsEntitlementsLoading] = useState<boolean>(true);
   const [licenseStatus, setLicenseStatus] = useState<import('@/lib/licensing/manual-license').LicenseStatus | null>(null);
   // Retained as null compatibility fields for components that still consume the previous shape.
