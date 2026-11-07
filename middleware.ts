@@ -49,6 +49,9 @@ export function middleware(request: NextRequest) {
     }
     requestHeaders.set('x-pathname', safePathname);
     requestHeaders.set('x-nonce', nonce);
+    // Next.js extracts the nonce from the forwarded request CSP and applies it
+    // to framework-generated inline scripts and styles.
+    requestHeaders.set('Content-Security-Policy', cspHeader);
 
     const response = NextResponse.next({
       request: {
