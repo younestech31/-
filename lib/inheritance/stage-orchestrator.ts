@@ -34,7 +34,25 @@ export function runInheritanceOrchestration(
     const hasFullSiblingLine = heirsToCheck.some(h => ['full_brother', 'full_sister'].includes(h.heirId));
     const hasPaternalSiblingLine = heirsToCheck.some(h => ['paternal_brother', 'paternal_sister'].includes(h.heirId));
     const hasUnresolvedGrandfatherMuadadah = hasGrandfather && hasFullSiblingLine && hasPaternalSiblingLine;
-    const requiresManualClassification = manualClassificationHeirs.length > 0 || hasUnresolvedGrandfatherMuadadah;
+    const hasGranddaughter = heirsToCheck.some(h => h.heirId === 'granddaughter');
+    const hasPotentialGranddaughterCousinAsaba = heirsToCheck.some(h =>
+      ['full_nephew', 'paternal_nephew', 'full_uncle_son', 'paternal_uncle_son'].includes(h.heirId)
+    );
+    const granddaughterCousinDegreeNeedsManualReview =
+      hasGranddaughter && hasPotentialGranddaughterCousinAsaba;
+    const requiresManualClassification =
+      manualClassificationHeirs.length > 0 ||
+      hasUnresolvedGrandfatherMuadadah ||
+      granddaughterCousinDegreeNeedsManualReview;
+
+    if (granddaughterCousinDegreeNeedsManualReview) {
+      excludedHeirWarnings.push({
+        heirId: 'granddaughter',
+        heirNameAr: 'بنت الابن',
+        reason: 'المادة 155: قد تصبح بنت الابن عصبة بغيرها مع ابن عمها المساوي لها في الدرجة أو ابن ابن عمها الأنزل درجة. لا يسجل النموذج الحالي درجة هذا القريب وجهة الإدلاء بدقة؛ لذلك أوقف الحساب الآلي لهذه الصورة إلى أن تُراجع القرابة والدرجة.',
+        source: 'المادة 155 من قانون الأسرة الجزائري — النص المرفق.',
+      });
+    }
 
     for (const h of manualClassificationHeirs) {
       const heirDetails = HEIRS.find(x => x.id === h.heirId);
@@ -141,7 +159,7 @@ export function runInheritanceOrchestration(
           ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome)))
     );
 
-    const res = pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview
+    const res = requiresManualClassification || pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview
       ? []
       : calculateInheritance(
           sanitizedPresence,
