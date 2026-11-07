@@ -26,6 +26,7 @@ export interface ExcludedHeirWarning {
   heirId: string;
   heirNameAr: string;
   reason: string;
+  source?: string;
 }
 
 export interface StageResult {
@@ -60,8 +61,11 @@ interface ResultsTableProps {
   removeStage: (index: number) => void;
   setSelectedHeirExplanation: (r: CalculationResult | null) => void;
   updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
-  /** نتيجة مراجعة المرحلة الحالية (ورثة مستبعدون مُفعَّلون) */
-  currentStageValidation?: unknown;
+  /** نتائج فحص استبعادات المناسخة غير المؤكدة في المرحلة الحالية */
+  currentStageValidation?: {
+    hasUnacknowledgedExclusions?: boolean;
+    unacknowledgedExclusions?: ExcludedHeirWarning[];
+  };
   /** سياسة توزيع الحصة عند غياب الورثة في المسألة الثانوية */
   noHeirsRedistribution: StageResult['noHeirsRedistribution'];
   isCalculating: boolean;
@@ -88,7 +92,7 @@ const ResultsTable = memo(function ResultsTable({
   removeStage,
   setSelectedHeirExplanation,
   updateImpediment,
-  currentStageValidation: _currentStageValidation,
+  currentStageValidation,
   noHeirsRedistribution: _noHeirsRedistribution,
   isCalculating,
   handleCopyFullSummary,
@@ -275,6 +279,30 @@ const ResultsTable = memo(function ResultsTable({
         {currentStageIndex > 0 && currentNetEstate === 0 && !isPureSharesMode && (
           <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-800 text-xs rounded">
             <p><strong>تنبيه:</strong> صافي التركة لهذه المرحلة هو صفر. لن يتم حساب أي أنصبة.</p>
+          </div>
+        )}
+
+        {currentStageValidation?.hasUnacknowledgedExclusions && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-4 mb-4 bg-rose-50 border-2 border-rose-300 text-rose-950 text-sm rounded-lg shadow-sm"
+          >
+            <p className="font-bold">النتائج المعروضة مؤقتة: توجد استبعادات لم تُراجع بعد</p>
+            <p className="text-xs mt-1 leading-relaxed">
+              استُبعدت العناصر التالية من حساب هذه المرحلة وفق قواعد التنبيه الحالية. لا تعتمد على هذه الأنصبة ولا تصدر مستنداً قبل مراجعة صلة كل وارث والتحقق من انطباق القاعدة على الشخص المعني.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {(currentStageValidation.unacknowledgedExclusions || []).map(warning => (
+                <li key={warning.heirId} className="border-t border-rose-200 pt-2">
+                  <span className="font-bold">{warning.heirNameAr}</span>
+                  <span className="block text-xs mt-0.5">{warning.reason}</span>
+                  {warning.source && (
+                    <span className="block text-[11px] text-rose-800/80 mt-0.5">المرجع المسجل: {warning.source}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
