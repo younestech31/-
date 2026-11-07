@@ -1838,27 +1838,38 @@ function distributeAmounts(res: CalculationResult[], totalNetEstate: number) {
   const totalSharesFraction = heirsToDistribute.reduce((sum, r) => sum.add(r.shareFraction), new Fraction(0));
   if (totalSharesFraction.compare(0) === 0) return;
 
-  const exactValues = heirsToDistribute.map(r => r.shareFraction.valueOf() * totalNetEstate);
-  const floors = exactValues.map(v => Math.floor(v));
-  const remainders = exactValues.map((v, i) => v - floors[i]);
+  // Financial inputs and saved cases support centime precision. Work in integer
+  // centimes here so largest-remainder allocation never rounds an heir's
+  // entitlement to a whole dinar or creates/destroys part of the estate.
+  const centimesPerDinar = 100;
+  const totalNetEstateCentimes = Math.round(totalNetEstate * centimesPerDinar);
+  const exactCentimeValues = heirsToDistribute.map(r =>
+    r.shareFraction.mul(totalNetEstateCentimes)
+  );
+  const floors = exactCentimeValues.map(value => Math.floor(value.valueOf()));
+  const remainders = exactCentimeValues.map((value, index) =>
+    value.sub(floors[index]).valueOf()
+  );
 
   const allocated = floors.reduce((a, b) => a + b, 0);
   // Distribute only the value represented by the heirs' assigned fractions.
-  // Any remainder deliberately held for legal review (e.g. Article 167/168)
+  // Any residue deliberately held for legal review (e.g. Article 167/168)
   // must stay undistributed rather than being rounded into an existing heir.
-  const targetDistributed = Math.round(totalNetEstate * totalSharesFraction.valueOf());
+  const targetDistributed = Math.round(
+    totalSharesFraction.mul(totalNetEstateCentimes).valueOf()
+  );
   const undistributed = Math.max(0, targetDistributed - allocated);
 
-  const remainderIndices = remainders.map((r, i) => ({ remainder: r, index: i }));
+  const remainderIndices = remainders.map((remainder, index) => ({ remainder, index }));
   remainderIndices.sort((a, b) => b.remainder - a.remainder);
 
-  const finalAmounts = [...floors];
+  const finalAmountsCentimes = [...floors];
   for (let i = 0; i < undistributed && i < remainderIndices.length; i++) {
-    finalAmounts[remainderIndices[i].index] += 1;
+    finalAmountsCentimes[remainderIndices[i].index] += 1;
   }
 
-  heirsToDistribute.forEach((r, i) => {
-    r.amount = finalAmounts[i];
+  heirsToDistribute.forEach((result, index) => {
+    result.amount = finalAmountsCentimes[index] / centimesPerDinar;
   });
 }
 
