@@ -34,6 +34,9 @@ export interface MunasakhatStage {
   deceasedSonsCount?: number;
   deceasedDaughtersCount?: number;
   deceasedChildren?: import('@/lib/inheritance/inheritance-calculator').DeceasedChildGroup[];
+  unbornOutcome?: 'pending' | 'stillborn' | 'born_male' | 'born_female' | 'twins_male_female' | 'twins_males' | 'twins_females';
+  hasUnbornHeir?: boolean;
+  pregnancyDisputed?: boolean;
   hasMandatoryBequest: boolean;
   alreadyInheritedFromParentAmount?: number;
   inheritedFromParentAmount?: number;
