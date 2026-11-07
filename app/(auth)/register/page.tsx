@@ -42,7 +42,7 @@ async function handleRegisterAction(formData: FormData) {
     name.length > 120
     || firmName.length > 180
     || email.length > 254
-    || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)
+    || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   ) {
     redirect('/register?error=invalid_input');
   }
@@ -177,7 +177,10 @@ export default async function RegisterPage(props: RegisterPageProps) {
                 <span>تنبيه أمني: تم تجاوز عدد محاولات التسجيل المسموح بها. يرجى الانتظار قبل إعادة المحاولة.</span>
               )}
               {error === 'weak_password' && (
-                <span>كلمة المرور ضعيفة. يجب أن لا تقل عن 10 أحرف وأن لا تكون ضمن كلمات المرور الشائعة.</span>
+                <span>كلمة المرور ضعيفة: يجب ألا تقل عن 10 أحرف، وألا تتجاوز 72 بايتًا، وألا تكون شائعة.</span>
+              )}
+              {error === 'invalid_input' && (
+                <span>تحقق من صحة البريد الإلكتروني وأطوال الاسم واسم المكتب.</span>
               )}
               {error === 'email_exists' && (
                 <span>البريد الإلكتروني المدخل مسجل بالفعل لمكتب توثيق آخر.</span>
