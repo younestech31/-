@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -57,6 +57,61 @@ describe('Offline license issuer integration', () => {
       expect(status.license?.features).toEqual(['professional-pdf-export']);
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+  it('generates a matching offline key pair, locks down permissions, and refuses accidental overwrite', async () => {
+    const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'mawarith-keygen-test-'));
+    try {
+      const scriptsDirectory = path.join(tempRoot, 'scripts');
+      const licensingDirectory = path.join(tempRoot, 'lib', 'licensing');
+      await mkdir(scriptsDirectory, { recursive: true });
+      await mkdir(licensingDirectory, { recursive: true });
+      const sourceScript = await readFile(path.resolve(process.cwd(), 'scripts/license-keys.mjs'), 'utf8');
+      const scriptPath = path.join(scriptsDirectory, 'license-keys.mjs');
+      await writeFile(scriptPath, sourceScript, { mode: 0o600 });
+
+      await execFileAsync(process.execPath, [scriptPath]);
+
+      const keyDirectory = path.join(tempRoot, '.license-keys');
+      const privatePath = path.join(keyDirectory, 'private-key.pem');
+      const publicPath = path.join(keyDirectory, 'public-key.pem');
+      const privatePem = await readFile(privatePath, 'utf8');
+      const publicPem = await readFile(publicPath, 'utf8');
+      const publicSource = await readFile(path.join(licensingDirectory, 'public-key.ts'), 'utf8');
+      const publicKeyMatch = publicSource.match(/LICENSE_PUBLIC_KEY_SPKI = \"([A-Za-z0-9+/=]+)\"/);
+      expect(publicKeyMatch?.[1]).toBeTruthy();
+      expect((await stat(privatePath)).mode & 0o777).toBe(0o600);
+      expect((await stat(keyDirectory)).mode & 0o777).toBe(0o700);
+
+      const privateKey = await webcrypto.subtle.importKey(
+        'pkcs8',
+        Buffer.from(privatePem.replace(/-----[^-]+-----|\\s/g, ''), 'base64'),
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false,
+        ['sign'],
+      );
+      const publicKey = await webcrypto.subtle.importKey(
+        'spki',
+        Buffer.from(publicPem.replace(/-----[^-]+-----|\\s/g, ''), 'base64'),
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        false,
+        ['verify'],
+      );
+      const message = new TextEncoder().encode('mawarith-key-pair-self-test');
+      const signature = await webcrypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, message);
+      expect(await webcrypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, publicKey, signature, message)).toBe(true);
+      expect(Buffer.from(publicPem.replace(/-----[^-]+-----|\\s/g, ''), 'base64').toString('base64')).toBe(publicKeyMatch?.[1]);
+
+      let overwriteRejected = false;
+      try {
+        await execFileAsync(process.execPath, [scriptPath]);
+      } catch {
+        overwriteRejected = true;
+      }
+      expect(overwriteRejected).toBe(true);
+      expect(await readFile(privatePath, 'utf8')).toBe(privatePem);
+    } finally {
+      await rm(tempRoot, { recursive: true, force: true });
     }
   });
 });
