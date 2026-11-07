@@ -140,8 +140,8 @@ const statutoryCases: ReferenceCase[] = [
     expected: {
       husband: { fraction: '1/2', amount: 300_000 },
       mother: { fraction: '1/6', amount: 100_000 },
-      maternal_siblings: { fraction: '2/9', amount: 133_333 },
-      full_brother: { fraction: '1/9', amount: 66_667 },
+      maternal_siblings: { fraction: '2/9', amount: 133_333.33 },
+      full_brother: { fraction: '1/9', amount: 66_666.67 },
     },
   },
   {
