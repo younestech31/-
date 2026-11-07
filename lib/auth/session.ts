@@ -161,7 +161,8 @@ export async function verifyExportToken(token: string): Promise<{ isPaid: boolea
 
 /**
  * Guard for billing-gated features (e.g. Cloud Sync, Unlimited Munasakhat Stages, Watermark Removal).
- * Re-checks DB plan status to prevent stale cookie or client forgery.
+ * Paid access is granted only when the current organization plan is confirmed by the database.
+ * A stale JWT claim or database outage must never preserve paid privileges.
  */
 export async function verifyPaidSubscription(): Promise<{ isPaid: boolean; session: UserSession | null }> {
   const session = await getSession();
@@ -169,20 +170,34 @@ export async function verifyPaidSubscription(): Promise<{ isPaid: boolean; sessi
     return { isPaid: false, session: null };
   }
 
-  // Re-verify against database if available
-  const db = getDb();
-  if (db && session.organizationId) {
-    try {
-      const orgs = await db.select().from(organizations).where(eq(organizations.id, session.organizationId)).limit(1);
-      if (orgs.length > 0) {
-        const dbPlan = (orgs[0].plan === 'paid' ? 'paid' : 'free') as 'free' | 'paid';
-        const isPaid = dbPlan === 'paid';
-        return { isPaid, session: { ...session, plan: dbPlan } };
-      }
-    } catch (err) {
-      console.error('[verifyPaidSubscription] DB re-check failed:', err);
-    }
+  const freeSession: UserSession = { ...session, plan: 'free' };
+  if (!session.organizationId) {
+    return { isPaid: false, session: freeSession };
   }
 
-  return { isPaid: session.plan === 'paid', session };
+  const db = getDb();
+  if (!db) {
+    return { isPaid: false, session: freeSession };
+  }
+
+  try {
+    const orgs = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, session.organizationId))
+      .limit(1);
+
+    if (orgs.length === 0) {
+      return { isPaid: false, session: freeSession };
+    }
+
+    const dbPlan = orgs[0].plan === 'paid' ? 'paid' : 'free';
+    return {
+      isPaid: dbPlan === 'paid',
+      session: { ...session, plan: dbPlan },
+    };
+  } catch (err) {
+    console.error('[verifyPaidSubscription] DB re-check failed; denying paid access:', err);
+    return { isPaid: false, session: freeSession };
+  }
 }
