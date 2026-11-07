@@ -38,6 +38,8 @@ export interface MunasakhatStage {
   hasMinorHeir?: boolean;
   /** Article 129: two or more deaths with an unproven order of death. */
   deathOrderUncertain?: boolean;
+  /** Article 137: the estate amount entered excludes diyah/compensation. */
+  confirmedDiyahExcluded?: boolean;
   acknowledgedExclusions?: string[];
 }
 
