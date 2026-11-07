@@ -6,14 +6,16 @@ import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import crypto from 'crypto';
 
+const MAX_REQUEST_BYTES = 4 * 1024 * 1024;
+
 const saveCaseSchema = z.object({
-  id: z.string(),
-  caseNameEncrypted: z.string(),
-  caseDateEncrypted: z.string(),
-  notaryIdEncrypted: z.string(),
+  id: z.string().min(1).max(128),
+  caseNameEncrypted: z.string().max(16 * 1024),
+  caseDateEncrypted: z.string().max(4 * 1024),
+  notaryIdEncrypted: z.string().max(16 * 1024),
   isCloudSynced: z.boolean().default(true),
-  encryptedPayload: z.string(),
-});
+  encryptedPayload: z.string().min(1).max(3_800_000),
+}).strict();
 
 export async function GET(_req: NextRequest) {
   try {
@@ -68,7 +70,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cloud Sync requires a paid subscription plan.' }, { status: 403 });
     }
 
-    const body = await req.json();
+    const contentLength = Number(req.headers.get('content-length') || 0);
+    if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+      return NextResponse.json({ error: 'Cloud case payload is too large' }, { status: 413 });
+    }
+
+    const rawBody = await req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
+      return NextResponse.json({ error: 'Cloud case payload is too large' }, { status: 413 });
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Malformed JSON payload' }, { status: 400 });
+    }
     const parsed = saveCaseSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid payload', details: parsed.error.format() }, { status: 400 });
