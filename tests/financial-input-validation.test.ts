@@ -75,6 +75,42 @@ describe('Shared financial input validation at the inheritance orchestration bou
     expect(negative.results).toEqual([]);
   });
 
+  it('holds a present heir category with a zero count', () => {
+    const [result] = calculate([
+      stage('zero-present', { heirs: [present('son', 0)] }),
+    ]);
+
+    expect(result.financialInputNeedsManualReview).toBe(true);
+    expect(result.financialInputErrors?.some(issue => issue.includes('يجب أن يكون عدداً صحيحاً موجباً عند تفعيل وجودها'))).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
+  it('allows an inactive heir category to retain a zero count', () => {
+    const son = { heirId: 'son', count: 0, isPresent: false };
+    const [result] = calculate([
+      stage('inactive-zero', {
+        heirs: [present('daughter'), son],
+      }),
+    ]);
+
+    expect(result.financialInputNeedsManualReview).toBeUndefined();
+    expect(result.results.find(row => row.heirId === 'son')).toBeUndefined();
+  });
+
+  it('holds mutually incompatible husband and wife inputs for one deceased person', () => {
+    const [result] = calculate([
+      stage('two-spouses', {
+        heirs: [present('son'), present('husband'), present('wife')],
+      }),
+    ]);
+
+    expect(result.financialInputNeedsManualReview).toBe(true);
+    expect(result.financialInputErrors).toContain(
+      'لا يمكن تسجيل الزوج والزوجة معاً كورثة للمتوفى نفسه؛ راجع جنس المتوفى وصلة الزوجية قبل الحساب.'
+    );
+    expect(result.results).toEqual([]);
+  });
+
   it('holds duplicate heir IDs instead of silently overwriting or duplicating a share', () => {
     const [result] = calculate([
       stage('duplicate', { heirs: [present('son'), present('son')] }),
