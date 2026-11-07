@@ -394,6 +394,82 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
   });
 
+  it('applies Article 175 akdariyya to a paternal sister as expressly stated in the statute', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('husband'),
+      present('mother'),
+      present('grandfather'),
+      present('paternal_sister'),
+    ], 270000, 0, 0, 0);
+
+    expect(amountFor(results, 'husband')).toBe(90000);       // 9/27
+    expect(amountFor(results, 'mother')).toBe(60000);        // 6/27
+    expect(amountFor(results, 'grandfather')).toBe(80000);   // 8/27
+    expect(amountFor(results, 'paternal_sister')).toBe(40000);// 4/27
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(270000);
+  });
+
+  it('applies Article 177 gharawayn for a husband and both parents', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('husband'),
+      present('mother'),
+      present('father'),
+    ], 120000, 0, 0, 0);
+
+    expect(amountFor(results, 'husband')).toBe(60000); // 1/2
+    expect(amountFor(results, 'mother')).toBe(20000);  // 1/3 of remainder
+    expect(amountFor(results, 'father')).toBe(40000);  // residue
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
+  });
+
+  it('applies Article 177 gharawayn for a wife and both parents', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('wife'),
+      present('mother'),
+      present('father'),
+    ], 120000, 0, 0, 0);
+
+    expect(amountFor(results, 'wife')).toBe(30000);   // 1/4
+    expect(amountFor(results, 'mother')).toBe(30000);// 1/3 of remainder
+    expect(amountFor(results, 'father')).toBe(60000);// residue
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
+  });
+
+  it('applies Article 178 mubahala through awl: husband, mother and full sister', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('husband'),
+      present('mother'),
+      present('full_sister'),
+    ], 240000, 0, 0, 0);
+
+    expect(amountFor(results, 'husband')).toBe(90000);    // 3/8
+    expect(amountFor(results, 'full_sister')).toBe(90000);// 3/8
+    expect(amountFor(results, 'mother')).toBe(60000);    // 2/8
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(240000);
+    expect(results.some(result => result.calculationType === 'awl')).toBe(true);
+  });
+
+  it('applies Article 179 minbariya through awl: wife, two daughters and both parents', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('wife'),
+      present('daughter', 2),
+      present('father'),
+      present('mother'),
+    ], 270000, 0, 0, 0);
+
+    expect(amountFor(results, 'wife')).toBe(30000);     // 3/27
+    expect(amountFor(results, 'daughter')).toBe(160000);// 16/27
+    expect(amountFor(results, 'father')).toBe(40000);   // 4/27
+    expect(amountFor(results, 'mother')).toBe(40000);   // 4/27
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(270000);
+    expect(results.some(result => result.calculationType === 'awl')).toBe(true);
+  });
+
   it('recognizes the Article 176 mushtaraka with an eligible grandmother instead of the mother', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
