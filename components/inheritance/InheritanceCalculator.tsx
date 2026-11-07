@@ -172,7 +172,8 @@ export default function InheritanceCalculator({
     return hasPendingExclusions
       || Boolean(stageResult.hasUnverifiedOverride)
       || Boolean(stageResult.requiresManualClassification)
-      || Boolean(stageResult.tanzilNeedsManualReview);
+      || Boolean(stageResult.tanzilNeedsManualReview)
+      || Boolean(stageResult.noHeirsNeedsManualReview);
   });
 
   useEffect(() => {
