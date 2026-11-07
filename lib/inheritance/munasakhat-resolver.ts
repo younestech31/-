@@ -44,6 +44,10 @@ export function resolveNoHeirsPolicy(
   messageAr: string;
   redistributeTo?: CalculationResult[];
 } {
+  if (stage.confirmedNoDistantKindred !== true) {
+    throw new Error('Cannot route the residue to treasury before explicit Article 167/180 confirmation that no entitled distant kindred exists.');
+  }
+
   // المادة 180 تطبق على تركة كل متوفى على حدة: أصحاب الفروض، ثم العصبة،
   // ثم ذوو الأرحام، فإن لم يوجدوا آلت التركة إلى الخزينة العامة.
   // وجود وارث في نتيجة المرحلة السابقة لا يجعله وارثاً تلقائياً في تركة هذا المتوفى.
