@@ -1,8 +1,26 @@
 import { describe, it, expect, vi } from 'vitest';
 import { validateAllStages, resolveNoHeirsPolicy } from '../lib/inheritance/munasakhat-resolver';
 import type { MunasakhatStage } from '../components/inheritance/InheritanceCalculator';
+import { inferDeceasedGender } from '../lib/hooks/useMunasakhatStages';
 
 describe('Munasakhat Resolver Tests', () => {
+  it('infers gender for single-gender heirs and requires input for mixed groups', () => {
+    expect(inferDeceasedGender('son')).toBe('male');
+    expect(inferDeceasedGender('daughter')).toBe('female');
+    expect(inferDeceasedGender('maternal_siblings')).toBeNull();
+    expect(inferDeceasedGender('unknown-heir')).toBeNull();
+  });
+
+  it('validates the actual stage-0 shape using Arabic name and heirs array', () => {
+    const [validation] = validateAllStages([{
+      id: 'stage-0',
+      deceasedNameAr: 'المتوفى الأصلي',
+      hasMandatoryBequest: false,
+      heirs: [{ heirId: 'son', count: 1, isPresent: true }],
+    }]);
+    expect(validation.isValid).toBe(true);
+    expect(validation.errors).toEqual([]);
+  });
   it('validates stage estate and heir presence correctly', () => {
     const invalidStage: MunasakhatStage = {
       id: 'stage-2',
