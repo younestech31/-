@@ -4,6 +4,7 @@ import type { MunasakhatStage } from '@/components/inheritance/InheritanceCalcul
 import type { StageResult } from '@/components/inheritance/ResultsTable';
 import { isHeirExcludedInMunasakhat } from '@/data/munasakhat-exclusions';
 import { HEIRS } from '@/data/heirs';
+import { validateFinancialInputs } from '@/lib/inheritance/financial-input-validation';
 
 export function runInheritanceOrchestration(
   args: [MunasakhatStage[], number, number, number, number]
@@ -16,13 +17,46 @@ export function runInheritanceOrchestration(
     const inheritedAmount = stage.inheritedFromParentAmount ?? stage.alreadyInheritedFromParentAmount ?? stage.inheritedAmount ?? stage.estate ?? 0;
     const ownAssets = stage.ownSeparateAssets ?? 0;
     const stageEstate = index === 0 ? debouncedEstate : (inheritedAmount + ownAssets);
-    const stageDebts   = index === 0 ? debouncedDebts        : (stage.debts || 0);
-    const stageFuneral = index === 0 ? debouncedFuneralCosts : (stage.funeralCosts || 0);
-    const stageBequest = index === 0 ? debouncedBequest      : (stage.bequest || 0);
+    const stageDebts   = index === 0 ? debouncedDebts        : (stage.debts ?? 0);
+    const stageFuneral = index === 0 ? debouncedFuneralCosts : (stage.funeralCosts ?? 0);
+    const stageBequest = index === 0 ? debouncedBequest      : (stage.bequest ?? 0);
 
     // Normalize presence array / record
     const presenceList = stage.heirs?.length ? stage.heirs : (stage.heirPresence ? Object.values(stage.heirPresence) : []);
     const parentHeirId = stage.parentHeirId || stage.deceasedHeirId;
+
+    const parentStageResult = stage.parentStageId
+      ? stagesData.find(result => result.stage.id === stage.parentStageId)
+      : (index > 0 && parentHeirId ? stagesData[index - 1] : undefined);
+    const financialInputErrors = validateFinancialInputs({
+      estate: stageEstate,
+      inheritedAmount: index === 0 ? 0 : inheritedAmount,
+      ownSeparateAssets: index === 0 ? 0 : ownAssets,
+      debts: stageDebts,
+      funeralCosts: stageFuneral,
+      bequest: stageBequest,
+      heirs: presenceList,
+      deceasedSonsCount: stage.deceasedSonsCount ?? stage.deceasedChildren?.filter(child => child.type === 'son').reduce((sum, child) => sum + child.count, 0) ?? 0,
+      deceasedDaughtersCount: stage.deceasedDaughtersCount ?? stage.deceasedChildren?.filter(child => child.type === 'daughter').reduce((sum, child) => sum + child.count, 0) ?? 0,
+      deceasedChildren: stage.deceasedChildren,
+    });
+
+    if (parentStageResult?.financialInputNeedsManualReview) {
+      financialInputErrors.push('المرحلة الأصلية المرتبطة بهذه المناسخة معلّقة بسبب مدخلات مالية غير صالحة؛ لا يمكن اشتقاق نصيب المتوفى اللاحق منها.');
+    }
+
+    if (financialInputErrors.length > 0) {
+      stagesData.push({
+        stage,
+        results: [],
+        netEstate: 0,
+        noHeirsRedistribution: null,
+        excludedHeirWarnings: [],
+        financialInputNeedsManualReview: true,
+        financialInputErrors: [...new Set(financialInputErrors)],
+      });
+      continue;
+    }
     const hasOtherUnion = stage.secondDeceasedHasChildrenFromOtherUnion ?? stage.hasChildrenFromOtherUnion ?? false;
 
     // First pass: identify all present heirs that would be excluded by default

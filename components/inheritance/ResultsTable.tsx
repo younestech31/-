@@ -50,6 +50,8 @@ export interface StageResult {
   involuntaryKillerNeedsCompensationReview?: boolean;
   missingHeirNeedsManualReview?: boolean;
   spouseEligibilityNeedsReview?: boolean;
+  financialInputNeedsManualReview?: boolean;
+  financialInputErrors?: string[];
 }
 
 interface ResultsTableProps {
@@ -295,6 +297,24 @@ const ResultsTable = memo(function ResultsTable({
         {currentStageIndex > 0 && currentNetEstate === 0 && !isPureSharesMode && (
           <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-800 text-xs rounded">
             <p><strong>تنبيه:</strong> صافي التركة لهذه المرحلة هو صفر. لن يتم حساب أي أنصبة.</p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.financialInputNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-rose-300 bg-rose-50 p-4 text-sm text-rose-950"
+          >
+            <p className="font-bold">توقّف الحساب بسبب مدخلات مالية غير صالحة</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لم يُصدر النظام أنصبة لهذه المرحلة، ولم يسمح بتصديرها. صحّح الأرقام أو راجع أصل المبلغ قبل إعادة الحساب.
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pr-5 text-xs leading-relaxed">
+              {(allStagesResults[currentStageIndex]?.financialInputErrors || []).map((issue, index) => (
+                <li key={`${index}-${issue}`}>{issue}</li>
+              ))}
+            </ul>
           </div>
         )}
 

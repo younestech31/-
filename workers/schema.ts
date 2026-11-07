@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const HeirPresenceItemSchema = z.object({
   heirId: z.string().min(1),
-  count: z.number().int().nonnegative().default(0),
+  count: z.number().default(0),
   isPresent: z.boolean().default(false),
   hasMandatoryBequest: z.boolean().optional(),
   isImpeded: z.boolean().optional(),
@@ -15,31 +15,31 @@ export const HeirPresenceItemSchema = z.object({
 
 export const MunasakhatStageSchema = z.object({
   id: z.string().optional(),
-  estate: z.number().nonnegative(),
+  estate: z.number(),
   hasMandatoryBequest: z.boolean(),
-  deceasedSonsCount: z.number().int().nonnegative().default(0),
-  deceasedDaughtersCount: z.number().int().nonnegative().default(0),
-  alreadyInheritedFromParentAmount: z.number().nonnegative().nullish().optional(),
-  inheritedFromParentAmount: z.number().nonnegative().nullish().optional(),
-  ownSeparateAssets: z.number().nonnegative().nullish().optional().default(0),
+  deceasedSonsCount: z.number().default(0),
+  deceasedDaughtersCount: z.number().default(0),
+  alreadyInheritedFromParentAmount: z.number().nullish().optional(),
+  inheritedFromParentAmount: z.number().nullish().optional(),
+  ownSeparateAssets: z.number().nullish().optional().default(0),
   heirPresence: z.record(z.string(), HeirPresenceItemSchema),
   parentHeirId: z.string().nullish().optional(),
   parentStageId: z.string().nullish().optional(),
   parentHeirIndex: z.number().int().nullish().optional(),
   deceasedName: z.string().nullish().optional(),
-  debts: z.number().nonnegative().nullish().optional(),
-  funeralCosts: z.number().nonnegative().nullish().optional(),
-  bequest: z.number().nonnegative().nullish().optional(),
+  debts: z.number().nullish().optional(),
+  funeralCosts: z.number().nullish().optional(),
+  bequest: z.number().nullish().optional(),
 }).passthrough();
 
 export const WorkerInputSchema = z.object({
   id: z.number().int().nonnegative(),
   args: z.tuple([
     z.array(MunasakhatStageSchema),
-    z.number().nonnegative(),
-    z.number().nonnegative(),
-    z.number().nonnegative(),
-    z.number().nonnegative()
+    z.number(),
+    z.number(),
+    z.number(),
+    z.number()
   ])
 });
 

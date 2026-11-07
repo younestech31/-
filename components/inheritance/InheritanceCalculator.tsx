@@ -193,7 +193,8 @@ export default function InheritanceCalculator({
       || Boolean(stageResult.deathOrderNeedsManualReview)
       || Boolean(stageResult.involuntaryKillerNeedsCompensationReview)
       || Boolean(stageResult.missingHeirNeedsManualReview)
-      || Boolean(stageResult.spouseEligibilityNeedsReview);
+      || Boolean(stageResult.spouseEligibilityNeedsReview)
+      || Boolean(stageResult.financialInputNeedsManualReview);
   });
 
   useEffect(() => {
