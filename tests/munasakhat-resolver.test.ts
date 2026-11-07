@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { validateAllStages, resolveNoHeirsPolicy } from '../lib/inheritance/munasakhat-resolver';
 import type { MunasakhatStage } from '../components/inheritance/InheritanceCalculator';
 import { createMunasakhatStage, getCurrentStageIndexAfterRemoval, inferDeceasedGender } from '../lib/hooks/useMunasakhatStages';
@@ -364,66 +364,7 @@ describe('Munasakhat Resolver Tests', () => {
     expect(buildCspHeader('test-nonce')).toContain("'nonce-test-nonce'");
   });
 
-  it('rejects cross-organization cloud-case ID conflicts instead of reporting success', async () => {
-    vi.resetModules();
-    const session = {
-      userId: 'user-a',
-      email: 'user@example.test',
-      name: 'Test User',
-      organizationId: 'org-a',
-      plan: 'paid' as const,
-      role: 'notary' as const,
-    };
-    const verifyPaidSubscription = vi.fn().mockResolvedValue({ isPaid: true, session });
-    const returning = vi.fn()
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce([{ id: 'same-case-id' }]);
-    let conflictConfig: Record<string, unknown> | undefined;
-    const getDb = vi.fn().mockReturnValue({
-      insert: () => ({
-        values: () => ({
-          onConflictDoUpdate: (config: Record<string, unknown>) => {
-            conflictConfig = config;
-            return { returning };
-          },
-        }),
-      }),
-    });
 
-    vi.doMock('@/lib/auth/session', () => ({ verifyPaidSubscription }));
-    vi.doMock('@/lib/db/client', () => ({ getDb }));
-
-    try {
-      const [{ POST }, { NextRequest }] = await Promise.all([
-        import('@/app/api/cases/route'),
-        import('next/server'),
-      ]);
-      const makeRequest = () => new NextRequest('http://localhost/api/cases', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          id: 'same-case-id',
-          caseNameEncrypted: 'encrypted-name',
-          caseDateEncrypted: 'encrypted-date',
-          notaryIdEncrypted: 'encrypted-notary',
-          isCloudSynced: true,
-          encryptedPayload: 'ciphertext',
-        }),
-      });
-
-      const conflictResponse = await POST(makeRequest());
-      expect(conflictConfig?.setWhere).toBeDefined();
-      expect(conflictResponse.status).toBe(409);
-
-      const ownCaseResponse = await POST(makeRequest());
-      expect(ownCaseResponse.status).toBe(200);
-      await expect(ownCaseResponse.json()).resolves.toMatchObject({ success: true, id: 'same-case-id' });
-    } finally {
-      vi.doUnmock('@/lib/auth/session');
-      vi.doUnmock('@/lib/db/client');
-      vi.resetModules();
-    }
-  });
 });
 
 

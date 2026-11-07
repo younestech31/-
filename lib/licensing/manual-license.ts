@@ -73,13 +73,13 @@ export function stableStringify(value: unknown): string {
   ).join(',')}}`;
 }
 
-function decodeBase64(value: string): Uint8Array {
+function decodeBase64(value: string): ArrayBuffer {
   const binary = atob(value);
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) {
     bytes[index] = binary.charCodeAt(index);
   }
-  return bytes;
+  return bytes.buffer as ArrayBuffer;
 }
 
 function isLicensePayload(value: unknown): value is MawarithLicensePayload {
