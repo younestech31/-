@@ -145,6 +145,24 @@ const statutoryCases: ReferenceCase[] = [
     },
   },
   {
+    id: 'art176-not-mushtaraka-with-full-sister-only',
+    article: 176,
+    facts: 'لا تُفعّل المشتركة عند وجود أخت شقيقة فقط دون أخ شقيق؛ تأخذ الأخت فرضها ويجري العول مع استغراق الفروض',
+    estate: 900_000,
+    heirs: [
+      present('husband'),
+      present('mother'),
+      present('maternal_siblings', 2),
+      present('full_sister'),
+    ],
+    expected: {
+      husband: { fraction: '1/3', amount: 300_000 },
+      mother: { fraction: '1/9', amount: 100_000 },
+      maternal_siblings: { fraction: '2/9', amount: 200_000 },
+      full_sister: { fraction: '1/3', amount: 300_000 },
+    },
+  },
+  {
     id: 'art177-gharrawain-husband',
     article: 177,
     facts: 'زوج وأبوان: الزوج النصف، الأم ثلث الباقي (السدس)، والأب الباقي',
