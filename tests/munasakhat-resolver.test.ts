@@ -259,6 +259,23 @@ describe('Munasakhat Resolver Tests', () => {
     expect(results[1].netEstate).toBe(150000);
   });
 
+  it('withholds all share results when Article 155 granddaughter cousin degree needs review', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى الأصلي',
+      hasMandatoryBequest: false,
+      heirs: [
+        present('granddaughter'),
+        present('full_uncle_son'),
+      ],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 120000, 0, 0, 0]);
+    expect(result.requiresManualClassification).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
   it('withholds automated Article 169–172 tanzil when only aggregate deceased-child counts are available', async () => {
     const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
     const stages: MunasakhatStage[] = [
@@ -274,6 +291,7 @@ describe('Munasakhat Resolver Tests', () => {
     ];
     const [result] = runInheritanceOrchestration([stages, 1200000, 0, 0, 0]);
     expect(result.tanzilNeedsManualReview).toBe(true);
+    expect(result.results).toEqual([]);
     expect(result.results.some(row => row.heirId === 'mandatory_bequest')).toBe(false);
   });
 
@@ -293,6 +311,7 @@ describe('Munasakhat Resolver Tests', () => {
     ];
     const [result] = runInheritanceOrchestration([stages, 90000, 0, 0, 0]);
     expect(result.requiresManualClassification).toBe(true);
+    expect(result.results).toEqual([]);
   });
 
   it('keeps an involuntary killer in the per-person group-share denominator', async () => {
