@@ -433,7 +433,7 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(156000);
   });
 
-  it('recognizes the Article 176 mushtaraka when full siblings are represented only by a sister', async () => {
+  it('does not apply Article 176 mushtaraka with full sister only; applies awl to the ordinary shares', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
       present('husband'),
@@ -442,10 +442,11 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
       present('full_sister'),
     ], 90000, 0, 0, 0);
 
-    expect(amountFor(results, 'husband')).toBe(45000);
-    expect(amountFor(results, 'mother')).toBe(15000);
-    expect(amountFor(results, 'maternal_siblings')).toBe(20000);
-    expect(amountFor(results, 'full_sister')).toBe(10000);
+    expect(amountFor(results, 'husband')).toBe(30000); // 1/3 after awl
+    expect(amountFor(results, 'mother')).toBe(10000); // 1/9 after awl
+    expect(amountFor(results, 'maternal_siblings')).toBe(20000); // 2/9 after awl
+    expect(amountFor(results, 'full_sister')).toBe(30000); // 1/3 after awl
+    expect(results.some(result => result.calculationType === 'awl')).toBe(true);
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(90000);
   });
 
@@ -601,7 +602,7 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.some(result => result.calculationType === 'awl')).toBe(true);
   });
 
-  it('recognizes the Article 176 mushtaraka with an eligible grandmother instead of the mother', async () => {
+  it('does not apply Article 176 mushtaraka with an eligible grandmother and full sister only; applies awl', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
       present('husband'),
@@ -610,10 +611,11 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
       present('full_sister'),
     ], 90000, 0, 0, 0);
 
-    expect(amountFor(results, 'husband')).toBe(45000);
-    expect(amountFor(results, 'maternal_grandmother')).toBe(15000);
-    expect(amountFor(results, 'maternal_siblings')).toBe(20000);
-    expect(amountFor(results, 'full_sister')).toBe(10000);
+    expect(amountFor(results, 'husband')).toBe(30000); // 1/3 after awl
+    expect(amountFor(results, 'maternal_grandmother')).toBe(10000); // 1/9 after awl
+    expect(amountFor(results, 'maternal_siblings')).toBe(20000); // 2/9 after awl
+    expect(amountFor(results, 'full_sister')).toBe(30000); // 1/3 after awl
+    expect(results.some(result => result.calculationType === 'awl')).toBe(true);
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(90000);
   });
 
