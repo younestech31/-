@@ -116,7 +116,12 @@ async function handleRegisterAction(formData: FormData) {
 
   // Generate signed verification token & send email
   const verifyToken = await createEmailVerificationToken(userId, email);
-  await sendVerificationEmail(email, verifyToken);
+  const verificationEmailSent = await sendVerificationEmail(email, verifyToken);
+
+  if (!verificationEmailSent) {
+    // The user remains unverified and cannot sign in. Never claim delivery succeeded.
+    redirect('/register?error=email_unavailable');
+  }
 
   // Do not authenticate an account until its email address has been verified.
   redirect('/register?info=check_email');
@@ -167,6 +172,9 @@ export default async function RegisterPage(props: RegisterPageProps) {
               )}
               {error === 'email_exists' && (
                 <span>البريد الإلكتروني المدخل مسجل بالفعل لمكتب توثيق آخر.</span>
+              )}
+              {error === 'email_unavailable' && (
+                <span>تم إنشاء الحساب مبدئياً، لكن تعذر إرسال رسالة التأكيد. لم يتم تفعيل الحساب بعد؛ يرجى التواصل مع الدعم لإعادة إرسال الرابط.</span>
               )}
               {error === 'registration_failed' && (
                 <span>تعذر إنشاء الحساب حالياً. يرجى المحاولة لاحقاً أو التواصل مع الدعم.</span>
