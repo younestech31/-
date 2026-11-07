@@ -49,7 +49,8 @@ export async function getSession(): Promise<UserSession | null> {
       algorithms: ['HS256'],
     });
 
-    // Only sessions minted after the email-verification gate are accepted.\n    // This also invalidates legacy pre-verification JWTs already in circulation.\n    if (!payload.userId || !payload.organizationId || payload.emailVerified !== true) return null;
+    // Only sessions minted after the email-verification gate are accepted.
+    // This also invalidates legacy pre-verification JWTs already in circulation.\n    if (!payload.userId || !payload.organizationId || payload.emailVerified !== true) return null;
 
     return {
       userId: payload.userId as string,
