@@ -126,6 +126,25 @@ export function calculateInheritance(
   // The current engine's reservation path is not yet accepted for notarial use,
   // so fail closed instead of normalizing other heirs' shares against an
   // uncertain distributable estate.
+  if (heirs.some(heir =>
+    heir.isPresent && heir.count > 1 && heir.missingPersonStatus === 'missing_presumed_alive'
+  )) {
+    return [{
+      heirId: 'article_133_review',
+      nameAr: 'مراجعة المفقود — المادة 133',
+      share: 'معلق للمراجعة',
+      shareDecimal: 0,
+      shareFraction: new Fraction(0),
+      shares: 0,
+      problemBase: 0,
+      amount: 0,
+      isBlocked: false,
+      reason: 'حالة المفقود سُجلت على مجموعة تضم أكثر من فرد، ولا يميز النموذج أي فرد هو المفقود؛ لذلك لا يمكن تحديد الجزء الموقوف من نصيب المجموعة.',
+      article: 133,
+      count: 1
+    }];
+  }
+
   if (hasUnbornHeir && unbornOutcome === 'pending') {
     return [{
       heirId: 'article_173_review',
