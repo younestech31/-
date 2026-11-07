@@ -51,7 +51,20 @@ export interface LicenseStatus {
 
 const CLOCK_SKEW_MS = 5 * 60 * 1000;
 const MAX_LICENSE_BYTES = 32 * 1024;
-const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/;
+
+/** Returns true only for a correctly encoded P-256 SPKI verification key. */
+export function isPublicKeyConfigured(publicKeySpkiBase64 = LICENSE_PUBLIC_KEY_SPKI): boolean {
+  if (!publicKeySpkiBase64 || !/^[A-Za-z0-9+/]{120,124}={0,2}$/.test(publicKeySpkiBase64)) return false;
+  try {
+    const decoded = new Uint8Array(decodeBase64(publicKeySpkiBase64));
+    // DER SubjectPublicKeyInfo prefix for id-ecPublicKey + prime256v1, followed by 65-byte uncompressed point.
+    const expectedPrefix = [0x30,0x59,0x30,0x13,0x06,0x07,0x2a,0x86,0x48,0xce,0x3d,0x02,0x01,0x06,0x08,0x2a,0x86,0x48,0xce,0x3d,0x03,0x01,0x07,0x03,0x42,0x00,0x04];
+    return decoded.byteLength === 91 && expectedPrefix.every((byte, index) => decoded[index] === byte);
+  } catch {
+    return false;
+  }
+}
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -107,7 +120,13 @@ function isLicensePayload(value: unknown): value is MawarithLicensePayload {
 
   const issuedAt = Date.parse(value.issuedAt);
   const expiresAt = Date.parse(value.expiresAt);
-  if (!Number.isFinite(issuedAt) || !Number.isFinite(expiresAt) || expiresAt <= issuedAt) {
+  if (
+    !Number.isFinite(issuedAt) ||
+    !Number.isFinite(expiresAt) ||
+    expiresAt <= issuedAt ||
+    new Date(issuedAt).toISOString() !== value.issuedAt ||
+    new Date(expiresAt).toISOString() !== value.expiresAt
+  ) {
     return false;
   }
 
@@ -161,7 +180,7 @@ export async function verifyLicenseEnvelopeWithKey(
   const expiresAt = Date.parse(payload.expiresAt);
   if (issuedAt > now + CLOCK_SKEW_MS) return { ...base, reason: 'not_yet_valid' };
   if (expiresAt <= now) return { ...base, reason: 'expired' };
-  if (!publicKeySpkiBase64) return { ...base, reason: 'public_key_missing' };
+  if (!isPublicKeyConfigured(publicKeySpkiBase64)) return { ...base, reason: 'public_key_missing' };
 
   try {
     const publicKey = await crypto.subtle.importKey(
@@ -172,6 +191,8 @@ export async function verifyLicenseEnvelopeWithKey(
       ['verify'],
     );
     const signature = decodeBase64(envelope.signature);
+    // Web Crypto ECDSA P-256 signatures are fixed-width IEEE-P1363 (r || s), 64 bytes.
+    if (signature.byteLength !== 64) return { ...base, reason: 'license_malformed' };
     const data = new TextEncoder().encode(stableStringify(payload));
     const valid = await crypto.subtle.verify(
       { name: 'ECDSA', hash: 'SHA-256' },

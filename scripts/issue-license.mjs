@@ -27,7 +27,7 @@ function pemToBytes(pem, label) {
 function usage() {
   console.error([
     'Usage:',
-    '  npm run license:issue -- --installation-id <ID> --customer <NAME> --days <DAYS> [--output <FILE>]',
+    '  npm run license:issue -- --installation-id <ID> --customer <NAME> --days 30|90|365 [--output <FILE>]',
     '',
     'Optional: --license-id <ID> --private-key <PEM_PATH>',
     'Example:',
@@ -46,7 +46,7 @@ if (
   !installationId || installationId.length < 16 || installationId.length > 100 ||
   !customerName || customerName.trim().length < 2 || customerName.trim().length > 160 ||
   !licenseId || licenseId.length < 8 || licenseId.length > 100 ||
-  !Number.isInteger(days) || days < 1 || days > 3650
+  ![30, 90, 365].includes(days)
 ) {
   usage();
   process.exit(1);

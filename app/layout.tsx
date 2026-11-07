@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Cairo, Amiri } from 'next/font/google';
+import localFont from 'next/font/local';
 import { Suspense } from 'react';
 import Script from 'next/script';
 import './globals.css';
@@ -7,18 +7,25 @@ import { SITE_URL } from '@/lib/config';
 import type { Viewport } from 'next';
 import { FAQ_ITEMS } from '@/data/faq';
 
-const cairo = Cairo({
-  subsets: ['arabic', 'latin'],
-  weight: ['400', '700'],
+// Self-host fonts so builds never depend on Google Fonts network availability.
+const cairo = localFont({
+  src: [
+    { path: '../public/fonts/cairo-regular.woff2', weight: '400', style: 'normal' },
+    { path: '../public/fonts/cairo-bold.woff2', weight: '700', style: 'normal' },
+  ],
   variable: '--font-cairo',
   display: 'swap',
+  preload: true,
 });
 
-const amiri = Amiri({
-  subsets: ['arabic'],
-  weight: ['400', '700'],
+const amiri = localFont({
+  src: [
+    { path: '../public/fonts/amiri-regular.woff2', weight: '400', style: 'normal' },
+    { path: '../public/fonts/amiri-bold.woff2', weight: '700', style: 'normal' },
+  ],
   variable: '--font-amiri',
   display: 'swap',
+  preload: false,
 });
 
 export const viewport: Viewport = {

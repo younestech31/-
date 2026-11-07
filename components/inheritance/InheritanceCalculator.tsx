@@ -569,6 +569,9 @@ export default function InheritanceCalculator({
           importData={importData}
           exportData={exportData}
           isImporting={isImporting}
+          isPaid={state.isPaid}
+          exportEncryptedBackup={state.exportEncryptedBackup}
+          importEncryptedBackup={state.importEncryptedBackup}
         />
 
         <HeirExplanationModal selectedHeirExplanation={selectedHeirExplanation} setSelectedHeirExplanation={setSelectedHeirExplanation} />
