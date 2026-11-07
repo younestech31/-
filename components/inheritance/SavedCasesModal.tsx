@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { X, FolderOpen, Trash2, Cloud, DownloadCloud } from 'lucide-react';
 import { SavedCase } from './InheritanceCalculator';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
-import { encryptData, decryptData, encryptDataWithPassphrase, decryptDataWithPassphrase } from '@/lib/crypto';
+import { decryptData, encryptDataWithPassphrase, decryptDataWithPassphrase } from '@/lib/crypto';
 import { formatDZDAmount } from '@/lib/inheritance/document-branding';
 
 interface SavedCasesModalProps {
