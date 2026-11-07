@@ -68,9 +68,9 @@ export async function getSession(): Promise<UserSession | null> {
 /**
  * Creates and sets a signed JWT session cookie for authenticated notary/user.
  */
-export async function setSessionCookie(session: UserSession): Promise<void> {
+export async function setSessionCookie(session: UserSession & { emailVerified: true }): Promise<void> {
   const cookieStore = await cookies();
-  const token = await new SignJWT({ ...session, emailVerified: true })
+  const token = await new SignJWT({ ...session })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('30d')
