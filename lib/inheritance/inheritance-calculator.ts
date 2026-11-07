@@ -1157,7 +1157,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
     const hasSiblings = has('full_brother') || has('full_sister') || 
                        has('paternal_brother') || has('paternal_sister');
 
-    if (hasSiblings && !hasMaleChildren) {
+    if (hasSiblings && !hasMaleChildren && !isAnyAkdariya) {
       // Article 158 (as applied in the Algerian Family Code): compare the
       // grandfather's statutory options against the amount left AFTER the
       // other fixed-share heirs, not after prematurely assigning a sister's
@@ -1187,11 +1187,13 @@ export function resolveResidue(state: PipelineState): PipelineState {
         : remainingFraction;
 
       let bestShare = oneSixthTotal;
+      let bestShareLabel = '1/6';
       let reason = "الأحظ للجد (السدس من جميع المال) — م.158";
 
       const oneThirdRemaining = remainderAfterOtherFurud.div(3);
       if (oneThirdRemaining.compare(bestShare) > 0) {
         bestShare = oneThirdRemaining;
+        bestShareLabel = 'ثلث الباقي';
         reason = "الأحظ للجد (ثلث الباقي بعد أصحاب الفروض) — م.158";
       }
 
@@ -1203,6 +1205,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
         : new Fraction(0);
       if (muqasamaShare.compare(bestShare) > 0) {
         bestShare = muqasamaShare;
+        bestShareLabel = 'المقاسمة';
         reason = "الأحظ للجد (المقاسمة كذكر من الإخوة) — م.158";
       }
 
@@ -1218,6 +1221,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
       );
       if (!otherHeirsExist && new Fraction(1, 3).compare(bestShare) > 0) {
         bestShare = new Fraction(1, 3);
+        bestShareLabel = '1/3';
         reason = "الأحظ للجد (ثلث جميع المال) — م.158";
       }
 
@@ -1230,9 +1234,9 @@ export function resolveResidue(state: PipelineState): PipelineState {
         existingGF.shareDecimal = bestShare.valueOf();
         existingGF.amount = bestShare.valueOf() * netEstate;
         existingGF.reason = reason;
-        existingGF.share = 'نصيب الأفضل';
+        existingGF.share = bestShareLabel;
       } else {
-        addResult('grandfather', bestShare, 'نصيب الأفضل', reason, false, 158);
+        addResult('grandfather', bestShare, bestShareLabel, reason, false, 158);
       }
 
       if (sisCount > 0 && broCount === 0) {
@@ -1694,7 +1698,11 @@ function distributeAmounts(res: CalculationResult[], totalNetEstate: number) {
   const remainders = exactValues.map((v, i) => v - floors[i]);
 
   const allocated = floors.reduce((a, b) => a + b, 0);
-  const undistributed = Math.round(totalNetEstate - allocated);
+  // Distribute only the value represented by the heirs' assigned fractions.
+  // Any remainder deliberately held for legal review (e.g. Article 167/168)
+  // must stay undistributed rather than being rounded into an existing heir.
+  const targetDistributed = Math.round(totalNetEstate * totalSharesFraction.valueOf());
+  const undistributed = Math.max(0, targetDistributed - allocated);
 
   const remainderIndices = remainders.map((r, i) => ({ remainder: r, index: i }));
   remainderIndices.sort((a, b) => b.remainder - a.remainder);
