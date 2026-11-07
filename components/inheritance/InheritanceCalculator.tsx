@@ -159,6 +159,7 @@ export default function InheritanceCalculator({
     updateStagePregnancyDisputed,
     updateStageMinorHeirPresent,
     updateStageDeathOrderUncertain,
+    updateStageDiyahExcludedConfirmation,
     acknowledgeStageExclusion,
     resetCalculator, saveCurrentCase, updateSavedCase, loadCase,
     deleteCase, confirmDelete, exportData, importData, loadClassicCase, exportToExcelApplet, exportToWordApplet, exportToPDFApplet,
@@ -186,7 +187,8 @@ export default function InheritanceCalculator({
       || Boolean(stageResult.noHeirsNeedsManualReview)
       || Boolean(stageResult.pregnancyNeedsManualReview)
       || Boolean(stageResult.minorHeirNeedsJudicialPartition)
-      || Boolean(stageResult.deathOrderNeedsManualReview);
+      || Boolean(stageResult.deathOrderNeedsManualReview)
+      || Boolean(stageResult.involuntaryKillerNeedsCompensationReview);
   });
 
   useEffect(() => {
@@ -493,6 +495,7 @@ export default function InheritanceCalculator({
             updateStagePregnancyDisputed={updateStagePregnancyDisputed}
             updateStageMinorHeirPresent={updateStageMinorHeirPresent}
             updateStageDeathOrderUncertain={updateStageDeathOrderUncertain}
+            updateStageDiyahExcludedConfirmation={updateStageDiyahExcludedConfirmation}
             requiresNoDistantKindredConfirmation={Boolean(currentStageResult?.noHeirsNeedsManualReview)}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}
             className={expandedSection === 'estate' || mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
