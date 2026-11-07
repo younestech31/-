@@ -260,7 +260,7 @@ describe('Munasakhat Resolver Tests', () => {
     expect(results[1].netEstate).toBe(150000);
   });
 
-  it('withholds shares when more than one grandmother is entered without degree details under Articles 149 and 161', async () => {
+  it('withholds shares when two grandmothers are present but their relative degree is not recorded (Art.149(4))', async () => {
     const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
     const stages: MunasakhatStage[] = [{
       id: 'root',
@@ -268,7 +268,8 @@ describe('Munasakhat Resolver Tests', () => {
       hasMandatoryBequest: false,
       heirs: [
         present('husband'),
-        present('maternal_grandmother', 2),
+        present('maternal_grandmother'),
+        present('paternal_grandmother'),
       ],
     }];
 
