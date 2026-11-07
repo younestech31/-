@@ -27,6 +27,12 @@ export async function checkRateLimit(
   const nextResetTime = new Date(now + windowMs);
   const db = getDb();
 
+  if (!db && process.env.NODE_ENV === 'production') {
+    // In serverless production, an in-memory fallback is per-instance and can
+    // be bypassed by spreading requests across instances. Deny instead.
+    return { success: false, remaining: 0 };
+  }
+
   if (db) {
     try {
       const rows = await db
@@ -57,11 +63,14 @@ export async function checkRateLimit(
         remaining: Math.max(0, maxAttempts - count),
       };
     } catch (err) {
-      console.warn('DB rate limit error, using in-memory fallback:', err);
+      console.warn('DB rate limit error:', err);
+      if (process.env.NODE_ENV === 'production') {
+        return { success: false, remaining: 0 };
+      }
     }
   }
 
-  // Best-effort fallback for development / database outages.
+  // Best-effort fallback for local development only.
   // Production authentication still requires the database for credential validation.
   const record = loginAttemptMap.get(key);
   if (!record || now >= record.resetTime) {
