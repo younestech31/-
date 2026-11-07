@@ -50,7 +50,8 @@ export async function getSession(): Promise<UserSession | null> {
     });
 
     // Only sessions minted after the email-verification gate are accepted.
-    // This also invalidates legacy pre-verification JWTs already in circulation.\n    if (!payload.userId || !payload.organizationId || payload.emailVerified !== true) return null;
+    // This also invalidates legacy pre-verification JWTs already in circulation.
+    if (!payload.userId || !payload.organizationId || payload.emailVerified !== true) return null;
 
     return {
       userId: payload.userId as string,
