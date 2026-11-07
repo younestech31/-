@@ -856,7 +856,7 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
       addResult('paternal_brother', new Fraction(0), '-', blocking.reason, true, blocking.article);
     }
   }
-  if (hasMaternalGrandmother || hasPaternalGrandmother) {
+  if ((hasMaternalGrandmother || hasPaternalGrandmother) && !isMushtaraka) {
     const blockingMaternal = checkBlocking('maternal_grandmother');
     const blockingPaternal = checkBlocking('paternal_grandmother');
 
@@ -1167,7 +1167,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
         addResult('grandfather', bestShare, 'نصيب الأفضل', reason, false, 158);
       }
 
-      if (sisCount > 0) {
+      if (sisCount > 0 && broCount === 0) {
         const siblingPool = remainingFraction.compare(0) > 0 ? remainingFraction : new Fraction(0);
         if (!results.some(r => r.heirId === sisterId && !r.isBlocked)) {
           addResult(
