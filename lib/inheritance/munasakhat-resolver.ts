@@ -14,11 +14,15 @@ export function validateAllStages(stages: MunasakhatStage[]): StageValidationRes
       errors.push('قيمة التركة لا يمكن أن تكون سالبة');
     }
     
-    if (!stage.deceasedName?.trim() && stage.id !== 'root') {
+    const deceasedName = stage.deceasedName?.trim() || stage.deceasedNameAr?.trim();
+    if (!deceasedName && stage.id !== 'root' && stage.id !== 'stage-0') {
       errors.push('اسم المتوفى مطلوب');
     }
     
-    const hasAnyHeir = Object.values(stage.heirPresence || {}).some(h => h.isPresent && h.count > 0);
+    const heirEntries = stage.heirs?.length
+      ? stage.heirs
+      : Object.values(stage.heirPresence || {});
+    const hasAnyHeir = heirEntries.some(h => h.isPresent && h.count > 0);
     const hasSons = (stage.deceasedSonsCount || 0) > 0;
     const hasDaughters = (stage.deceasedDaughtersCount || 0) > 0;
     
@@ -45,6 +49,6 @@ export function resolveNoHeirsPolicy(
   return {
     policy: 'treasury',
     amount: net,
-    messageAr: `تؤول تركة (${stage.deceasedName || 'المتوفى'}) إلى الخزينة العامة (بيت المال) لعدم وجود ورثة.`,
+    messageAr: `تؤول تركة (${stage.deceasedName || stage.deceasedNameAr || 'المتوفى'}) إلى الخزينة العامة (بيت المال) لعدم وجود ورثة.`,
   };
 }
