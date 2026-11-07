@@ -808,7 +808,7 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
   const hasMotherOrEligibleGrandmother = hasMother || eligibleGrandmotherIds.length > 0;
   const hasFullSiblings = has('full_brother') || has('full_sister');
   const isMushtaraka = hasHusband && hasMotherOrEligibleGrandmother &&
-    getCount('maternal_siblings') >= 2 && hasFullSiblings &&
+    getCount('maternal_siblings') >= 2 && has('full_brother') &&
     !hasFather && !hasChildren && !hasGrandfather;
 
   const akdariyaData = AWL_RADD_RULES.akdariya;
@@ -1123,7 +1123,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
   const hasMotherOrEligibleGrandmother = hasMother || eligibleGrandmotherIds.length > 0;
   const hasFullSiblings = has('full_brother') || has('full_sister');
   const isMushtaraka = has('husband') && hasMotherOrEligibleGrandmother &&
-    getCount('maternal_siblings') >= 2 && hasFullSiblings &&
+    getCount('maternal_siblings') >= 2 && has('full_brother') &&
     !hasFather && !has('daughter') && !hasSon && !has('son_son') && !has('granddaughter') && !hasGrandfather;
 
   const isAkdariya = has('husband') && has('mother') && hasGrandfather && getCount('full_sister') === 1 && 
