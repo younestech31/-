@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, CheckCircle2, Clipboard, KeyRound, Upload, XCircle } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Clipboard, KeyRound, Upload } from 'lucide-react';
 import {
   activateLicenseFile,
   getOrCreateInstallationId,

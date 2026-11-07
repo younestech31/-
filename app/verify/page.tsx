@@ -16,7 +16,6 @@ function VerifyContent() {
   const [inputHash, setInputHash] = useState(hashParam);
   const [loading, setLoading] = useState(false);
   const [record, setRecord] = useState<CalculationAuditRecord | null>(null);
-  const [recordSource, setRecordSource] = useState<'local' | null>(null);
   const [searched, setSearched] = useState(false);
   const [allRecords, setAllRecords] = useState<CalculationAuditRecord[]>([]);
 
@@ -35,7 +34,6 @@ function VerifyContent() {
     if (!cleanHash) return;
     setSearched(true);
     setRecord(null);
-    setRecordSource(null);
     if (!/^[a-f0-9]{64}$/i.test(cleanHash)) return;
     setLoading(true);
 
@@ -44,10 +42,8 @@ function VerifyContent() {
       const foundLocal = await getAuditRecordFromIndexedDB(cleanHash);
       if (foundLocal) {
         setRecord(foundLocal);
-        setRecordSource('local');
       } else {
         setRecord(null);
-        setRecordSource(null);
       }
     } finally {
       setLoading(false);
