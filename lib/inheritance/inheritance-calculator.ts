@@ -1056,6 +1056,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
   const hasSon = has('son');
   const hasDaughter = has('daughter');
   const hasDirectProgeny = hasSon || hasDaughter;
+  const hasDescendant = hasDirectProgeny || has('son_son') || has('granddaughter');
   const hasMaleChildren = hasSon || has('son_son');
   const hasFather = has('father');
   const hasGrandfather = has('grandfather');
@@ -1072,7 +1073,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
                         getSiblingCountForMother('paternal_brother') + getSiblingCountForMother('paternal_sister') + 
                         getSiblingCountForMother('maternal_siblings');
 
-  const blockingCtx: BlockingContext = { has, getCount, hasDescendant: hasChildren, siblingsCount, hasFemaleDirectDescendant };
+  const blockingCtx: BlockingContext = { has, getCount, hasDescendant, siblingsCount, hasFemaleDirectDescendant };
   const checkBlocking = (heirId: string) => resolveBlocking(heirId, blockingCtx);
 
   const hasMother = has('mother');
@@ -1613,7 +1614,9 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
   const blockingCtx: BlockingContext = {
     has: hasInPresent,
     getCount: getCountFromPresent,
-    hasDirectProgeny: hasInPresent('son') || hasInPresent('daughter'),
+    hasDescendant:
+      hasInPresent('son') || hasInPresent('daughter') ||
+      hasInPresent('son_son') || hasInPresent('granddaughter'),
     siblingsCount,
     hasFemaleDirectDescendant: hasInPresent('daughter') || hasInPresent('granddaughter'),
   };
