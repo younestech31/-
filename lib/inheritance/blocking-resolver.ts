@@ -23,14 +23,14 @@ export function resolveBlocking(heirId: string, ctx: BlockingContext): BlockingR
   const hasFemaleDirectDescendant = !!ctx.hasFemaleDirectDescendant;
   
   // الأخت الشقيقة تكون عصبة مع الغير مع البنات عند عدم العاصب لنفسها (الأخ الشقيق) أو حاجبها (الابن، ابن الابن، الأب)
-  const isFullSisterAsabaMaaGhayr = ctx.has('full_sister') && hasFemaleDirectDescendant && 
-                                    !ctx.has('son') && !ctx.has('son_son') && 
-                                    !ctx.has('father') && !ctx.has('full_brother');
+  const isFullSisterAsabaMaaGhayr = ctx.has('full_sister') && hasFemaleDirectDescendant &&
+                                    !ctx.has('son') && !ctx.has('son_son') &&
+                                    !ctx.has('father') && !ctx.has('grandfather') && !ctx.has('full_brother');
 
   // الأخت لأب تكون عصبة مع الغير مع البنات عند عدم العاصب لنفسها أو حاجبها أو الأخت الشقيقة العصبة أو الأخ الشقيق
-  const isPaternalSisterAsabaMaaGhayr = ctx.has('paternal_sister') && hasFemaleDirectDescendant && 
-                                        !ctx.has('son') && !ctx.has('son_son') && 
-                                        !ctx.has('father') && !ctx.has('full_brother') &&
+  const isPaternalSisterAsabaMaaGhayr = ctx.has('paternal_sister') && hasFemaleDirectDescendant &&
+                                        !ctx.has('son') && !ctx.has('son_son') &&
+                                        !ctx.has('father') && !ctx.has('grandfather') && !ctx.has('full_brother') &&
                                         !ctx.has('full_sister') && !ctx.has('paternal_brother');
 
   if (isFullSisterAsabaMaaGhayr) {

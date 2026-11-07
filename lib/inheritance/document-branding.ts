@@ -54,7 +54,16 @@ export interface OfficeSettings {
   exportLanguage?: 'ar' | 'fr';  // Language toggle for export documents
   digitFormat?: 'western' | 'arabic-indic'; // Numeral formatting toggle
   auditLedgerOptIn?: boolean;   // Opt-in toggle for server-side audit ledger
-  cloudSyncPassphrase?: string;  // Passphrase for zero-knowledge cloud sync key derivation
+  cloudSyncPassphrase?: string;  // Session-only passphrase; never persist this field
+}
+
+/** Return office settings safe to persist; the cloud passphrase is memory-only. */
+export function getPersistedOfficeSettings(
+  settings: OfficeSettings
+): Omit<OfficeSettings, 'cloudSyncPassphrase'> {
+  const persisted = { ...settings };
+  delete persisted.cloudSyncPassphrase;
+  return persisted;
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {

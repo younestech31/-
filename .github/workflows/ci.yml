@@ -2,39 +2,80 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, Gptcoder]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
     name: Lint, Typecheck, Test & Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
 
-      - name: Assert Node.js Version Matches Engines Constraint
+      - name: Pin npm version
         run: |
-          NODE_VER=$(node -v)
-          echo "Current Node version: $NODE_VER"
-          if [[ "$NODE_VER" != v22* ]]; then
-            echo "Node version $NODE_VER does not match required engines.node (22.x)"
-            exit 1
+          npm install --global npm@11.21.2
+          node --version
+          npm --version
+
+      - name: Synchronize npm lockfile
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      # Refresh versions already permitted by package.json without forcing majors.
+      - name: Update compatible dependency versions
+        run: npm update --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      # Apply npm's non-breaking security remediations to the lockfile.
+      # --package-lock-only avoids mutating node_modules before the clean install.
+      # Never use --force: incompatible major upgrades require deliberate review.
+      - name: Apply compatible security fixes
+        shell: bash
+        run: |
+          # npm audit fix may exit 1 when only non-blocking moderate advisories remain.
+          # Preserve its non-breaking lockfile updates, then let the explicit high/critical
+          # audit gate below decide whether the dependency tree blocks CI.
+          if ! npm audit fix --package-lock-only --ignore-scripts --no-fund; then
+            echo "::warning::Some npm advisories remain after compatible lockfile fixes; the high/critical audit step is the blocking security gate."
           fi
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
 
-      - name: Run Dependency Vulnerability Audit
+      - name: Run dependency vulnerability audit
         run: npm audit --audit-level=high
+
+      # Commit only after lockfile installation and the security audit both pass.
+      - name: Commit synchronized package-lock.json on Gptcoder
+        if: github.ref == 'refs/heads/Gptcoder'
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json is already synchronized."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore(deps): apply compatible security updates"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Run Linter
         run: npm run lint
@@ -48,7 +89,7 @@ jobs:
       - name: Build Application with Bundle Analyzer
         run: npm run build
         env:
-          ANALYZE: true
+          ANALYZE: "true"
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium

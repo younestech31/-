@@ -18,9 +18,7 @@ vi.mock('jspdf', async (importOriginal) => {
         }
         return originalText.call(this, text, x, y, opts);
       };
-      this.save = function () {
-        return this;
-      };
+      this.save = (() => this) as unknown as typeof this.save;
     }
   }
   return {
@@ -48,10 +46,9 @@ vi.mock('docx', async (importOriginal) => {
     }
   }
   class MockedTableRow extends original.TableRow {
-    options: any;
     constructor(options: any) {
+      // The base TableRow owns a private options field, initialized in super().
       super(options);
-      this.options = options;
     }
   }
   class MockedTableCell extends original.TableCell {
@@ -220,7 +217,7 @@ describe('Cross-Format Export Parity Tests', () => {
 
     // ─── A. PARSE EXCEL DATA ───
     const readWorkbook = new ExcelJS.Workbook();
-    await readWorkbook.xlsx.load(capturedExcelBuffer!);
+    await readWorkbook.xlsx.load(capturedExcelBuffer! as unknown as Parameters<typeof readWorkbook.xlsx.load>[0]);
     const ws = readWorkbook.getWorksheet('م.الأصلية — الورثة');
     expect(ws).toBeDefined();
 

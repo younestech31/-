@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { calculateInheritance, HeirPresence } from '../lib/inheritance/inheritance-calculator';
 
 describe('Al-Haml (Unborn Child) Tests - Articles 173-174', () => {
-  it('withholds larger of son or daughter share when status is pending', () => {
+  it('blocks automatic distribution while the Article 173 pregnancy outcome is pending', () => {
     // Wife + Unborn Heir + Daughter
     const presence: HeirPresence[] = [
       { heirId: 'wife', count: 1, isPresent: true },
@@ -21,10 +21,13 @@ describe('Al-Haml (Unborn Child) Tests - Articles 173-174', () => {
       true
     );
 
-    const unborn = results.find(r => r.heirId === 'unborn_withholding');
-    expect(unborn).toBeDefined();
-    expect(unborn!.amount).toBeGreaterThan(0);
-    expect(unborn!.article).toBe(173);
+    const review = results.find(r => r.heirId === 'article_173_review');
+    expect(review).toBeDefined();
+    expect(review!.amount).toBe(0);
+    expect(review!.article).toBe(173);
+    expect(review!.reason).toContain('الحمل غير محسوم');
+    expect(results.some(r => r.heirId === 'unborn_withholding')).toBe(false);
+    expect(results.some(r => r.heirId === 'wife' || r.heirId === 'daughter')).toBe(false);
   });
 
   it('correctly resolves pending haml to born_male', () => {

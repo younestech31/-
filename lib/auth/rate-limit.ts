@@ -1,6 +1,6 @@
 import { getDb } from '@/lib/db/client';
 import { rateLimits } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 interface RateLimitRecord {
   count: number;
@@ -13,7 +13,9 @@ const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const MAX_ATTEMPTS = 5;
 
 /**
- * Durable rate-limiter with PostgreSQL persistence and in-memory fallback.
+ * Durable, atomic rate limiter backed by PostgreSQL.
+ * A single UPSERT increments the counter, avoiding the previous read-then-write
+ * race where concurrent authentication requests could overwrite each other's count.
  */
 export async function checkRateLimit(
   key: string,
@@ -21,46 +23,59 @@ export async function checkRateLimit(
   windowMs: number = WINDOW_MS
 ): Promise<{ success: boolean; remaining: number }> {
   const now = Date.now();
+  const nowDate = new Date(now);
+  const nextResetTime = new Date(now + windowMs);
   const db = getDb();
+
+  if (!db && process.env.NODE_ENV === 'production') {
+    // In serverless production, an in-memory fallback is per-instance and can
+    // be bypassed by spreading requests across instances. Deny instead.
+    return { success: false, remaining: 0 };
+  }
 
   if (db) {
     try {
-      const existing = await db.select().from(rateLimits).where(eq(rateLimits.key, key)).limit(1);
+      const rows = await db
+        .insert(rateLimits)
+        .values({ key, count: 1, resetTime: nextResetTime })
+        .onConflictDoUpdate({
+          target: rateLimits.key,
+          set: {
+            count: sql`CASE
+              WHEN ${rateLimits.resetTime} <= ${nowDate} THEN 1
+              ELSE ${rateLimits.count} + 1
+            END`,
+            resetTime: sql`CASE
+              WHEN ${rateLimits.resetTime} <= ${nowDate} THEN ${nextResetTime}
+              ELSE ${rateLimits.resetTime}
+            END`,
+          },
+        })
+        .returning({ count: rateLimits.count });
 
-      if (existing.length === 0 || existing[0].resetTime.getTime() < now) {
-        const resetTime = new Date(now + windowMs);
-        await db
-          .insert(rateLimits)
-          .values({ key, count: 1, resetTime })
-          .onConflictDoUpdate({
-            target: rateLimits.key,
-            set: { count: 1, resetTime },
-          });
-        return { success: true, remaining: maxAttempts - 1 };
+      const count = rows[0]?.count;
+      if (typeof count !== 'number') {
+        throw new Error('Rate-limit upsert did not return the updated counter');
       }
 
-      const record = existing[0];
-      if (record.count >= maxAttempts) {
+      return {
+        success: count <= maxAttempts,
+        remaining: Math.max(0, maxAttempts - count),
+      };
+    } catch (err) {
+      console.warn('DB rate limit error:', err);
+      if (process.env.NODE_ENV === 'production') {
         return { success: false, remaining: 0 };
       }
-
-      const newCount = record.count + 1;
-      await db
-        .update(rateLimits)
-        .set({ count: newCount })
-        .where(eq(rateLimits.key, key));
-
-      return { success: true, remaining: maxAttempts - newCount };
-    } catch (err) {
-      console.warn('DB rate limit error, using in-memory fallback:', err);
     }
   }
 
-  // Fallback in-memory map
+  // Best-effort fallback for local development only.
+  // Production authentication still requires the database for credential validation.
   const record = loginAttemptMap.get(key);
-  if (!record || now > record.resetTime) {
+  if (!record || now >= record.resetTime) {
     loginAttemptMap.set(key, { count: 1, resetTime: now + windowMs });
-    return { success: true, remaining: maxAttempts - 1 };
+    return { success: true, remaining: Math.max(0, maxAttempts - 1) };
   }
 
   if (record.count >= maxAttempts) {
@@ -68,15 +83,20 @@ export async function checkRateLimit(
   }
 
   record.count += 1;
-  return { success: true, remaining: maxAttempts - record.count };
+  return {
+    success: true,
+    remaining: Math.max(0, maxAttempts - record.count),
+  };
 }
 
 export async function resetRateLimit(key: string): Promise<void> {
   const db = getDb();
   if (db) {
     try {
-      await db.delete(rateLimits).where(eq(rateLimits.key, key));
-    } catch {}
+      await db.delete(rateLimits).where(sql`${rateLimits.key} = ${key}`);
+    } catch {
+      // The in-memory counter is cleared below even when the database is unavailable.
+    }
   }
   loginAttemptMap.delete(key);
 }

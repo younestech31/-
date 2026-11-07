@@ -14,11 +14,15 @@ export function validateAllStages(stages: MunasakhatStage[]): StageValidationRes
       errors.push('قيمة التركة لا يمكن أن تكون سالبة');
     }
     
-    if (!stage.deceasedName?.trim() && stage.id !== 'root') {
+    const deceasedName = stage.deceasedName?.trim() || stage.deceasedNameAr?.trim();
+    if (!deceasedName && stage.id !== 'root' && stage.id !== 'stage-0') {
       errors.push('اسم المتوفى مطلوب');
     }
     
-    const hasAnyHeir = Object.values(stage.heirPresence || {}).some(h => h.isPresent && h.count > 0);
+    const heirEntries = stage.heirs?.length
+      ? stage.heirs
+      : Object.values(stage.heirPresence || {});
+    const hasAnyHeir = heirEntries.some(h => h.isPresent && h.count > 0);
     const hasSons = (stage.deceasedSonsCount || 0) > 0;
     const hasDaughters = (stage.deceasedDaughtersCount || 0) > 0;
     
@@ -33,18 +37,23 @@ export function validateAllStages(stages: MunasakhatStage[]): StageValidationRes
 export function resolveNoHeirsPolicy(
   stage: MunasakhatStage,
   net: number,
-  __parentResults: CalculationResult[]
+  _parentResults: CalculationResult[]
 ): {
   policy: 'treasury';
   amount: number;
   messageAr: string;
   redistributeTo?: CalculationResult[];
 } {
-  // فى قانون الأسرة الجزائري، إذا لم يوجد للمتوفى الثاني أي ورثة (لا أصحاب فروض ولا عصبة ولا ذوي أرحام)، تؤول تركته للخزينة (بيت المال).
-  // إذا كان المستخدم لم يختر ورثته بالخطأ، يجب عليه تصحيح المسألة.
+  if (stage.confirmedNoDistantKindred !== true) {
+    throw new Error('Cannot route the residue to treasury or return it to a spouse before explicit Article 167/180 confirmation that no entitled blood agnate, relative fixed-share heir, or distant kindred exists.');
+  }
+
+  // المادة 180 تطبق على تركة كل متوفى على حدة: أصحاب الفروض، ثم العصبة،
+  // ثم ذوو الأرحام، فإن لم يوجدوا آلت التركة إلى الخزينة العامة.
+  // وجود وارث في نتيجة المرحلة السابقة لا يجعله وارثاً تلقائياً في تركة هذا المتوفى.
   return {
     policy: 'treasury',
     amount: net,
-    messageAr: `تؤول تركة (${stage.deceasedName || 'المتوفى'}) إلى الخزينة العامة (بيت المال) لعدم وجود ورثة.`,
+    messageAr: `تؤول تركة (${stage.deceasedName || stage.deceasedNameAr || 'المتوفى'}) إلى الخزينة العامة (بيت المال) لعدم وجود ورثة.`,
   };
 }

@@ -17,3 +17,7 @@ firebase-applet-config.json
 firebase-service-account.json
 *.firebase.json
 *.lnk
+
+# Playwright run artifacts
+playwright-report/
+test-results/

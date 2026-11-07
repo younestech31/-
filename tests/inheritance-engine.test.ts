@@ -152,6 +152,7 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
         deceasedSonsCount: 0,
         deceasedDaughtersCount: 0,
         hasMandatoryBequest: false,
+        confirmedSpouseEligibility: true,
         debts: 50000,
         funeralCosts: 10000,
         bequest: 20000,
@@ -170,6 +171,7 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
         deceasedSonsCount: 0,
         deceasedDaughtersCount: 0,
         hasMandatoryBequest: false,
+        confirmedSpouseEligibility: true,
         debts: 0,
         funeralCosts: 0,
         bequest: 0,
@@ -232,11 +234,11 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
    * ======================================================================== */
   describe('Item 17: Disputed Interpretive Decisions & Notarial Standards', () => {
     it('17a: IMPEDED_SIBLINGS_COUNT_TOWARDS_MOTHER_REDUCTION constant and effect (Arts. 135/138/148)', () => {
-      expect(IMPEDED_SIBLINGS_COUNT_TOWARDS_MOTHER_REDUCTION).toBe(false);
+      expect(IMPEDED_SIBLINGS_COUNT_TOWARDS_MOTHER_REDUCTION).toBe(true);
 
-      // Mother + 1 Active Full Brother + 1 Impeded Full Brother (e.g. murderer)
-      // Because "الممنوع كالمعدوم", the impeded sibling is excluded from the active count,
-      // leaving only 1 active sibling. Mother receives 1/3 (not reduced to 1/6).
+      // The Article 148 interpretation configured in the legal registry counts
+      // the sibling group for the mother's reduction independently of estate entitlement.
+      // The impeded individual still receives no share under Articles 135/138.
       const presence: HeirPresence[] = [
         { heirId: 'mother', count: 1, isPresent: true },
         { 
@@ -254,11 +256,11 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
       const brotherRes = results.find(r => r.heirId === 'full_brother');
 
       expect(motherRes).toBeDefined();
-      expect(motherRes?.shareFraction.equals(1/3)).toBe(true);
-      expect(motherRes?.amount).toBe(200000); // 1/3 of 600,000
+      expect(motherRes?.share).toBe('1/6');
+      expect(motherRes?.amount).toBe(100000); // 1/6 of 600,000
 
-      // Active brother gets remaining 2/3 (400,000 DZD)
-      expect(brotherRes?.amount).toBe(400000);
+      // Only the active brother inherits the remaining 5/6 (500,000 DZD).
+      expect(brotherRes?.amount).toBe(500000);
     });
 
     it('17b: AKDARIYYA_EXTENDS_TO_PATERNAL_SISTER constant and effect (Art. 175)', () => {
@@ -314,16 +316,22 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
       expect(dkRes?.amount).toBe(0);
     });
 
-    it('19.2: Treasury / No-heir fallback (Article 180)', () => {
-      // When no legal heirs exist, treasury takes remaining estate
+    it('19.2: Treasury / No-heir fallback (Article 180) requires explicit distant-kindred confirmation', () => {
       const presence: HeirPresence[] = [];
-      const results = calculateInheritance(presence, 500000, 0, 0, 0, false);
-      const treasury = results.find(r => r.heirId === 'treasury');
+
+      const unconfirmed = calculateInheritance(presence, 500000, 0, 0, 0, false);
+      expect(unconfirmed.some(r => r.heirId === 'treasury')).toBe(false);
+      expect(unconfirmed.some(r => r.heirId === 'article_180_review')).toBe(true);
+
+      const confirmed = calculateInheritance(
+        presence, 500000, 0, 0, 0, false, [], 'stillborn', false, true
+      );
+      const treasury = confirmed.find(r => r.heirId === 'treasury');
 
       expect(treasury).toBeDefined();
       expect(treasury?.isBlocked).toBe(false);
       expect(treasury?.amount).toBe(500000);
-      expect(treasury?.reason).toContain('لعدم وجود مستحق للرد أو عصبة');
+      expect(treasury?.reason).toContain('المادتين 168 و180');
     });
 
     it('19.3: Article 158 Grandfather-with-Siblings Sub-Branches', () => {

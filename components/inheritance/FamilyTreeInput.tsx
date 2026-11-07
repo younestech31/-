@@ -37,7 +37,7 @@ interface HeirInputNodeData {
 
 // --- Custom Node Component ---
 const HeirInputNode = ({ data }: NodeProps<Node<HeirInputNodeData>>) => {
-  const { heir, isPresent, count, customNames, toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, missingPersonStatus, isDeceased, deceasedName, deceasedGender, exclusionReason } = data;
+  const { heir, isPresent, count, customNames, updateCount, updateCustomName, updateMissingPersonStatus, missingPersonStatus, isDeceased, deceasedName, deceasedGender, exclusionReason } = data;
 
   // وارث مستبعد في مسألة ثانوية
   if (exclusionReason) {
@@ -67,18 +67,17 @@ const HeirInputNode = ({ data }: NodeProps<Node<HeirInputNodeData>>) => {
   return (
     <div 
       className={`px-3 py-2 rounded-lg border-2 shadow-sm transition-all cursor-pointer min-w-[120px] flex flex-col items-center gap-2 ${isPresent ? 'bg-[#e7f5ed] border-[#0a5d38]' : 'bg-white border-[#e2e8f0] hover:border-[#0a5d38]/50'}`}
-      onClick={() => heir && toggleHeir && toggleHeir(heir.id)}
     >
       <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-gray-400" />
       <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-gray-400" />
       
       <div className="flex items-center gap-2 w-full">
-        <input
-          type="checkbox"
-          checked={isPresent}
-          readOnly
-          className="accent-[#0a5d38] pointer-events-none"
-        />
+        <span
+          aria-hidden="true"
+          className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${isPresent ? 'border-[#0a5d38] bg-[#0a5d38]' : 'border-[#94a3b8] bg-white'}`}
+        >
+          {isPresent && <span className="text-[10px] font-bold leading-none text-white">✓</span>}
+        </span>
         <div className="flex flex-col flex-grow items-center">
           <span className={`text-xs font-bold text-center ${isPresent ? 'text-[#0a5d38]' : 'text-[#64748b]'}`}>
             {heir?.nameAr}

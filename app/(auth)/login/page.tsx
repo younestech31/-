@@ -20,6 +20,10 @@ async function handleLoginAction(formData: FormData) {
     redirect('/login?error=missing_fields');
   }
 
+  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    redirect('/login?error=invalid_credentials');
+  }
+
   // Rate limiting check to prevent credential stuffing keyed by email and IP
   const headerList = await headers();
   const ip = headerList.get('x-forwarded-for')?.split(',')[0].trim() || headerList.get('x-real-ip') || '127.0.0.1';
@@ -83,6 +87,7 @@ async function handleLoginAction(formData: FormData) {
     organizationId: orgId,
     plan,
     role: (user.role as 'notary' | 'admin' | 'clerk') || 'notary',
+    emailVerified: true,
   });
 
   redirect('/');

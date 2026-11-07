@@ -24,6 +24,12 @@ test('Privacy verification - zero data leaves the browser', async ({ page }) => 
     });
   });
 
+  // This test exercises calculator data handling, not the first-run walkthrough.
+  // Mark the guide as seen before app scripts run so its overlay cannot intercept inputs.
+  await page.addInitScript(() => {
+    window.localStorage.setItem('mirath_guide_seen', 'true');
+  });
+
   // Load the calculator page
   await page.goto('/');
 

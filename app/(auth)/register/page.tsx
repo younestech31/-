@@ -5,7 +5,7 @@ import { headers } from 'next/headers';
 import { Shield, Lock, Mail, User, Building, ArrowRight, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { setSessionCookie, createEmailVerificationToken } from '@/lib/auth/session';
+import { createEmailVerificationToken } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/client';
 import { users, organizations } from '@/lib/db/schema';
 import { checkRateLimit } from '@/lib/auth/rate-limit';
@@ -38,6 +38,15 @@ async function handleRegisterAction(formData: FormData) {
     redirect('/register?error=missing_fields');
   }
 
+  if (
+    name.length > 120
+    || firmName.length > 180
+    || email.length > 254
+    || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    redirect('/register?error=invalid_input');
+  }
+
   // Rate limiting check
   const headerList = await headers();
   const ip = headerList.get('x-forwarded-for')?.split(',')[0].trim() || headerList.get('x-real-ip') || '127.0.0.1';
@@ -48,7 +57,7 @@ async function handleRegisterAction(formData: FormData) {
   }
 
   // Password policy check
-  if (password.length < 10 || COMMON_PASSWORDS.has(password.toLowerCase())) {
+  if (password.length < 10 || new TextEncoder().encode(password).byteLength > 72 || COMMON_PASSWORDS.has(password.toLowerCase())) {
     redirect('/register?error=weak_password');
   }
 
@@ -77,38 +86,53 @@ async function handleRegisterAction(formData: FormData) {
   const orgId = 'org_' + crypto.randomUUID();
   const userId = 'usr_' + crypto.randomUUID();
 
-  // Create Organization first
-  await db.insert(organizations).values({
-    id: orgId,
-    name: firmName,
-    plan: 'free',
-  });
+  // Insert the organization and its first user in one Neon HTTP batch.
+  // This keeps the two rows atomic and avoids orphan organizations if the
+  // unique email constraint rejects a concurrent registration.
+  try {
+    await db.batch([
+      db.insert(organizations).values({
+        id: orgId,
+        name: firmName,
+        plan: 'free',
+      }),
+      db.insert(users).values({
+        id: userId,
+        email,
+        passwordHash,
+        name,
+        role: 'notary',
+        organizationId: orgId,
+        emailVerified: false,
+      }),
+    ]);
+  } catch (error) {
+    // A concurrent request may have registered the email after the SELECT above.
+    const emailNowExists = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
 
-  // Create User with emailVerified: false
-  await db.insert(users).values({
-    id: userId,
-    email,
-    passwordHash,
-    name,
-    role: 'notary',
-    organizationId: orgId,
-    emailVerified: false,
-  });
+    if (emailNowExists.length > 0) {
+      await sendAccountAlreadyExistsNotice(email);
+      redirect('/register?info=check_email');
+    }
+
+    console.error('[register] Atomic account creation failed:', error);
+    redirect('/register?error=registration_failed');
+  }
 
   // Generate signed verification token & send email
   const verifyToken = await createEmailVerificationToken(userId, email);
-  await sendVerificationEmail(email, verifyToken);
+  const verificationEmailSent = await sendVerificationEmail(email, verifyToken);
 
-  // Set session cookie
-  await setSessionCookie({
-    userId,
-    email,
-    name,
-    organizationId: orgId,
-    plan: 'free',
-    role: 'notary',
-  });
+  if (!verificationEmailSent) {
+    // The user remains unverified and cannot sign in. Never claim delivery succeeded.
+    redirect('/register?error=email_unavailable');
+  }
 
+  // Do not authenticate an account until its email address has been verified.
   redirect('/register?info=check_email');
 }
 
@@ -153,10 +177,19 @@ export default async function RegisterPage(props: RegisterPageProps) {
                 <span>تنبيه أمني: تم تجاوز عدد محاولات التسجيل المسموح بها. يرجى الانتظار قبل إعادة المحاولة.</span>
               )}
               {error === 'weak_password' && (
-                <span>كلمة المرور ضعيفة. يجب أن لا تقل عن 10 أحرف وأن لا تكون ضمن كلمات المرور الشائعة.</span>
+                <span>كلمة المرور ضعيفة: يجب ألا تقل عن 10 أحرف، وألا تتجاوز 72 بايتًا، وألا تكون شائعة.</span>
+              )}
+              {error === 'invalid_input' && (
+                <span>تحقق من صحة البريد الإلكتروني وأطوال الاسم واسم المكتب.</span>
               )}
               {error === 'email_exists' && (
                 <span>البريد الإلكتروني المدخل مسجل بالفعل لمكتب توثيق آخر.</span>
+              )}
+              {error === 'email_unavailable' && (
+                <span>تم إنشاء الحساب مبدئياً، لكن تعذر إرسال رسالة التأكيد. لم يتم تفعيل الحساب بعد؛ يرجى التواصل مع الدعم لإعادة إرسال الرابط.</span>
+              )}
+              {error === 'registration_failed' && (
+                <span>تعذر إنشاء الحساب حالياً. يرجى المحاولة لاحقاً أو التواصل مع الدعم.</span>
               )}
               {error === 'missing_fields' && (
                 <span>جميع الحقول مطلوبة لتسجيل ديوان توثيق جديد.</span>

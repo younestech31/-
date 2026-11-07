@@ -5,6 +5,17 @@ import { HEIRS } from '@/data/heirs';
 import { HeirPresence, DeceasedChildGroup } from '@/lib/inheritance/inheritance-calculator';
 import { MunasakhatStage } from '@/lib/inheritance/munasakhat-types';
 
+export function getCurrentStageIndexAfterRemoval(currentIndex: number, removedIndex: number): number {
+  // Removing the selected stage selects its predecessor; removing an earlier
+  // stage shifts the selection left; removing a later stage keeps it unchanged.
+  return removedIndex <= currentIndex ? Math.max(0, currentIndex - 1) : currentIndex;
+}
+
+export function inferDeceasedGender(heirId?: string): 'male' | 'female' | null {
+  const gender = HEIRS.find(heir => heir.id === heirId)?.gender;
+  return gender === 'male' || gender === 'female' ? gender : null;
+}
+
 export const DEFAULT_HEIRS_STAGE0: HeirPresence[] = HEIRS.map(h => ({
   heirId: h.id,
   count: 0,
@@ -15,6 +26,7 @@ export const INITIAL_STAGES: MunasakhatStage[] = [
   {
     id: 'stage-0',
     titleAr: 'المسألة الأولى (المتوفى الأصلي)',
+    deceasedName: 'المتوفى الأصلي',
     deceasedNameAr: 'المتوفى الأصلي',
     heirs: DEFAULT_HEIRS_STAGE0,
     hasMandatoryBequest: false,
@@ -25,6 +37,41 @@ export const INITIAL_STAGES: MunasakhatStage[] = [
   },
 ];
 
+export function createMunasakhatStage(args: {
+  stageId: string;
+  parentStageId?: string;
+  heirName: string;
+  amount: number;
+  heirId: string;
+  parentHeirIndex: number;
+}): MunasakhatStage {
+  const defaultHeirs: HeirPresence[] = HEIRS.map(h => {
+    if (h.id === 'father' || h.id === 'mother' || h.id === 'husband' || h.id === 'wife') {
+      return { heirId: h.id, count: 1, isPresent: false };
+    }
+    return { heirId: h.id, count: 0, isPresent: false };
+  });
+
+  return {
+    id: args.stageId,
+    titleAr: `مناسخة: وفاة ${args.heirName}`,
+    deceasedName: args.heirName,
+    deceasedNameAr: args.heirName,
+    deceasedHeirId: args.heirId,
+    parentHeirId: args.heirId,
+    parentStageId: args.parentStageId,
+    parentHeirIndex: Math.max(0, Math.trunc(args.parentHeirIndex)),
+    deceasedGender: inferDeceasedGender(args.heirId) ?? undefined,
+    inheritedAmount: Math.max(0, args.amount),
+    heirs: defaultHeirs,
+    hasMandatoryBequest: false,
+    deceasedChildren: [],
+    unbornOutcome: 'stillborn',
+    hasUnbornHeir: false,
+    hasChildrenFromOtherUnion: false,
+  };
+}
+
 export function useMunasakhatStages(
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
 ) {
@@ -33,7 +80,7 @@ export function useMunasakhatStages(
 
   const currentStage = useMemo(() => {
     const rawStage = munasakhatStages[currentStageIndex] || munasakhatStages[0] || INITIAL_STAGES[0];
-    const heirs = rawStage?.heirs || DEFAULT_HEIRS_STAGE0;
+    const heirs = rawStage?.heirs?.length ? rawStage.heirs : (rawStage?.heirPresence ? Object.values(rawStage.heirPresence) : DEFAULT_HEIRS_STAGE0);
     const heirPresence = (rawStage?.heirPresence && Object.keys(rawStage.heirPresence).length > 0)
       ? rawStage.heirPresence
       : heirs.reduce((acc, h) => {
@@ -52,43 +99,43 @@ export function useMunasakhatStages(
     heirName: string,
     amount: number,
     heirId: string,
-    _index: number
+    parentHeirIndex: number
   ) => {
-    const defaultHeirs: HeirPresence[] = HEIRS.map(h => {
-      if (h.id === 'father' || h.id === 'mother' || h.id === 'husband' || h.id === 'wife') {
-        return { heirId: h.id, count: 1, isPresent: false };
-      }
-      return { heirId: h.id, count: 0, isPresent: false };
+    const parentStage = munasakhatStages[currentStageIndex];
+    const newStage = createMunasakhatStage({
+      stageId: `stage-${Date.now()}`,
+      parentStageId: parentStage?.id,
+      heirName,
+      amount,
+      heirId,
+      parentHeirIndex,
     });
-
-    const newStage: MunasakhatStage = {
-      id: `stage-${Date.now()}`,
-      titleAr: `مناسخة: وفاة ${heirName}`,
-      deceasedNameAr: heirName,
-      deceasedHeirId: heirId,
-      inheritedAmount: amount,
-      heirs: defaultHeirs,
-      hasMandatoryBequest: false,
-      deceasedChildren: [],
-      unbornOutcome: 'stillborn',
-      hasUnbornHeir: false,
-      hasChildrenFromOtherUnion: false,
-    };
 
     setMunasakhatStages(prev => [...prev, newStage]);
     setCurrentStageIndex(prev => prev + 1);
     showToast(`تمت إضافة مرحلة مناسخة لـ: ${heirName}`, 'success');
-  }, [showToast]);
+  }, [showToast, munasakhatStages, currentStageIndex]);
 
   const removeStage = useCallback((index: number) => {
     if (index === 0) {
       showToast('لا يمكن حذف المسألة الأولى الأساسية.', 'error');
       return;
     }
+    if (index < 0 || index >= munasakhatStages.length) return;
     setMunasakhatStages(prev => prev.filter((_, i) => i !== index));
-    setCurrentStageIndex(prev => Math.max(0, prev - 1));
+    setCurrentStageIndex(prev => getCurrentStageIndexAfterRemoval(prev, index));
     showToast('تم حذف مرحلة المناسخة بنجاح.', 'info');
-  }, [showToast]);
+  }, [showToast, munasakhatStages.length]);
+
+  const updateStageGender = useCallback((gender: 'male' | 'female') => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (!stage || currentStageIndex === 0) return prev;
+      next[currentStageIndex] = { ...stage, deceasedGender: gender, confirmedSpouseEligibility: false };
+      return next;
+    });
+  }, [currentStageIndex]);
 
   const updateStageName = useCallback((name: string) => {
     setMunasakhatStages(prev => {
@@ -96,6 +143,7 @@ export function useMunasakhatStages(
       if (next[currentStageIndex]) {
         next[currentStageIndex] = {
           ...next[currentStageIndex],
+          deceasedName: name,
           deceasedNameAr: name,
         };
       }
@@ -202,6 +250,9 @@ export function useMunasakhatStages(
         next[currentStageIndex] = {
           ...stage,
           [field]: Math.max(0, value),
+          ...((field === 'estate' || field === 'ownSeparateAssets')
+            ? { confirmedDiyahExcluded: false }
+            : {}),
         };
       }
       return next;
@@ -216,6 +267,108 @@ export function useMunasakhatStages(
         next[currentStageIndex] = {
           ...stage,
           hasChildrenFromOtherUnion: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageNoDistantKindredConfirmation = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          confirmedNoDistantKindred: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageSpouseEligibilityConfirmation = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          confirmedSpouseEligibility: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStagePregnancy = useCallback((
+    hasUnbornHeir: boolean,
+    unbornOutcome: NonNullable<MunasakhatStage['unbornOutcome']>
+  ) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          hasUnbornHeir,
+          unbornOutcome,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStagePregnancyDisputed = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          pregnancyDisputed: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageMinorHeirPresent = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          hasMinorHeir: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageDeathOrderUncertain = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          deathOrderUncertain: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
+  const updateStageDiyahExcludedConfirmation = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          confirmedDiyahExcluded: checked,
         };
       }
       return next;
@@ -260,11 +413,19 @@ export function useMunasakhatStages(
     addMunasakhatStage,
     removeStage,
     updateStageName,
+    updateStageGender,
     updateStageMandatoryBequest,
     updateStageDeceasedChildren,
     updateStageAlreadyInherited,
     updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
+    updateStageNoDistantKindredConfirmation,
+    updateStageSpouseEligibilityConfirmation,
+    updateStagePregnancy,
+    updateStagePregnancyDisputed,
+    updateStageMinorHeirPresent,
+    updateStageDeathOrderUncertain,
+    updateStageDiyahExcludedConfirmation,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
   };

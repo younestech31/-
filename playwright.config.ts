@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  testMatch: '**/*.spec.ts',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -11,17 +12,13 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
+  // One project is sufficient: CI already serves the production build via webServer.
+  // Avoid duplicating the same spec suite under two identical Chromium projects.
   projects: [
     {
-      name: 'chromium',
+      name: process.env.CI ? 'production-ci' : 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    ...(process.env.CI ? [
-      {
-        name: 'production-ci',
-        use: { ...devices['Desktop Chrome'] },
-      }
-    ] : []),
   ],
   webServer: {
     command: process.env.CI ? 'npm run build && npm run start' : 'npm run dev',

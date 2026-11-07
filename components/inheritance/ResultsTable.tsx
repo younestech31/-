@@ -26,6 +26,7 @@ export interface ExcludedHeirWarning {
   heirId: string;
   heirNameAr: string;
   reason: string;
+  source?: string;
 }
 
 export interface StageResult {
@@ -40,6 +41,15 @@ export interface StageResult {
   } | null;
   excludedHeirWarnings?: ExcludedHeirWarning[];
   hasUnverifiedOverride?: boolean;
+  requiresManualClassification?: boolean;
+  tanzilNeedsManualReview?: boolean;
+  noHeirsNeedsManualReview?: boolean;
+  pregnancyNeedsManualReview?: boolean;
+  minorHeirNeedsJudicialPartition?: boolean;
+  deathOrderNeedsManualReview?: boolean;
+  involuntaryKillerNeedsCompensationReview?: boolean;
+  missingHeirNeedsManualReview?: boolean;
+  spouseEligibilityNeedsReview?: boolean;
 }
 
 interface ResultsTableProps {
@@ -60,8 +70,15 @@ interface ResultsTableProps {
   removeStage: (index: number) => void;
   setSelectedHeirExplanation: (r: CalculationResult | null) => void;
   updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
-  /** نتيجة مراجعة المرحلة الحالية (ورثة مستبعدون مُفعَّلون) */
-  currentStageValidation?: unknown;
+  /** نتائج فحص استبعادات المناسخة غير المؤكدة في المرحلة الحالية */
+  currentStageValidation?: {
+    hasUnacknowledgedExclusions?: boolean;
+    requiresManualClassification?: boolean;
+    manualClassificationReasons?: string[];
+    tanzilNeedsManualReview?: boolean;
+    unacknowledgedExclusions?: Array<Pick<ExcludedHeirWarning, 'heirId' | 'reason' | 'source'> & { heirNameAr?: string }>;
+  };
+  isMunasakhatExportBlocked?: boolean;
   /** سياسة توزيع الحصة عند غياب الورثة في المسألة الثانوية */
   noHeirsRedistribution: StageResult['noHeirsRedistribution'];
   isCalculating: boolean;
@@ -88,7 +105,8 @@ const ResultsTable = memo(function ResultsTable({
   removeStage,
   setSelectedHeirExplanation,
   updateImpediment,
-  currentStageValidation: _currentStageValidation,
+  currentStageValidation,
+  isMunasakhatExportBlocked = false,
   noHeirsRedistribution: _noHeirsRedistribution,
   isCalculating,
   handleCopyFullSummary,
@@ -171,14 +189,16 @@ const ResultsTable = memo(function ResultsTable({
           {allStagesResults.length > 1 ? (
             <button
               onClick={handleCopyFullSummary}
-              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#0a5d38] font-bold hover:bg-[#0a5d38]/10 flex items-center gap-1`}
-              title="نسخ الملخص الكامل لجميع مراحل المناسخات"
+              disabled={isMunasakhatExportBlocked}
+              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#0a5d38] font-bold hover:bg-[#0a5d38]/10 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed`}
+              title={isMunasakhatExportBlocked ? 'راجع استبعادات المناسخة قبل نسخ الملخص' : 'نسخ الملخص الكامل لجميع مراحل المناسخات'}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <span>نسخ الملخص</span>
             </button>
           ) : (
             <button
+              disabled={Boolean(currentStageValidation?.hasUnacknowledgedExclusions || isMunasakhatExportBlocked)}
               onClick={async () => {
                 const lines = [
                   `نتائج التقسيم - ${currentStageIndex === 0 ? 'المسألة الأصلية' : `وفاة: ${currentStage.deceasedName}`}`
@@ -221,8 +241,8 @@ const ResultsTable = memo(function ResultsTable({
                   alert('فشل نسخ النتائج');
                 }
               }}
-              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#64748b] hover:text-[#1a1a1a] flex items-center gap-1`}
-              title="نسخ كنص للطباعة القانونية"
+              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#64748b] hover:text-[#1a1a1a] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed`}
+              title={isMunasakhatExportBlocked ? 'راجع استبعادات المناسخة قبل نسخ النتائج' : 'نسخ كنص للطباعة القانونية'}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <span className="hidden sm:inline">نسخ النص</span>
@@ -278,21 +298,183 @@ const ResultsTable = memo(function ResultsTable({
           </div>
         )}
 
+        {currentStageValidation?.requiresManualClassification && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-4 mb-4 bg-rose-50 border-2 border-rose-300 text-rose-950 text-sm rounded-lg shadow-sm"
+          >
+            <p className="font-bold">لا يمكن اعتماد هذه الصورة آلياً قبل استكمال المراجعة القانونية</p>
+            <ul className="mt-2 space-y-1 text-xs leading-relaxed list-disc pr-5">
+              {(currentStageValidation.manualClassificationReasons || [
+                'تتطلب هذه المسألة تحديد صلة القرابة ودرجة القرب وجهة الإدلاء قبل اعتماد الأنصبة.'
+              ]).map(reason => <li key={reason}>{reason}</li>)}
+            </ul>
+            <p className="text-xs mt-2">
+              لم يُصدر النظام أنصبة آلية لهذه الصورة لعدم اكتمال بيانات القرابة ودرجتها. يلزم استكمال النموذج أو مراجعة المسألة قانونياً قبل متابعة القسمة.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.missingHeirNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          >
+            <p className="font-bold">لا يمكن تحديد نصيب المفقود ضمن مجموعة متعددة — المادة 133</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              تم تسجيل مفقود ضمن فئة تضم أكثر من وارث، لكن البيانات لا تحدد أي فرد هو المفقود. يعتبر المفقود حياً عند افتتاح التركة، ويُحفظ نصيبه؛ لكن يلزم فصل الأشخاص وأعدادهم قبل حساب ما يوقف وما يوزع على بقية أفراد المجموعة.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.spouseEligibilityNeedsReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-sky-300 bg-sky-50 p-4 text-sm text-sky-950"
+          >
+            <p className="font-bold">يلزم التحقق من سبب الإرث بالزوجية — المواد 130–132</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لم يتم تأكيد صحة عقد الزواج وعدم بطلانه، ولا التحقق من استمرار سبب التوارث وقت الوفاة أو من أثر الطلاق والعدة وفق المادة 132. لم يُصدر المحرك أنصبة آلية ولم يُتح تصدير المستندات لهذه المرحلة.
+            </p>
+            <p className="mt-2 text-[10px] leading-relaxed">
+              هذا الإقرار يوثق استكمال بيانات المراجعة داخل البرنامج، ولا يُعد بديلاً عن فحص العقد والحكم القضائي ووثائق الحالة المدنية.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.involuntaryKillerNeedsCompensationReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-orange-300 bg-orange-50 p-4 text-sm text-orange-950"
+          >
+            <p className="font-bold">توقّف الحساب — يلزم فصل الدية أو التعويض (المادة 137)</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              القاتل خطأ يرث من المال دون الدية أو التعويض. لم يؤكد المستخدم أن قيمة التركة المدخلة تستبعد هذه المبالغ، لذلك لم تُحسب الأنصبة ولم تُصدّر التقارير. افصل المال عن الدية/التعويض، ثم أكد ذلك في بيانات التركة.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.deathOrderNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-rose-300 bg-rose-50 p-4 text-sm text-rose-950"
+          >
+            <p className="font-bold">توقّف المناسخة المتسلسلة — ترتيب الوفاة غير ثابت (المادة 129)</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              إذا توفي شخصان أو أكثر ولم يُعرف أيهم مات أولاً، فلا يرث أحدهم من تركة الآخر. النتيجة المتسلسلة هنا غير معتمدة؛ يجب إثبات ترتيب الوفاة أو فصل التركات وحساب كل تركة مستقلة.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.minorHeirNeedsJudicialPartition && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-violet-300 bg-violet-50 p-4 text-sm text-violet-950"
+          >
+            <p className="font-bold">القسمة تستلزم الطريق القضائي — المادة 181</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لوجود قاصر بين الورثة، لا تُعتمد هذه النتيجة كقسمة توثيقية نهائية. يمكن استخدام الأنصبة الظاهرة للمراجعة والتحضير، لكن إنجاز القسمة يكون عن طريق القضاء وفق المادة 181، مع مراعاة أحكام الولاية والوصاية والملكية الشائعة.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.pregnancyNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          >
+            <p className="font-bold">توقّف الحساب الآلي بسبب حالة الحمل — المادتان 173 و174</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              الحمل غير المحسوم أو المتعدد، أو النزاع حول ثبوته، يحتاج إلى تحديد النصيب الموقوف والتحقق مما إذا كان يحجب بعض الورثة حجب حرمان. لا تُعرض أنصبة نهائية ولا تُصدّر التقارير حتى تُراجع الحالة ويُحدد الحكم المناسب.
+            </p>
+          </div>
+        )}
+
+        {currentStageValidation?.tanzilNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-4 mb-4 bg-amber-50 border-2 border-amber-300 text-amber-950 text-sm rounded-lg shadow-sm"
+          >
+            <p className="font-bold">التنزيل (المواد 169–172) لم يُحتسب آلياً في هذه المرحلة</p>
+            <p className="text-xs mt-1 leading-relaxed">
+              المدخل الحالي يسجل أعداد الأبناء المتوفين فقط، ولا يسجل كل فرع من الأحفاد، ومن يرث منهم مباشرة، وما خُصّ به كل فرد بوصية أو هبة، وما ورثه من أبيه أو أمه، ولا طريقة توزيع مناب كل فرع بينهم. لذلك أوقف المحرك حساب مبلغ التنزيل بدلاً من إصدار رقم قد يكون مضللاً. يلزم استكمال نموذج الفروع التفصيلي ومراجعته قبل اعتماد أي مبلغ.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.noHeirsNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          >
+            <p className="font-bold">توقّف اعتماد أيلولة الباقي — يلزم استقصاء ذوي الأرحام</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لا يثبت عدم وجود ذوي الأرحام بمجرد عدم إدخال أسماء في الحاسبة. المادة 168 ترتب ذوي الأرحام عند الاستحقاق، والمادة 180 تجعلهم قبل الخزينة، كما تقيد المادة 167 رد الباقي إلى الزوج أو الزوجة بانتفاء ذوي الأرحام. راجع صلات القرابة ثم أكد الاستقصاء في بيانات التركة.
+            </p>
+            <p className="mt-2 text-xs font-semibold">
+              الأنصبة المعروضة استكشافية، ولم يُسند هذا الباقي إلى الزوج أو الزوجة أو الخزينة.
+            </p>
+          </div>
+        )}
+
+        {currentStageValidation?.hasUnacknowledgedExclusions && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-4 mb-4 bg-rose-50 border-2 border-rose-300 text-rose-950 text-sm rounded-lg shadow-sm"
+          >
+            <p className="font-bold">تم تعليق عرض الأنصبة مؤقتًا لوجود صلات قرابة غير محسومة</p>
+            <p className="text-xs mt-1 leading-relaxed">
+              هذه تنبيهات مراجعة وليست أحكام استبعاد. لم يعد النظام يسقط هذه الفئات تلقائيًا؛ راجع هوية كل شخص وحياته وصلته وقت الوفاة. أزل من لا يدخل في المسألة، أو أكّد إدراج من ثبتت أهليته.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {(currentStageValidation.unacknowledgedExclusions || []).map(warning => (
+                <li key={warning.heirId} className="border-t border-rose-200 pt-2">
+                  <span className="font-bold">{warning.heirNameAr || warning.heirId}</span>
+                  <span className="block text-xs mt-0.5">{warning.reason}</span>
+                  {warning.source && (
+                    <span className="block text-[11px] text-rose-800/80 mt-0.5">المرجع المسجل: {warning.source}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {allStagesResults[currentStageIndex]?.hasUnverifiedOverride && (
           <div className="p-4 mb-4 bg-amber-50 border border-amber-200 text-amber-900 text-sm rounded-lg flex items-start gap-3 shadow-sm no-print">
             <svg className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
             <div>
-              <p className="font-bold">تنبيه هام: تم تجاوز استبعاد الميراث يدوياً في هذه المرحلة</p>
+              <p className="font-bold">تنبيه: تم إدراج وارث بعد تأكيد مراجعة صلة القرابة</p>
               <p className="text-xs text-amber-700 mt-1">
-                لقد تم تفعيل خيار تجاوز الاستبعاد التلقائي للوارث في هذه المرحلة يدوياً. هذا التجاوز يعتبر غير معتمد فقهياً/قانونياً وفقاً لقواعد تصفية المناسخات، ولذلك تم حظر إصدار المستندات الرسمية (المصادقة التوثيقية) لهذه القضية.
+                أُدرج الوارث بعد تأكيد المستخدم أن تنبيه المراجعة لا يمنع أهليته. يلزم التحقق المستقل من هوية الشخص وحالته وقرابته؛ لذلك تبقى صادرات المستندات الرسمية معطلة لهذه القضية.
               </p>
             </div>
           </div>
         )}
 
-        {results.length > 0 ? (
+        {currentStageValidation?.requiresManualClassification ? (
+          <div className="p-4 mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-900 text-sm">
+            <p className="font-bold">النتيجة محجوبة: يلزم تحديد صلة ذوي الأرحام بدقة</p>
+            <p className="text-xs mt-1">لا يقسم النظام حصة ذوي الأرحام ككتلة واحدة. يجب تحديد الوارث الفردي، ودرجة القرابة، وجهة الإدلاء، ثم تطبيق ترتيب المادة 168 بعد مراجعة قانونية.</p>
+          </div>
+        ) : currentStageValidation?.hasUnacknowledgedExclusions ? (
+          <div className="p-4 mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-900 text-sm">
+            <p className="font-bold">النتيجة الحسابية مخفية حتى إتمام المراجعة</p>
+            <p className="text-xs mt-1">بعد مراجعة كل حالة، أزل من لا يدخل في التركة أو أكد إدراج من ثبتت أهليته. ستظهر الأنصبة بعد اكتمال المراجعة، وتظل الصادرات الرسمية محظورة إذا تم تأكيد إدراج حالة تحتاج إلى مراجعة مستقلة.</p>
+          </div>
+        ) : results.length > 0 ? (
           viewMode === 'table' ? (
             <TableView
               results={results}
@@ -615,7 +797,11 @@ const TableView = memo(function TableView({
                     }
                   }}
                 >
-                  {isInvoluntaryKiller ? (
+                  {r.isWithheld ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-800 border border-amber-200">
+                      نصيب موقوف للمفقود — م.133
+                    </span>
+                  ) : isInvoluntaryKiller ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-200">
                       يرث المال دون الدية — م.137
                     </span>

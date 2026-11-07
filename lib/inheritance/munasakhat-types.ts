@@ -27,10 +27,21 @@ export interface MunasakhatStage {
   deceasedSonsCount?: number;
   deceasedDaughtersCount?: number;
   deceasedChildren?: DeceasedChildGroup[];
-  unbornOutcome?: 'stillborn' | 'born_male' | 'born_female' | 'twins_male_female' | 'twins_males' | 'twins_females';
+  unbornOutcome?: 'pending' | 'stillborn' | 'born_male' | 'born_female' | 'twins_male_female' | 'twins_males' | 'twins_females';
   hasUnbornHeir?: boolean;
+  pregnancyDisputed?: boolean;
   hasChildrenFromOtherUnion?: boolean;
   secondDeceasedHasChildrenFromOtherUnion?: boolean;
+  /** Explicit Article 167/180 confirmation that no entitled distant kindred exists. */
+  confirmedNoDistantKindred?: boolean;
+  /** Articles 130–132: spouse's legal inheritance eligibility has been verified. */
+  confirmedSpouseEligibility?: boolean;
+  /** Article 181: any minor among the heirs requires judicial partition. */
+  hasMinorHeir?: boolean;
+  /** Article 129: two or more deaths with an unproven order of death. */
+  deathOrderUncertain?: boolean;
+  /** Article 137: the estate amount entered excludes diyah/compensation. */
+  confirmedDiyahExcluded?: boolean;
   acknowledgedExclusions?: string[];
 }
 

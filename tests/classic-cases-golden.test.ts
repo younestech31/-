@@ -150,8 +150,9 @@ describe('Classical Cases Golden Regression Fixtures (Articles 175-179)', () => 
     expect(maternalSiblings?.amount).toBe(40000); // 2/9 of 180k
   });
 
-  it('Kharqaa (Art. 175): Mother, Grandfather, Full Sister', () => {
-    // Estate 180,000 -> Mother 1/3 (60k), Full Sister 1/2 (90k), Grandfather 1/6 (30k)
+  it('Kharqaa (Article 158): Mother, Grandfather, Full Sister', () => {
+    // Estate 180,000 -> Mother 1/3 (60k); grandfather compares 1/6 (30k),
+    // 1/3 of the remainder (40k), and muqasama (80k); sister receives 40k.
     const heirs: HeirPresence[] = [
       { heirId: 'mother', count: 1, isPresent: true },
       { heirId: 'grandfather', count: 1, isPresent: true },
@@ -163,8 +164,8 @@ describe('Classical Cases Golden Regression Fixtures (Articles 175-179)', () => 
     const fullSister = results.find(r => r.heirId === 'full_sister');
 
     expect(mother?.amount).toBe(60000); // 1/3 (60k)
-    expect(fullSister?.amount).toBe(90000); // 1/2 (90k)
-    expect(grandfather?.amount).toBe(30000); // 1/6 (30k)
+    expect(fullSister?.amount).toBe(40000); // remainder after grandfather's preferred muqasama
+    expect(grandfather?.amount).toBe(80000); // muqasama is best under Article 158
   });
 
   it('Dinariyyah: Wife, Mother, 2 Daughters, Paternal Sister', () => {

@@ -3,14 +3,13 @@ import type { NextRequest } from 'next/server';
 import { buildCspHeader } from '@/lib/security/csp';
 
 function generateNonce(): string {
-  try {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-  } catch {
-    // Fallback if crypto is unavailable
+  const cryptoApi = globalThis.crypto;
+  if (!cryptoApi?.getRandomValues) {
+    throw new Error('Cryptographically secure nonce generation is unavailable.');
   }
-  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export function middleware(request: NextRequest) {
@@ -50,6 +49,9 @@ export function middleware(request: NextRequest) {
     }
     requestHeaders.set('x-pathname', safePathname);
     requestHeaders.set('x-nonce', nonce);
+    // Next.js extracts the nonce from the forwarded request CSP and applies it
+    // to framework-generated inline scripts and styles.
+    requestHeaders.set('Content-Security-Policy', cspHeader);
 
     const response = NextResponse.next({
       request: {
@@ -62,8 +64,12 @@ export function middleware(request: NextRequest) {
 
     return response;
   } catch (err) {
-    console.error('Middleware invocation error:', err);
-    return NextResponse.next();
+    console.error('Middleware security processing failed:', err);
+    // Do not continue to the application without the nonce-based CSP headers.
+    return new NextResponse('Secure request processing failed', {
+      status: 503,
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 }
 

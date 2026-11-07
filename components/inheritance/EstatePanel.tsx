@@ -40,6 +40,14 @@ interface EstatePanelProps {
   updateStageAlreadyInherited?: (value: number) => void;
   updateStageFinancialField: (field: 'debts' | 'funeralCosts' | 'bequest' | 'ownSeparateAssets', value: number) => void;
   updateStageChildrenFromOtherUnion?: (checked: boolean) => void;
+  updateStageNoDistantKindredConfirmation: (checked: boolean) => void;
+  updateStageSpouseEligibilityConfirmation: (checked: boolean) => void;
+  updateStagePregnancy: (hasUnbornHeir: boolean, outcome: NonNullable<MunasakhatStage['unbornOutcome']>) => void;
+  updateStagePregnancyDisputed: (checked: boolean) => void;
+  updateStageMinorHeirPresent: (checked: boolean) => void;
+  updateStageDeathOrderUncertain: (checked: boolean) => void;
+  updateStageDiyahExcludedConfirmation: (checked: boolean) => void;
+  requiresNoDistantKindredConfirmation?: boolean;
   parentHeirName?: string;
 }
 
@@ -69,6 +77,14 @@ const EstatePanel = memo(function EstatePanel({
   updateStageAlreadyInherited,
   updateStageFinancialField,
   updateStageChildrenFromOtherUnion,
+  updateStageNoDistantKindredConfirmation,
+  updateStageSpouseEligibilityConfirmation,
+  updateStagePregnancy,
+  updateStagePregnancyDisputed,
+  updateStageMinorHeirPresent,
+  updateStageDeathOrderUncertain,
+  updateStageDiyahExcludedConfirmation,
+  requiresNoDistantKindredConfirmation = false,
   parentHeirName,
 }: EstatePanelProps) {
   return (
@@ -157,7 +173,7 @@ const EstatePanel = memo(function EstatePanel({
                   الموروث من التركة السابقة
                 </span>
                 <div className="font-mono text-sm font-bold text-slate-700">
-                  {formatDZDAmount(currentStage.inheritedFromParentAmount ?? currentStage.alreadyInheritedFromParentAmount ?? (currentStage.estate ?? 0), 'western', true)}
+                  {formatDZDAmount(currentStage.inheritedFromParentAmount ?? currentStage.alreadyInheritedFromParentAmount ?? currentStage.inheritedAmount ?? (currentStage.estate ?? 0), 'western', true)}
                 </div>
               </div>
 
@@ -177,7 +193,7 @@ const EstatePanel = memo(function EstatePanel({
               <div className="bg-emerald-50/80 p-2.5 rounded border border-emerald-200 flex justify-between items-center">
                 <span className="text-xs font-bold text-emerald-800">إجمالي تركة المتوفى الثاني:</span>
                 <span className="font-mono text-base font-bold text-emerald-900">
-                  {formatDZDAmount((currentStage.inheritedFromParentAmount ?? currentStage.alreadyInheritedFromParentAmount ?? 0) + (currentStage.ownSeparateAssets ?? 0), 'western', true)}
+                  {formatDZDAmount((currentStage.inheritedFromParentAmount ?? currentStage.alreadyInheritedFromParentAmount ?? currentStage.inheritedAmount ?? 0) + (currentStage.ownSeparateAssets ?? 0), 'western', true)}
                 </span>
               </div>
             </div>
@@ -294,6 +310,164 @@ const EstatePanel = memo(function EstatePanel({
           </div>
         )}
 
+        {(currentStage.heirs?.length ? currentStage.heirs : Object.values(currentStage.heirPresence || {})).some(
+          heir => heir.isPresent && heir.count > 0 && ['husband', 'wife'].includes(heir.heirId)
+        ) && (
+          <div className="mb-3 rounded border border-sky-200 bg-sky-50/70 p-3">
+            <p className="mb-2 text-xs font-bold text-sky-950">التحقق من سبب الإرث بالزوجية — المواد 130–132</p>
+            <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-sky-950">
+              <input
+                type="checkbox"
+                checked={currentStage.confirmedSpouseEligibility === true}
+                onChange={e => updateStageSpouseEligibilityConfirmation(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-sky-700"
+              />
+              <span>
+                أؤكد أنني تحققت من صحة عقد الزواج وعدم بطلانه، ومن قيام سبب التوارث وقت الوفاة؛ وإذا سبق الطلاق فقد راجعت ما إذا كانت الوفاة قبل صدور الحكم أو أثناء العدة وفق المادة 132.
+              </span>
+            </label>
+            <p className="mt-2 text-[10px] leading-relaxed text-sky-800">
+              اختيار «زوج» أو «زوجة» وحده لا يثبت قانوناً سبب الإرث. لا يعتمد المحرك الأنصبة ولا يصدّرها قبل هذا التحقق.
+            </p>
+          </div>
+        )}
+
+        {(requiresNoDistantKindredConfirmation || currentStage.confirmedNoDistantKindred === true) && (
+          <div className="mb-3 rounded border border-amber-200 bg-amber-50/70 p-3">
+            <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-amber-950">
+              <input
+                type="checkbox"
+                checked={currentStage.confirmedNoDistantKindred === true}
+                onChange={e => updateStageNoDistantKindredConfirmation(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-amber-700"
+              />
+              <span>
+                أؤكد أنني استقصيت من وثائق القرابة عن جميع المستحقين، وتحققت من عدم وجود عصبة بالنسب أو صاحب فرض من ذوي القرابة أو ذي رحم مستحق. أعلم أن ترك خانة الوارث فارغة لا يثبت انعدامه.
+              </span>
+            </label>
+            <p className="mt-2 text-[10px] text-amber-800">
+              يشترط انتفاء العصبة وصاحب الفرض النسبي وذوي الأرحام قبل رد الباقي إلى الزوج أو الزوجة وفق المادة 167؛ ولا تؤول التركة إلى الخزينة إلا بعد انتفاء ذوي الأرحام وفق المادتين 168 و180. هذا الإقرار لا يغني عن فحص الوثائق.
+            </p>
+          </div>
+        )}
+
+        {(currentStage.heirs?.length ? currentStage.heirs : Object.values(currentStage.heirPresence || {})).some(
+          heir => heir.isPresent && (
+            heir.impedimentReasonId === 'involuntary_killer' ||
+            heir.impedimentReasonIds?.includes('involuntary_killer')
+          )
+        ) && (
+          <div className="mb-3 rounded border border-orange-200 bg-orange-50/70 p-3">
+            <p className="mb-2 text-xs font-bold text-orange-950">قاتل خطأ ضمن الورثة — المادة 137</p>
+            <p className="mb-2 text-[10px] leading-relaxed text-orange-900">
+              القاتل خطأ يرث من المال دون الدية أو التعويض. يجب فصل مبلغ الدية/التعويض وعدم إدخاله ضمن قيمة المال التي ستقسمها هذه الحاسبة؛ فالحاسبة لا توزع هذا المبلغ في مسار مستقل.
+            </p>
+            <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-orange-950">
+              <input
+                type="checkbox"
+                checked={currentStage.confirmedDiyahExcluded === true}
+                onChange={e => updateStageDiyahExcludedConfirmation(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-orange-700"
+              />
+              <span>أؤكد أن قيمة المال المدخلة لا تشمل الدية أو التعويض، وأنني سأعالج مستحقاتهما خارج هذه القسمة.</span>
+            </label>
+          </div>
+        )}
+
+        <div className="mb-3 rounded border border-rose-200 bg-rose-50/70 p-3">
+          <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-rose-950">
+            <input
+              type="checkbox"
+              checked={currentStage.deathOrderUncertain === true}
+              onChange={e => updateStageDeathOrderUncertain(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-rose-700"
+            />
+            <span className="font-semibold">توجد وفيات لشخصين أو أكثر ولم يثبت ترتيب الوفاة بينهم (المادة 129)</span>
+          </label>
+          <p className="mt-2 text-[10px] leading-relaxed text-rose-800">
+            عند عدم معرفة من مات أولاً، لا يرث أحد المتوفين من الآخر. لا تعتمد هذه المرحلة كمناسخة متسلسلة قبل إثبات ترتيب الوفاة أو فصل التركات.
+          </p>
+        </div>
+
+        <div className="mb-3 rounded border border-violet-200 bg-violet-50/70 p-3">
+          <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-violet-950">
+            <input
+              type="checkbox"
+              checked={currentStage.hasMinorHeir === true}
+              onChange={e => updateStageMinorHeirPresent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-violet-700"
+            />
+            <span className="font-semibold">يوجد قاصر بين الورثة (المادة 181)</span>
+          </label>
+          <p className="mt-2 text-[10px] leading-relaxed text-violet-800">
+            عند وجود قاصر، تظل الأنصبة الحسابية استرشادية، لكن القسمة لا تُستكمل توثيقياً خارج المسار القضائي.
+          </p>
+        </div>
+
+        <div className="mb-3 rounded border border-sky-200 bg-sky-50/60 p-3">
+          <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-sky-950">
+            <input
+              type="checkbox"
+              checked={currentStage.hasUnbornHeir === true}
+              onChange={e => updateStagePregnancy(
+                e.target.checked,
+                e.target.checked
+                  ? (currentStage.unbornOutcome && currentStage.unbornOutcome !== 'stillborn' ? currentStage.unbornOutcome : 'pending')
+                  : 'stillborn'
+              )}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-sky-700"
+            />
+            <span className="font-semibold">يوجد حمل قائم وقت وفاة المورّث يمكن أن يشارك في الإرث (المادة 173)</span>
+          </label>
+
+          {currentStage.hasUnbornHeir === true && (
+            <div className="mt-3 space-y-2">
+              <label className="block text-[11px] font-semibold text-sky-900" htmlFor="unborn-outcome">
+                حالة الحمل أو نتيجة الولادة
+              </label>
+              <select
+                id="unborn-outcome"
+                value={currentStage.unbornOutcome || 'pending'}
+                onChange={e => updateStagePregnancy(
+                  true,
+                  e.target.value as NonNullable<MunasakhatStage['unbornOutcome']>
+                )}
+                className="w-full rounded border border-sky-200 bg-white p-2 text-xs text-slate-800"
+              >
+                <option value="pending">لم يولد بعد / الجنس غير معلوم</option>
+                <option value="born_male">وُلد حياً ذكراً</option>
+                <option value="born_female">وُلدت حية أنثى</option>
+                <option value="stillborn">وُلد ميتاً</option>
+                <option value="twins_male_female">توأم: ذكر وأنثى</option>
+                <option value="twins_males">توأم: ذكران</option>
+                <option value="twins_females">توأم: أنثيان</option>
+              </select>
+              {(currentStage.unbornOutcome === 'born_male' || currentStage.unbornOutcome === 'born_female') && (
+                <p className="text-[10px] leading-relaxed text-sky-800">
+                  سيضيف المحرك المولود تلقائياً إلى الورثة؛ لا تُدخل الطفل نفسه مرة ثانية في قائمة الأبناء.
+                </p>
+              )}
+              {(currentStage.unbornOutcome === 'twins_male_female' || currentStage.unbornOutcome === 'twins_males' || currentStage.unbornOutcome === 'twins_females') && (
+                <p className="text-[10px] leading-relaxed font-semibold text-amber-800">
+                  الحمل المتعدد غير مدعوم في الحساب الآلي الحالي؛ ستُعلّق الأنصبة والتقارير للمراجعة اليدوية.
+                </p>
+              )}
+              <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={currentStage.pregnancyDisputed === true}
+                  onChange={e => updateStagePregnancyDisputed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-amber-700"
+                />
+                <span>يوجد نزاع أو إنكار من الورثة بشأن ادعاء الحمل (المادة 174).</span>
+              </label>
+              <p className="text-[10px] leading-relaxed text-sky-800">
+                في حالة الحمل غير المحسوم يوقف المحرك أكبر نصيب محتمل لابن أو بنت، وإذا كان احتمال الحمل يحجب وارثاً حجب حرمان يوقف كامل التركة إلى حين اتضاح الأمر، وفق المادة 173.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Mandatory bequest toggle */}
         <div className="mb-3 flex items-center gap-2 p-2 bg-[#f8fafc] rounded border border-[#e2e8f0]">
           <input
@@ -345,7 +519,7 @@ const EstatePanel = memo(function EstatePanel({
                 {TANZEEL_RULES.conditions.map(cond => (
                   <li key={cond.id} className="flex flex-col gap-1 text-amber-700 text-xs">
                     <div className="flex items-start gap-2">
-                      <span className="mt-0.5 text-green-600 shrink-0">✓</span>
+                      <span className="mt-0.5 text-amber-600 shrink-0">•</span>
                       <span>{cond.conditionAr} (م.{cond.article})</span>
                     </div>
                     {cond.fieldKey && (
@@ -364,8 +538,8 @@ const EstatePanel = memo(function EstatePanel({
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-[10px] text-amber-600">
-                تأكد من انطباق هذه الشروط قبل تفعيل التنزيل
+              <p className="mt-2 text-[10px] text-amber-700 font-semibold">
+                هذه قائمة مراجعة وليست إثباتاً آلياً لتحقق الشروط. عند وجود أحفاد، يُعلّق حساب التنزيل الآلي إلى أن تتوفر بيانات كل فرع ومستفيد على حدة.
               </p>
             </div>
           </>

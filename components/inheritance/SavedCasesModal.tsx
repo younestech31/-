@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { X, FolderOpen, Trash2, Cloud, DownloadCloud } from 'lucide-react';
 import { SavedCase } from './InheritanceCalculator';
 import ConfirmDeleteModal from './ConfirmDeleteModal';
-import { encryptData, decryptData, encryptDataWithPassphrase, decryptDataWithPassphrase } from '@/lib/crypto';
+import { decryptData, encryptDataWithPassphrase, decryptDataWithPassphrase } from '@/lib/crypto';
 import { formatDZDAmount } from '@/lib/inheritance/document-branding';
 
 interface SavedCasesModalProps {
@@ -47,27 +47,34 @@ export default function SavedCasesModal({
   if (!isOpen) return null;
 
   const handleCloudSyncToggle = async (checked: boolean) => {
+    const passphrase = cloudSyncPassphrase?.trim() || '';
+    if (checked && passphrase.length < 12) {
+      setCloudSyncOptIn(false);
+      setSyncStatus('للمزامنة القابلة للاستعادة على جهاز آخر، أدخل عبارة مرور فريدة لا تقل عن 12 حرفًا من إعدادات المكتب.');
+      return;
+    }
+
     setCloudSyncOptIn(checked);
     if (checked) {
       setIsSyncing(true);
-      setSyncStatus('جاري مزامنة المسائل مشفرة سحابياً...');
+      setSyncStatus('جاري تشفير المسائل بعبارة مرورك ومزامنتها...');
       try {
-        // First get cloudSyncSalt from GET /api/cases
         const saltRes = await fetch('/api/cases');
-        const saltData = await saltRes.json().catch(() => ({}));
-        const saltHex = saltData.cloudSyncSalt || '00112233445566778899aabbccddeeff';
+        if (!saltRes.ok) {
+          const errorData = await saltRes.json().catch(() => ({}));
+          throw new Error(errorData.error || 'تعذر الحصول على ملح التشفير من الخادم');
+        }
+        const saltData = await saltRes.json();
+        const saltHex = typeof saltData.cloudSyncSalt === 'string' ? saltData.cloudSyncSalt : '';
+        if (!/^[a-f0-9]{32}$/i.test(saltHex)) {
+          throw new Error('ملح التشفير السحابي غير صالح؛ أوقفنا المزامنة بدل استخدام قيمة افتراضية ثابتة.');
+        }
 
         for (const c of savedCases) {
-          const caseNameEncrypted = await encryptData(c.name);
-          const caseDateEncrypted = await encryptData(c.date);
-          const notaryIdEncrypted = await encryptData(c.id);
-
-          let encryptedPayload: string;
-          if (cloudSyncPassphrase && cloudSyncPassphrase.trim().length > 0) {
-            encryptedPayload = await encryptDataWithPassphrase(JSON.stringify(c), cloudSyncPassphrase, saltHex);
-          } else {
-            encryptedPayload = await encryptData(JSON.stringify(c));
-          }
+          const caseNameEncrypted = await encryptDataWithPassphrase(c.name, passphrase, saltHex);
+          const caseDateEncrypted = await encryptDataWithPassphrase(c.date, passphrase, saltHex);
+          const notaryIdEncrypted = await encryptDataWithPassphrase(c.id, passphrase, saltHex);
+          const encryptedPayload = await encryptDataWithPassphrase(JSON.stringify(c), passphrase, saltHex);
 
           const res = await fetch('/api/cases', {
             method: 'POST',
@@ -86,7 +93,7 @@ export default function SavedCasesModal({
             throw new Error(errJson.error || 'Cloud sync failed');
           }
         }
-        setSyncStatus('تمت المزامنة السحابية بنجاح (تشفير تام Zero-Knowledge)');
+        setSyncStatus('تمت المزامنة بتشفير مشتق من عبارة مرورك. يمكنك الاستعادة على جهاز آخر بإدخال العبارة نفسها.');
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : 'فشل المزامنة';
         console.error('Cloud sync failed:', err);
@@ -110,22 +117,29 @@ export default function SavedCasesModal({
       }
 
       const data = await res.json();
-      const serverCases = data.cases || [];
-      const saltHex = data.cloudSyncSalt || '00112233445566778899aabbccddeeff';
+      const serverCases = Array.isArray(data.cases) ? data.cases : [];
+      const saltHex = typeof data.cloudSyncSalt === 'string' ? data.cloudSyncSalt : '';
+      const passphrase = cloudSyncPassphrase?.trim() || '';
+      if (passphrase && !/^[a-f0-9]{32}$/i.test(saltHex)) {
+        throw new Error('ملح التشفير السحابي غير متاح أو غير صالح؛ لم نستخدم قيمة افتراضية.');
+      }
 
       const restoredList: SavedCase[] = [];
+      let failedDecryptionCount = 0;
 
       for (const item of serverCases) {
         if (!item.encryptedPayload) continue;
         try {
           let decryptedJson: string;
-          if (cloudSyncPassphrase && cloudSyncPassphrase.trim().length > 0) {
+          if (passphrase) {
             try {
-              decryptedJson = await decryptDataWithPassphrase(item.encryptedPayload, cloudSyncPassphrase, saltHex);
+              decryptedJson = await decryptDataWithPassphrase(item.encryptedPayload, passphrase, saltHex);
             } catch {
+              // Backward compatibility: restore older records encrypted with this device's key.
               decryptedJson = await decryptData(item.encryptedPayload);
             }
           } else {
+            // Legacy device-bound cloud records remain restorable only on the original browser.
             decryptedJson = await decryptData(item.encryptedPayload);
           }
 
@@ -134,6 +148,7 @@ export default function SavedCasesModal({
             restoredList.push(parsed);
           }
         } catch (decryptErr) {
+          failedDecryptionCount += 1;
           console.warn(`Could not decrypt cloud case ${item.id}:`, decryptErr);
         }
       }
@@ -142,9 +157,15 @@ export default function SavedCasesModal({
         if (onCloudCasesRestored) {
           onCloudCasesRestored(restoredList);
         }
-        setSyncStatus(`تمت استعادة ${restoredList.length} قضية من السحابة بنجاح.`);
+        setSyncStatus(
+          `تمت استعادة ${restoredList.length} قضية.${failedDecryptionCount > 0 ? ` تعذر فك ${failedDecryptionCount} سجل؛ تحقق من عبارة المرور أو استخدم المتصفح الأصلي للنسخ القديمة.` : ''}`
+        );
+      } else if (serverCases.length > 0 && !passphrase) {
+        setSyncStatus('توجد نسخ سحابية مشفرة بعبارة مرور. أدخل العبارة في إعدادات المكتب، أو جرّب الاستعادة من المتصفح الذي أنشأ النسخ القديمة المرتبطة بالجهاز.');
+      } else if (serverCases.length > 0) {
+        setSyncStatus('تعذر فك النسخ السحابية. تحقق من صحة عبارة المرور التي استُخدمت عند إنشائها.');
       } else {
-        setSyncStatus('لم يتم العثور على قضايا سحابية قابلة للفك أو القضايا فارغة.');
+        setSyncStatus('لا توجد قضايا محفوظة في مساحة المزامنة السحابية.');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'حدث خطأ أثناء الاستعادة';
@@ -215,7 +236,7 @@ export default function SavedCasesModal({
                 className="mt-0.5 rounded border-amber-400 text-[#0a5d38] focus:ring-[#0a5d38]"
               />
               <span className="leading-relaxed font-sans">
-                <strong>موافقة صريحة على مزامنة المكتب السحابي (Cloud Sync):</strong> أوافق على مزامنة وتخزين بيانات مسائلي سحابياً على نحو مشفر تماماً من طرف إلى طرف (Zero-Knowledge) طبقاً لسياسة الخصوصية. لا ترى المنصة أية بيانات مكشوفة للورثة أو التركات.
+                <strong>موافقة صريحة على مزامنة المكتب السحابي (Cloud Sync):</strong> أوافق على تخزين نسخة مشفرة من قضاياي. تتطلب المزامنة الجديدة عبارة مرور لا تقل عن 12 حرفًا، وتبقى العبارة على هذا الجهاز في ذاكرة الجلسة فقط. النسخ القديمة التي أُنشئت دون عبارة مرور مرتبطة بمفتاح المتصفح الأصلي ولا يمكن ضمان استعادتها على جهاز آخر.
               </span>
             </label>
             {syncStatus && <div className="text-[11px] font-semibold text-[#0a5d38] flex items-center gap-1.5"><Cloud size={14} />{syncStatus}</div>}
@@ -223,6 +244,11 @@ export default function SavedCasesModal({
 
           <div className="p-4 border-t border-[#e2e8f0] bg-[#fdfdfd] shrink-0 flex flex-col items-end gap-2">
             {storageError && <div className="text-red-500 text-xs text-left w-full">{storageError}</div>}
+            {savedCases.length > 0 && (
+              <p role="note" className="w-full text-right text-[11px] leading-relaxed text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                تنبيه: ملف JSON الاحتياطي غير مشفّر ويحتوي على أسماء القضايا والورثة والمبالغ والبيانات التفصيلية. احفظه في وسيط آمن ولا ترسله عبر قنوات غير موثوقة.
+              </p>
+            )}
             <div className="flex gap-2">
               <button
                 type="button"

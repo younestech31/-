@@ -217,13 +217,14 @@ export default function OfficeSettingsModal({
               </label>
               <input
                 type="password"
+                autoComplete="new-password"
                 value={cloudSyncPassphrase}
                 onChange={e => setCloudSyncPassphrase(e.target.value)}
                 placeholder="عبارة مرور لاشتقاق مفتاح PBKDF2 لتشفير واستعادة القضايا"
                 className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38]"
               />
               <p className="text-[11px] text-[#64748b] mt-1">
-                تُستخدم لاشتقاق مفتاح التشفير السحابي عبر PBKDF2 / AES-GCM من طرف إلى طرف (Zero-Knowledge). لا تُرسل كلمة المرور للسيرفر مطلقاً.
+                تُستخدم لاشتقاق مفتاح PBKDF2 / AES-GCM. لا تُرسل إلى الخادم ولا تُحفظ في التخزين المحلي؛ تبقى في ذاكرة هذه الجلسة فقط، وستحتاج إلى إدخالها مجددًا بعد تحديث الصفحة. استخدم عبارة طويلة وفريدة.
               </p>
             </div>
 

@@ -23,6 +23,8 @@ import { formatDZDAmount } from '@/lib/inheritance/document-branding';
 export interface MunasakhatStage {
   id: string;
   deceasedName?: string;
+  deceasedNameAr?: string;
+  deceasedGender?: 'male' | 'female';
   estate?: number;
   parentHeirId?: string;
   deceasedHeirId?: string;
@@ -32,15 +34,24 @@ export interface MunasakhatStage {
   deceasedSonsCount?: number;
   deceasedDaughtersCount?: number;
   deceasedChildren?: import('@/lib/inheritance/inheritance-calculator').DeceasedChildGroup[];
+  unbornOutcome?: 'pending' | 'stillborn' | 'born_male' | 'born_female' | 'twins_male_female' | 'twins_males' | 'twins_females';
+  hasUnbornHeir?: boolean;
+  pregnancyDisputed?: boolean;
   hasMandatoryBequest: boolean;
   alreadyInheritedFromParentAmount?: number;
   inheritedFromParentAmount?: number;
+  inheritedAmount?: number;
   ownSeparateAssets?: number;
   debts?: number;
   funeralCosts?: number;
   bequest?: number;
   secondDeceasedHasChildrenFromOtherUnion?: boolean;
   hasChildrenFromOtherUnion?: boolean;
+  confirmedNoDistantKindred?: boolean;
+  confirmedSpouseEligibility?: boolean;
+  hasMinorHeir?: boolean;
+  deathOrderUncertain?: boolean;
+  confirmedDiyahExcluded?: boolean;
   acknowledgedExclusions?: string[];
   heirs?: import('@/lib/inheritance/inheritance-calculator').HeirPresence[];
 }
@@ -142,8 +153,15 @@ export default function InheritanceCalculator({
     savedCases, setSavedCases,
     toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, updateImpediment,
     addMunasakhatStage, removeStage,
-    updateStageName, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
+    updateStageName, updateStageGender, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
+    updateStageNoDistantKindredConfirmation,
+    updateStageSpouseEligibilityConfirmation,
+    updateStagePregnancy,
+    updateStagePregnancyDisputed,
+    updateStageMinorHeirPresent,
+    updateStageDeathOrderUncertain,
+    updateStageDiyahExcludedConfirmation,
     acknowledgeStageExclusion,
     resetCalculator, saveCurrentCase, updateSavedCase, loadCase,
     deleteCase, confirmDelete, exportData, importData, loadClassicCase, exportToExcelApplet, exportToWordApplet, exportToPDFApplet,
@@ -160,6 +178,22 @@ export default function InheritanceCalculator({
   const currentWarnings = currentStageResult?.excludedHeirWarnings || [];
   const acknowledgedExclusions = currentStage?.acknowledgedExclusions || [];
   const activeWarningsCount = currentWarnings.filter(w => !acknowledgedExclusions.includes(w.heirId)).length;
+  const isMunasakhatExportBlocked = allStagesResults.some((stageResult, stageIndex) => {
+    const acknowledged = munasakhatStages[stageIndex]?.acknowledgedExclusions || [];
+    const hasPendingExclusions = (stageResult.excludedHeirWarnings || [])
+      .some(warning => !acknowledged.includes(warning.heirId));
+    return hasPendingExclusions
+      || Boolean(stageResult.hasUnverifiedOverride)
+      || Boolean(stageResult.requiresManualClassification)
+      || Boolean(stageResult.tanzilNeedsManualReview)
+      || Boolean(stageResult.noHeirsNeedsManualReview)
+      || Boolean(stageResult.pregnancyNeedsManualReview)
+      || Boolean(stageResult.minorHeirNeedsJudicialPartition)
+      || Boolean(stageResult.deathOrderNeedsManualReview)
+      || Boolean(stageResult.involuntaryKillerNeedsCompensationReview)
+      || Boolean(stageResult.missingHeirNeedsManualReview)
+      || Boolean(stageResult.spouseEligibilityNeedsReview);
+  });
 
   useEffect(() => {
     if (activeWarningsCount > 0) {
@@ -176,6 +210,7 @@ export default function InheritanceCalculator({
   }, [isEstatePanelOpen]);
 
   const handleLegalSummary = () => {
+    if (isMunasakhatExportBlocked) return;
     const text = generateFullLegalSummary(allStagesResults, {
       estate,
       debts,
@@ -296,7 +331,7 @@ export default function InheritanceCalculator({
               <div className="flex items-center gap-2 justify-start md:justify-center overflow-x-auto no-scrollbar whitespace-nowrap bg-white/[0.04] p-1.5 md:p-1 rounded-lg md:rounded-xl border border-white/10 shadow-inner w-full md:w-auto max-w-full shrink-0">
                 <button 
                   onClick={handleLegalSummary} 
-                  disabled={isCalculatorEmpty}
+                  disabled={isCalculatorEmpty || isMunasakhatExportBlocked}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title="تنزيل ملخص نصي قانوني"
                 >
@@ -306,7 +341,7 @@ export default function InheritanceCalculator({
                 
                 <button 
                   onClick={exportToExcelApplet} 
-                  disabled={isExportingExcel || isCalculatorEmpty || state.isEntitlementsLoading}
+                  disabled={isExportingExcel || isCalculatorEmpty || state.isEntitlementsLoading || isMunasakhatExportBlocked}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير النتائج كملف Excel (XLSX)"}
                 >
@@ -320,7 +355,7 @@ export default function InheritanceCalculator({
                 
                 <button 
                   onClick={exportToWordApplet} 
-                  disabled={isExportingWord || isCalculatorEmpty || state.isEntitlementsLoading}
+                  disabled={isExportingWord || isCalculatorEmpty || state.isEntitlementsLoading || isMunasakhatExportBlocked}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير وثيقة رسمية Word (DOCX)"}
                 >
@@ -334,7 +369,7 @@ export default function InheritanceCalculator({
 
                 <button 
                   onClick={exportToPDFApplet} 
-                  disabled={isExportingPDF || isCalculatorEmpty || state.isEntitlementsLoading}
+                  disabled={isExportingPDF || isCalculatorEmpty || state.isEntitlementsLoading || isMunasakhatExportBlocked}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير وثيقة رسمية PDF"}
                 >
@@ -451,14 +486,22 @@ export default function InheritanceCalculator({
             currentStageIndex={currentStageIndex}
             currentNetEstate={currentNetEstate}
             estate={estate} debts={debts} funeralCosts={funeralCosts} bequest={bequest} netEstate={netEstate}
-            deceasedGender={deceasedGender} setDeceasedGender={setDeceasedGender}
-            setEstate={setEstate} setDebts={setDebts} setFuneralCosts={setFuneralCosts} setBequest={setBequest}
+            deceasedGender={deceasedGender} setDeceasedGender={(gender) => { setDeceasedGender(gender); updateStageSpouseEligibilityConfirmation(false); }}
+            setEstate={(value) => { setEstate(value); updateStageDiyahExcludedConfirmation(false); }} setDebts={setDebts} setFuneralCosts={setFuneralCosts} setBequest={setBequest}
             updateStageName={updateStageName}
             updateStageMandatoryBequest={updateStageMandatoryBequest}
             updateStageDeceasedChildren={updateStageDeceasedChildren}
             updateStageAlreadyInherited={updateStageAlreadyInherited}
             updateStageFinancialField={updateStageFinancialField}
             updateStageChildrenFromOtherUnion={updateStageChildrenFromOtherUnion}
+            updateStageNoDistantKindredConfirmation={updateStageNoDistantKindredConfirmation}
+            updateStageSpouseEligibilityConfirmation={updateStageSpouseEligibilityConfirmation}
+            updateStagePregnancy={updateStagePregnancy}
+            updateStagePregnancyDisputed={updateStagePregnancyDisputed}
+            updateStageMinorHeirPresent={updateStageMinorHeirPresent}
+            updateStageDeathOrderUncertain={updateStageDeathOrderUncertain}
+            updateStageDiyahExcludedConfirmation={updateStageDiyahExcludedConfirmation}
+            requiresNoDistantKindredConfirmation={Boolean(currentStageResult?.noHeirsNeedsManualReview)}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}
             className={expandedSection === 'estate' || mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
           />
@@ -470,6 +513,7 @@ export default function InheritanceCalculator({
             currentStage={currentStage}
             currentStageIndex={currentStageIndex}
             currentGender={currentGender}
+            updateStageGender={updateStageGender}
             deceasedGender={deceasedGender}
             toggleHeir={toggleHeir} updateCount={updateCount} updateCustomName={updateCustomName} updateMissingPersonStatus={updateMissingPersonStatus}
             className={expandedSection === 'heirs' || mobileTab === 'heirs' ? 'flex h-full' : 'hidden lg:flex'}
@@ -492,6 +536,7 @@ export default function InheritanceCalculator({
             setSelectedHeirExplanation={setSelectedHeirExplanation}
             updateImpediment={updateImpediment}
             currentStageValidation={currentStageValidation}
+            isMunasakhatExportBlocked={isMunasakhatExportBlocked}
             noHeirsRedistribution={noHeirsRedistribution}
             isCalculating={isWorkerCalculating}
             handleCopyFullSummary={handleCopyFullSummary}

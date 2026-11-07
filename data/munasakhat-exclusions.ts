@@ -1,14 +1,18 @@
-// خريطة وسجل استبعاد الورثة في المسائل الثانوية (المناسخات)
-// يتضمن كل قانون استبعاد مرجعاً شرعياً أو نصاً من قانون الأسرة الجزائري أو سابقة توثيقية
+// قواعد مراجعة مبدئية لفئات القرابة في المسائل الثانوية (المناسخات).
+// هذه القواعد مأخوذة من ملاحظات قديمة ولا تكفي وحدها لاستبعاد شخص بعينه؛
+ // يجب التحقق من هوية الوارث وحياته وقرابته التفصيلية وقت وفاة كل مورث.
 
 export interface MunasakhatExclusionRule {
   parentHeirId: string;
+  /** Legacy category matches used only to raise a manual review prompt. */
   excludedHeirIds: string[];
+  /** Legacy note explaining why this category should be reviewed, not excluded. */
   reason: string;
-  source: string; // مرجع فقهي أو قانوني إجباري
+  /** Historical source note; not an executable legal authority. */
+  source: string;
 }
 
-export const MUNASAKHAT_EXCLUSION_RULES: MunasakhatExclusionRule[] = [
+export const MUNASAKHAT_REVIEW_RULES: MunasakhatExclusionRule[] = [
   {
     parentHeirId: 'son',
     excludedHeirIds: ['father', 'grandfather', 'paternal_grandmother', 'mother', 'maternal_grandmother', 'full_brother', 'paternal_brother', 'full_sister', 'paternal_sister'],
@@ -87,89 +91,152 @@ export const MUNASAKHAT_EXCLUSION_RULES: MunasakhatExclusionRule[] = [
     reason: 'مستبعد: استنتاج غير منطقي (انقطاع الرابطة الزوجية بالوفاة)',
     source: 'المادة 130 و 139 من قانون الأسرة الجزائري (انحلال عقد الزواج بالوفاة والشرط التوثيقي المعمول به)',
   },
-];
+ ];
+
+/** @deprecated Legacy name retained for saved integrations; entries are review prompts, not exclusion decisions. */
+export const MUNASAKHAT_EXCLUSION_RULES = MUNASAKHAT_REVIEW_RULES;
 
 export const isHeirExcludedInMunasakhat = (
   heirId: string,
   parentHeirId: string,
   secondDeceasedHasChildrenFromOtherUnion: boolean = false
-): { excluded: boolean; reason: string; source: string } => {
-  if (
-    secondDeceasedHasChildrenFromOtherUnion &&
-    ['father', 'mother'].includes(parentHeirId) &&
-    ['son', 'daughter', 'son_son', 'granddaughter'].includes(heirId)
-  ) {
-    return { excluded: false, reason: '', source: '' };
+): { excluded: boolean; requiresReview: boolean; reason: string; source: string } => {
+  const rule = MUNASAKHAT_REVIEW_RULES.find(
+    candidate => candidate.parentHeirId === parentHeirId
+      && candidate.excludedHeirIds.includes(heirId)
+  );
+
+  if (!rule) {
+    return { excluded: false, requiresReview: false, reason: '', source: '' };
   }
 
-  const rule = MUNASAKHAT_EXCLUSION_RULES.find(r => r.parentHeirId === parentHeirId);
-  
-  if (rule && rule.excludedHeirIds.includes(heirId)) {
-    let reason = rule.reason;
-    
-    if (['father', 'mother', 'grandfather', 'paternal_grandmother', 'maternal_grandmother', 'maternal_grandfather'].includes(heirId)) {
-      reason = 'مستبعد: الأصول مشتركة مع المسألة الأم';
-    } else if (['full_brother', 'full_sister', 'paternal_brother', 'paternal_sister'].includes(heirId)) {
-      reason = 'مستبعد: الإخوة/الأخوات هم ورثة في الأساس (كأعمام أو غيرهم)';
-    } else if (['son', 'daughter', 'son_son', 'granddaughter'].includes(heirId) && ['father', 'mother'].includes(parentHeirId)) {
-      reason = 'مستبعد: الفرع النازل هو المتوفى الأصلي';
-    } else if (['husband', 'wife'].includes(heirId) && ['husband', 'wife'].includes(parentHeirId)) {
-      reason = 'مستبعد: استنتاج غير منطقي (لا يمكن أن يرث الزوج زوجته المتوفاة بعده)';
-    }
+  const otherUnionContext = secondDeceasedHasChildrenFromOtherUnion
+    ? ' ويوجد تصريح بوجود أبناء من اتحاد آخر؛ يجب التحقق من هوية كل ابن وصلته بالمتوفى.'
+    : '';
 
-    return {
-      excluded: true,
-      reason,
-      source: rule.source,
-    };
-  }
-
-  return { excluded: false, reason: '', source: '' };
+  return {
+    // Relationship categories alone never prove that a specific person is barred.
+    excluded: false,
+    requiresReview: true,
+    reason: 'تتطلب هذه الصلة مراجعة فردية. تحقق من هوية الشخص، وحياته وقت وفاة صاحب هذه التركة، وصلته التفصيلية، وما إذا كان هو ذات الوارث المتوفى في مرحلة سابقة.' + otherUnionContext,
+    source: 'ملاحظة مرجعية قديمة للمراجعة القانونية فقط — ليست قاعدة استبعاد آليًا: ' + rule.source,
+  };
 };
-
 export function validateMunasakhatStageExclusions(
-  stage: { deceasedHeirId?: string; acknowledgedExclusions?: string[]; heirs?: { heirId: string; isPresent?: boolean; count?: number }[]; hasChildrenFromOtherUnion?: boolean },
+  stage: {
+    deceasedHeirId?: string;
+    parentHeirId?: string;
+    acknowledgedExclusions?: string[];
+    heirs?: { heirId: string; isPresent?: boolean; count?: number; isImpeded?: boolean }[];
+    heirPresence?: Record<string, { heirId: string; isPresent?: boolean; count?: number; isImpeded?: boolean }>;
+    deceasedSonsCount?: number;
+    deceasedDaughtersCount?: number;
+    deceasedChildren?: { type: 'son' | 'daughter'; count: number }[];
+    hasMandatoryBequest?: boolean;
+    hasChildrenFromOtherUnion?: boolean;
+    secondDeceasedHasChildrenFromOtherUnion?: boolean;
+  },
   _prevRes: unknown,
   stageIndex: number
 ) {
-  if (stageIndex === 0 || !stage.deceasedHeirId) {
-    return {
-      unacknowledgedExclusions: [],
-      acknowledgedExclusions: [],
-      hasUnacknowledgedExclusions: false,
-    };
+  const parentHeirId = stage.deceasedHeirId || stage.parentHeirId;
+  const acknowledged = stage.acknowledgedExclusions || [];
+  const presenceList = stage.heirs?.length ? stage.heirs : (stage.heirPresence ? Object.values(stage.heirPresence) : []);
+  const presentIds = new Set(
+    presenceList
+      .filter(heir => heir.isPresent && Boolean(heir.count && heir.count > 0) && !heir.isImpeded)
+      .map(heir => heir.heirId)
+  );
+  const hasOtherUnion = stage.secondDeceasedHasChildrenFromOtherUnion
+    ?? stage.hasChildrenFromOtherUnion
+    ?? false;
+  const manualClassificationIds = new Set(['distant_kindred', 'maternal_grandfather']);
+  const manualClassificationReasons: string[] = [];
+
+  if (presentIds.has('distant_kindred') || presentIds.has('maternal_grandfather')) {
+    manualClassificationReasons.push(
+      'المادة 168: لا يكفي اختيار فئة عامة لذوي الأرحام أو الجد لأم؛ يلزم تحديد صلة كل قريب ودرجة القرابة وجهة الإدلاء وترتيب الاستحقاق.'
+    );
   }
 
-  const parentHeirId = stage.deceasedHeirId;
-  const acknowledged = stage.acknowledgedExclusions || [];
+  const presentMaternalGrandmother = presentIds.has('maternal_grandmother');
+  const presentPaternalGrandmother = presentIds.has('paternal_grandmother');
+  const grandmotherDegreeNeedsManualReview =
+    (presentMaternalGrandmother && presentPaternalGrandmother) ||
+    presenceList.some(heir =>
+      heir.isPresent && heir.count !== undefined && heir.count > 1 &&
+      ['maternal_grandmother', 'paternal_grandmother'].includes(heir.heirId)
+    );
+  if (grandmotherDegreeNeedsManualReview) {
+    manualClassificationReasons.push(
+      'المادتان 149(4) و161: إذا اجتمعت جدتان في درجة واحدة اشتركتا في السدس، وإذا كانت إحداهما أبعد اختصت الأقرب به. النموذج لا يسجل درجة كل جدة، ولذلك تتطلب هذه الصورة مراجعة يدوية.'
+    );
+  }
+
+  const hasGrandfather = presentIds.has('grandfather');
+  const hasFullSiblingLine = presentIds.has('full_brother') || presentIds.has('full_sister');
+  const hasPaternalSiblingLine = presentIds.has('paternal_brother') || presentIds.has('paternal_sister');
+  if (hasGrandfather && hasFullSiblingLine && hasPaternalSiblingLine) {
+    manualClassificationReasons.push(
+      'المادة 158 مع اجتماع الإخوة الأشقاء والإخوة لأب: هذه صورة المعاداة، وتحتاج معالجة مستقلة موثقة؛ لا يعتمد المحرك حالياً نتيجة آلية لها.'
+    );
+  }
+
+  const hasGranddaughter = presentIds.has('granddaughter');
+  const hasPotentialGranddaughterCousinAsaba = [
+    'full_nephew', 'paternal_nephew', 'full_uncle_son', 'paternal_uncle_son',
+  ].some(heirId => presentIds.has(heirId));
+  if (hasGranddaughter && hasPotentialGranddaughterCousinAsaba) {
+    manualClassificationReasons.push(
+      'المادة 155: قد تصبح بنت الابن عصبة بغيرها مع قريب ذكر في درجتها أو ابن ابن عمها الأنزل درجة. لا يسجل النموذج درجة القريب وجهة الإدلاء، لذلك عُلّق الحساب الآلي حتى تراجع القرابة.'
+    );
+  }
+
+  const deceasedSonsCount = stage.deceasedSonsCount
+    ?? (stage.deceasedChildren?.filter(child => child.type === 'son').reduce((sum, child) => sum + child.count, 0) || 0);
+  const deceasedDaughtersCount = stage.deceasedDaughtersCount
+    ?? (stage.deceasedChildren?.filter(child => child.type === 'daughter').reduce((sum, child) => sum + child.count, 0) || 0);
+  const tanzilNeedsManualReview = Boolean(
+    stage.hasMandatoryBequest && deceasedSonsCount + deceasedDaughtersCount > 0
+  );
 
   const unacknowledgedExclusions: { heirId: string; reason: string; source: string }[] = [];
   const acknowledgedExclusionsList: { heirId: string; reason: string; source: string }[] = [];
 
-  if (Array.isArray(stage.heirs)) {
-    stage.heirs.forEach((h) => {
-      if (h.isPresent && h.count && h.count > 0) {
-        const exclusion = isHeirExcludedInMunasakhat(
-          h.heirId,
-          parentHeirId,
-          stage.hasChildrenFromOtherUnion ?? false
-        );
-        if (exclusion.excluded) {
-          const item = { heirId: h.heirId, reason: exclusion.reason, source: exclusion.source };
-          if (acknowledged.includes(h.heirId)) {
-            acknowledgedExclusionsList.push(item);
-          } else {
-            unacknowledgedExclusions.push(item);
-          }
+  presenceList.forEach((heir) => {
+    if (!heir.isPresent || !heir.count || heir.count <= 0) return;
+
+    const isManualKindred = manualClassificationIds.has(heir.heirId);
+    const relationshipAssessment = stageIndex > 0 && parentHeirId && !isManualKindred
+      ? isHeirExcludedInMunasakhat(heir.heirId, parentHeirId, hasOtherUnion)
+      : null;
+    if (!isManualKindred && !relationshipAssessment?.requiresReview) return;
+
+    const item = isManualKindred
+      ? {
+          heirId: heir.heirId,
+          reason: 'هذا المدخل لا يحدد صلة ذي الرحم ودرجة القرابة وجهة الإدلاء. تشترط المادة 168 ترتيب المستحقين وفق هذه التفاصيل؛ ولا ينفذ المحرك قسمة آلية لهذه الفئة العامة.',
+          source: 'المادة 168 من قانون الأسرة — بوابة وزارة العدل: https://droit.mjustice.gov.dz/ar/content/قوانين-أساسية-2',
         }
-      }
-    });
-  }
+      : {
+          heirId: heir.heirId,
+          reason: relationshipAssessment!.reason,
+          source: relationshipAssessment!.source,
+        };
+
+    if (acknowledged.includes(heir.heirId)) {
+      acknowledgedExclusionsList.push(item);
+    } else {
+      unacknowledgedExclusions.push(item);
+    }
+  });
 
   return {
     unacknowledgedExclusions,
     acknowledgedExclusions: acknowledgedExclusionsList,
     hasUnacknowledgedExclusions: unacknowledgedExclusions.length > 0,
+    requiresManualClassification: manualClassificationReasons.length > 0,
+    manualClassificationReasons,
+    tanzilNeedsManualReview,
   };
 }
-

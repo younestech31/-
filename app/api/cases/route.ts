@@ -2,18 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyPaidSubscription } from '@/lib/auth/session';
 import { getDb } from '@/lib/db/client';
 import { savedCases, organizations } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { z } from 'zod';
 import crypto from 'crypto';
 
+const MAX_REQUEST_BYTES = 4 * 1024 * 1024;
+
 const saveCaseSchema = z.object({
-  id: z.string(),
-  caseNameEncrypted: z.string(),
-  caseDateEncrypted: z.string(),
-  notaryIdEncrypted: z.string(),
+  id: z.string().min(1).max(128),
+  caseNameEncrypted: z.string().max(16 * 1024),
+  caseDateEncrypted: z.string().max(4 * 1024),
+  notaryIdEncrypted: z.string().max(16 * 1024),
   isCloudSynced: z.boolean().default(true),
-  encryptedPayload: z.string(),
-});
+  encryptedPayload: z.string().min(1).max(3_800_000),
+}).strict();
 
 export async function GET(_req: NextRequest) {
   try {
@@ -35,15 +37,42 @@ export async function GET(_req: NextRequest) {
       .from(organizations)
       .where(eq(organizations.id, session.organizationId));
 
-    let cloudSyncSalt = orgRows.length > 0 ? orgRows[0].cloudSyncSalt : null;
+    const organization = orgRows[0];
+    if (!organization) {
+      return NextResponse.json({ error: 'Organization not found' }, { status: 404 });
+    }
+
+    let cloudSyncSalt: string | null = organization.cloudSyncSalt;
     if (!cloudSyncSalt) {
-      cloudSyncSalt = crypto.randomBytes(16).toString('hex');
-      if (orgRows.length > 0) {
-        await db
-          .update(organizations)
-          .set({ cloudSyncSalt })
+      // Claim the unset salt atomically. Concurrent first-time requests may
+      // generate candidates, but only one can populate the NULL database value.
+      const candidateSalt = crypto.randomBytes(16).toString('hex');
+      const updatedOrganizations = await db
+        .update(organizations)
+        .set({ cloudSyncSalt: candidateSalt })
+        .where(and(
+          eq(organizations.id, session.organizationId),
+          isNull(organizations.cloudSyncSalt)
+        ))
+        .returning({ cloudSyncSalt: organizations.cloudSyncSalt });
+
+      cloudSyncSalt = updatedOrganizations[0]?.cloudSyncSalt ?? null;
+
+      if (!cloudSyncSalt) {
+        // Another concurrent request won the claim; use its persisted value.
+        const latestOrganizations = await db
+          .select()
+          .from(organizations)
           .where(eq(organizations.id, session.organizationId));
+        cloudSyncSalt = latestOrganizations[0]?.cloudSyncSalt ?? null;
       }
+    }
+
+    if (!cloudSyncSalt || !/^[a-f0-9]{32}$/i.test(cloudSyncSalt)) {
+      return NextResponse.json(
+        { error: 'Cloud encryption salt is unavailable or invalid. No fallback salt was used.' },
+        { status: 503 }
+      );
     }
 
     const cases = await db
@@ -68,7 +97,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cloud Sync requires a paid subscription plan.' }, { status: 403 });
     }
 
-    const body = await req.json();
+    const contentLength = Number(req.headers.get('content-length') || 0);
+    if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+      return NextResponse.json({ error: 'Cloud case payload is too large' }, { status: 413 });
+    }
+
+    const rawBody = await req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > MAX_REQUEST_BYTES) {
+      return NextResponse.json({ error: 'Cloud case payload is too large' }, { status: 413 });
+    }
+
+    let body: unknown;
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      return NextResponse.json({ error: 'Malformed JSON payload' }, { status: 400 });
+    }
     const parsed = saveCaseSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'Invalid payload', details: parsed.error.format() }, { status: 400 });
@@ -81,7 +125,7 @@ export async function POST(req: NextRequest) {
 
     const { id, caseNameEncrypted, caseDateEncrypted, notaryIdEncrypted, isCloudSynced, encryptedPayload } = parsed.data;
 
-    await db
+    const savedRows = await db
       .insert(savedCases)
       .values({
         id,
@@ -104,7 +148,17 @@ export async function POST(req: NextRequest) {
           encryptedPayload,
           updatedAt: new Date(),
         },
-      });
+        // A globally colliding case ID must never update another organization's row.
+        setWhere: eq(savedCases.organizationId, session.organizationId),
+      })
+      .returning({ id: savedCases.id });
+
+    if (savedRows.length === 0) {
+      return NextResponse.json(
+        { error: 'Case ID is already owned by another organization.' },
+        { status: 409 }
+      );
+    }
 
     return NextResponse.json({ success: true, id });
   } catch (err: unknown) {

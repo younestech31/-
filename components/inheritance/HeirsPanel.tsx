@@ -12,6 +12,7 @@ interface HeirsPanelProps {
   currentStage: MunasakhatStage;
   currentStageIndex: number;
   currentGender: 'male' | 'female' | null;
+  updateStageGender?: (gender: 'male' | 'female') => void;
   deceasedGender: 'male' | 'female' | null;
   toggleHeir: (heirId: string) => void;
   updateCount: (heirId: string, count: number) => void;
@@ -27,6 +28,7 @@ const HeirsPanel = memo(function HeirsPanel({
   currentStage,
   currentStageIndex,
   currentGender,
+  updateStageGender,
   deceasedGender,
   toggleHeir,
   updateCount,
@@ -69,6 +71,30 @@ const HeirsPanel = memo(function HeirsPanel({
           )}
         </div>
       </div>
+
+      {currentStageIndex > 0 && currentGender === null && (
+        <div className="mx-3 mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3" role="group" aria-label="جنس المتوفى في هذه المرحلة">
+          <p className="mb-2 text-xs font-bold text-amber-900">
+            المتوفى من فئة مختلطة الجنس؛ حدّد جنسه قبل إدخال الزوج أو الزوجة:
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => updateStageGender?.('male')}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:border-emerald-600"
+            >
+              ذكر
+            </button>
+            <button
+              type="button"
+              onClick={() => updateStageGender?.('female')}
+              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:border-emerald-600"
+            >
+              أنثى
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* FamilyTreeInput */}
       <div className="flex-grow relative">

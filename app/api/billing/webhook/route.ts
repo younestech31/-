@@ -47,15 +47,23 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getDb();
+    if (!db) {
+      // Returning 503 makes Stripe retry instead of acknowledging an event
+      // whose subscription change was not persisted.
+      return NextResponse.json({ error: 'Billing database unavailable' }, { status: 503 });
+    }
 
     switch (event.type) {
-      case 'checkout.session.completed': {
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded': {
         const session = event.data.object as Stripe.Checkout.Session;
         const orgId = session.client_reference_id || session.metadata?.organizationId;
         const customerId = typeof session.customer === 'string' ? session.customer : null;
         const subscriptionId = typeof session.subscription === 'string' ? session.subscription : null;
+        const paymentSettled = session.payment_status === 'paid'
+          || session.payment_status === 'no_payment_required';
 
-        if (orgId && db) {
+        if (orgId && paymentSettled) {
           await db
             .update(organizations)
             .set({
@@ -66,6 +74,8 @@ export async function POST(req: NextRequest) {
             })
             .where(eq(organizations.id, orgId));
           console.log(`[Stripe Webhook] Upgraded organization ${orgId} to paid plan in DB.`);
+        } else if (!paymentSettled) {
+          console.info('[Stripe Webhook] Checkout completed before payment settlement; waiting for async payment event.');
         }
         break;
       }
@@ -81,12 +91,12 @@ export async function POST(req: NextRequest) {
           if (orgId) {
             await db
               .update(organizations)
-              .set({ plan, updatedAt: new Date() })
+              .set({ plan, stripeSubscriptionId: subscription.id, stripeCustomerId: customerId, updatedAt: new Date() })
               .where(eq(organizations.id, orgId));
           } else if (customerId) {
             await db
               .update(organizations)
-              .set({ plan, updatedAt: new Date() })
+              .set({ plan, stripeSubscriptionId: subscription.id, updatedAt: new Date() })
               .where(eq(organizations.stripeCustomerId, customerId));
           }
           console.log(`[Stripe Webhook] Updated subscription for org ${orgId || customerId}: status=${status}, plan=${plan}`);
@@ -96,22 +106,19 @@ export async function POST(req: NextRequest) {
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription;
-        const orgId = subscription.metadata?.organizationId;
         const subId = subscription.id;
+        // Only downgrade the organization still bound to this exact subscription.
+        // An old deleted subscription must not cancel a newer active subscription.
+        if (subId) {
+          const updated = await db
+            .update(organizations)
+            .set({ plan: 'free', stripeSubscriptionId: null, updatedAt: new Date() })
+            .where(eq(organizations.stripeSubscriptionId, subId))
+            .returning({ id: organizations.id });
 
-        if (db) {
-          if (orgId) {
-            await db
-              .update(organizations)
-              .set({ plan: 'free', updatedAt: new Date() })
-              .where(eq(organizations.id, orgId));
-          } else if (subId) {
-            await db
-              .update(organizations)
-              .set({ plan: 'free', updatedAt: new Date() })
-              .where(eq(organizations.stripeSubscriptionId, subId));
+          if (updated.length > 0) {
+            console.log(`[Stripe Webhook] Subscription ${subId} canceled. Organization downgraded to free.`);
           }
-          console.log(`[Stripe Webhook] Subscription canceled for org ${orgId || subId}. Downgraded to free.`);
         }
         break;
       }

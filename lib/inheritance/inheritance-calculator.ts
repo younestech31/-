@@ -21,6 +21,8 @@ export interface HeirPresence {
   impededIndexes?: boolean[]; // State for individual impediments (index-based)
   impedimentReasonIds?: (string | undefined)[]; // State for individual impediment reasons
   missingPersonStatus?: 'none' | 'missing_presumed_alive';
+  /** Original headcount retained only for Article 148 mother-share reduction. */
+  motherReductionCount?: number;
 }
 
 export interface IndividualResult {
@@ -71,6 +73,7 @@ export interface PipelineContext {
   deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[];
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn';
   hasUnbornHeir: boolean;
+  confirmedNoDistantKindred: boolean;
 }
 
 export interface PipelineState {
@@ -116,8 +119,49 @@ export function calculateInheritance(
   hasMandatoryBequest: boolean = false,
   deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[] = [],
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn' = 'stillborn',
-  hasUnbornHeir: boolean = false
+  hasUnbornHeir: boolean = false,
+  confirmedNoDistantKindred: boolean = false
 ): CalculationResult[] {
+  // A pending pregnancy needs a legally verified reservation calculation.
+  // The current engine's reservation path is not yet accepted for notarial use,
+  // so fail closed instead of normalizing other heirs' shares against an
+  // uncertain distributable estate.
+  if (heirs.some(heir =>
+    heir.isPresent && heir.count > 1 && heir.missingPersonStatus === 'missing_presumed_alive'
+  )) {
+    return [{
+      heirId: 'article_133_review',
+      nameAr: 'مراجعة المفقود — المادة 133',
+      share: 'معلق للمراجعة',
+      shareDecimal: 0,
+      shareFraction: new Fraction(0),
+      shares: 0,
+      problemBase: 0,
+      amount: 0,
+      isBlocked: false,
+      reason: 'حالة المفقود سُجلت على مجموعة تضم أكثر من فرد، ولا يميز النموذج أي فرد هو المفقود؛ لذلك لا يمكن تحديد الجزء الموقوف من نصيب المجموعة.',
+      article: 133,
+      count: 1
+    }];
+  }
+
+  if (hasUnbornHeir && unbornOutcome === 'pending') {
+    return [{
+      heirId: 'article_173_review',
+      nameAr: 'مراجعة الحمل — المادة 173',
+      share: 'معلق للمراجعة',
+      shareDecimal: 0,
+      shareFraction: new Fraction(0),
+      shares: 0,
+      problemBase: 0,
+      amount: 0,
+      isBlocked: false,
+      reason: 'الحمل غير محسوم؛ يجب تحديد النصيب الموقوف أو التوقف الكامل عند احتمال حجب وارث حجب حرمان قبل اعتماد أي قسمة.',
+      article: 173,
+      count: 1
+    }];
+  }
+
   // Pre-process: Map original heirs to active heirs with counts matching non-impeded individuals
   const activeHeirs = heirs.map(h => {
     if (!h.isPresent || h.count <= 0) return { ...h };
@@ -132,6 +176,7 @@ export function calculateInheritance(
     return {
       ...h,
       count: activeCount,
+      motherReductionCount: h.motherReductionCount ?? h.count,
       isImpeded: false // Clear so calculations treat them as active
     };
   });
@@ -146,7 +191,8 @@ export function calculateInheritance(
     hasMandatoryBequest,
     deceasedChildren,
     unbornOutcome,
-    hasUnbornHeir
+    hasUnbornHeir,
+    confirmedNoDistantKindred
   );
 
   // Post-process: Merge internal results back to construct individual levels
@@ -179,7 +225,15 @@ export function calculateInheritance(
     // Is there a blocked/calculated result from internal calculation?
     const blockedRes = internalResults.find(r => r.heirId === h.heirId && r.isBlocked);
 
-    const activeCount = h.count - (h.impededIndexes?.filter((v, idx) => idx < h.count && v).length ?? (h.isImpeded ? h.count : 0));
+    // Keep this count consistent with the preprocessing step above:
+    // an involuntary killer (القاتل خطأ) remains entitled to the estate,
+    // although the entitlement excludes the diyah / compensation.
+    const impededCount = Array.from({ length: h.count }, (_, idx) => {
+      const isIndImpeded = h.impededIndexes?.[idx] ?? h.isImpeded ?? false;
+      const impedimentReasonId = h.impedimentReasonIds?.[idx] ?? h.impedimentReasonId;
+      return isIndImpeded && impedimentReasonId !== 'involuntary_killer';
+    }).filter(Boolean).length;
+    const activeCount = h.count - impededCount;
 
     const individuals: IndividualResult[] = [];
     let groupAmount = 0;
@@ -308,7 +362,8 @@ export function createInitialPipelineState(
   hasMandatoryBequest: boolean,
   deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[],
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn',
-  hasUnbornHeir: boolean
+  hasUnbornHeir: boolean,
+  confirmedNoDistantKindred: boolean
 ): PipelineState {
   const estateFrac = new Fraction(estate);
   const debtsFrac = new Fraction(debts);
@@ -327,6 +382,7 @@ export function createInitialPipelineState(
       deceasedChildren,
       unbornOutcome,
       hasUnbornHeir,
+      confirmedNoDistantKindred,
     },
     estateFrac,
     debtsFrac,
@@ -383,20 +439,20 @@ export function withholdForUnbornHeir(state: PipelineState): PipelineState {
     } else if (ctx.unbornOutcome === 'pending') {
       const normalResults = calculateInheritance(
         activeHeirs.map(h => ({ ...h })),
-        ctx.estate, ctx.debts, ctx.funeralCosts, ctx.bequest, ctx.hasMandatoryBequest, ctx.deceasedChildren, 'stillborn', false
+        ctx.estate, ctx.debts, ctx.funeralCosts, ctx.bequest, ctx.hasMandatoryBequest, ctx.deceasedChildren, 'stillborn', false, ctx.confirmedNoDistantKindred
       );
 
       const sonHeirs = activeHeirs.map(h => ({ ...h }));
       const sExist = sonHeirs.find(h => h.heirId === 'son');
       if (sExist) { sExist.count += 1; sExist.isPresent = true; }
       else { sonHeirs.push({ heirId: 'son', count: 1, isPresent: true }); }
-      const sonResults = calculateInheritance(sonHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false);
+      const sonResults = calculateInheritance(sonHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false, ctx.confirmedNoDistantKindred);
 
       const daughterHeirs = activeHeirs.map(h => ({ ...h }));
       const dExist = daughterHeirs.find(h => h.heirId === 'daughter');
       if (dExist) { dExist.count += 1; dExist.isPresent = true; }
       else { daughterHeirs.push({ heirId: 'daughter', count: 1, isPresent: true }); }
-      const daughterResults = calculateInheritance(daughterHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false);
+      const daughterResults = calculateInheritance(daughterHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false, ctx.confirmedNoDistantKindred);
 
       let hasFullBlock = false;
       for (const nr of normalResults) {
@@ -597,18 +653,34 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
   const presentHeirs = activeHeirs.filter(h => h.isPresent && h.count > 0 && !h.isImpeded);
 
   if (presentHeirs.length === 0) {
-    if (!results.some(r => r.heirId === 'treasury')) {
+    if (state.ctx.confirmedNoDistantKindred) {
       results.push({
         heirId: 'treasury',
-        nameAr: 'بيت المال / الباقي',
-        share: 'الباقي',
+        nameAr: 'الخزينة العمومية',
+        share: 'كامل التركة بعد تطبيق الأولويات القانونية',
         shareDecimal: 1,
         shareFraction: new Fraction(1),
         shares: 0,
         problemBase: 0,
         amount: netEstate,
         isBlocked: false,
-        reason: 'لعدم وجود مستحق للرد أو عصبة — م.180',
+        reason: 'بعد التأكد من عدم وجود ذوي أرحام مستحقين وفق المادتين 168 و180',
+        article: 180,
+        count: 1
+      });
+    } else {
+      results.push({
+        heirId: 'article_180_review',
+        nameAr: 'استقصاء ذوي الأرحام — المادة 180',
+        share: 'معلق',
+        shareDecimal: 0,
+        shareFraction: new Fraction(0),
+        shares: 0,
+        problemBase: 0,
+        amount: 0,
+        isBlocked: false,
+        reason: 'لا يمكن إسناد التركة إلى الخزينة قبل التحقق من عدم وجود ذوي أرحام مستحقين وفق ترتيب المادة 168، وتأكيد ذلك صراحة.',
+        article: 180,
         count: 1
       });
     }
@@ -677,7 +749,7 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
     const activeCount = getCount(id);
     if (!includeImpededSibs) return activeCount;
     const rawEntry = state.ctx.heirs.find(h => h.heirId === id);
-    return rawEntry ? rawEntry.count : activeCount;
+    return rawEntry ? (rawEntry.motherReductionCount ?? rawEntry.count) : activeCount;
   };
   const siblingsCount = getSiblingCountForMother('full_brother') + getSiblingCountForMother('full_sister') + 
                         getSiblingCountForMother('paternal_brother') + getSiblingCountForMother('paternal_sister') + 
@@ -688,9 +760,19 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
   const blockingCtx: BlockingContext = { has, getCount, hasDirectProgeny, siblingsCount, hasFemaleDirectDescendant };
   const checkBlocking = (heirId: string) => resolveBlocking(heirId, blockingCtx);
 
-  // MASHARAKA & AKDARIYA
+  // MASHARAKA & AKDARIYA (Articles 175–176)
   const masharakaData = AWL_RADD_RULES.mushtaraka;
-  const isMushtaraka = hasHusband && hasMother && getCount('maternal_siblings') >= 2 && has('full_brother') && !hasFather && !hasChildren && !hasGrandfather;
+  const eligibleGrandmotherIds = !hasMother
+    ? [
+        ...(hasMaternalGrandmother && !checkBlocking('maternal_grandmother').isBlocked ? ['maternal_grandmother'] : []),
+        ...(hasPaternalGrandmother && !checkBlocking('paternal_grandmother').isBlocked ? ['paternal_grandmother'] : []),
+      ]
+    : [];
+  const hasMotherOrEligibleGrandmother = hasMother || eligibleGrandmotherIds.length > 0;
+  const hasFullSiblings = has('full_brother') || has('full_sister');
+  const isMushtaraka = hasHusband && hasMotherOrEligibleGrandmother &&
+    getCount('maternal_siblings') >= 2 && hasFullSiblings &&
+    !hasFather && !hasChildren && !hasGrandfather;
 
   const akdariyaData = AWL_RADD_RULES.akdariya;
   const isAkdariya = hasHusband && hasMother && hasGrandfather && getCount('full_sister') === 1 && 
@@ -709,7 +791,14 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
 
   if (isMushtaraka) {
     addResult('husband', new Fraction(1, 2), '1/2', 'لعدم وجود الفرع الوارث');
-    addResult('mother', new Fraction(1, 6), '1/6', 'لوجود جمع من الإخوة');
+    if (hasMother) {
+      addResult('mother', new Fraction(1, 6), '1/6', 'لوجود جمع من الإخوة — م.148 و176');
+    } else {
+      const grandmotherShare = new Fraction(1, 6).div(eligibleGrandmotherIds.length);
+      eligibleGrandmotherIds.forEach(id => {
+        addResult(id, grandmotherShare, eligibleGrandmotherIds.length === 1 ? '1/6' : '1/6 مشترك', 'فرض الجدة في المسألة المشتركة — م.176');
+      });
+    }
 
     const maternalSiblingsCount = getCount('maternal_siblings');
     const fullSiblingsCount = getCount('full_brother') + getCount('full_sister');
@@ -831,7 +920,7 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
       addResult('paternal_brother', new Fraction(0), '-', blocking.reason, true, blocking.article);
     }
   }
-  if (hasMaternalGrandmother || hasPaternalGrandmother) {
+  if ((hasMaternalGrandmother || hasPaternalGrandmother) && !isMushtaraka) {
     const blockingMaternal = checkBlocking('maternal_grandmother');
     const blockingPaternal = checkBlocking('paternal_grandmother');
 
@@ -977,7 +1066,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
     const activeCount = getCount(id);
     if (!includeImpededSibs) return activeCount;
     const rawEntry = state.ctx.heirs.find(h => h.heirId === id);
-    return rawEntry ? rawEntry.count : activeCount;
+    return rawEntry ? (rawEntry.motherReductionCount ?? rawEntry.count) : activeCount;
   };
   const siblingsCount = getSiblingCountForMother('full_brother') + getSiblingCountForMother('full_sister') + 
                         getSiblingCountForMother('paternal_brother') + getSiblingCountForMother('paternal_sister') + 
@@ -986,7 +1075,18 @@ export function resolveResidue(state: PipelineState): PipelineState {
   const blockingCtx: BlockingContext = { has, getCount, hasDirectProgeny, siblingsCount, hasFemaleDirectDescendant };
   const checkBlocking = (heirId: string) => resolveBlocking(heirId, blockingCtx);
 
-  const isMushtaraka = has('husband') && has('mother') && getCount('maternal_siblings') >= 2 && has('full_brother') && !hasFather && !has('daughter') && !hasSon && !has('son_son') && !has('granddaughter') && !hasGrandfather;
+  const hasMother = has('mother');
+  const eligibleGrandmotherIds = !hasMother
+    ? [
+        ...(has('maternal_grandmother') && !checkBlocking('maternal_grandmother').isBlocked ? ['maternal_grandmother'] : []),
+        ...(has('paternal_grandmother') && !checkBlocking('paternal_grandmother').isBlocked ? ['paternal_grandmother'] : []),
+      ]
+    : [];
+  const hasMotherOrEligibleGrandmother = hasMother || eligibleGrandmotherIds.length > 0;
+  const hasFullSiblings = has('full_brother') || has('full_sister');
+  const isMushtaraka = has('husband') && hasMotherOrEligibleGrandmother &&
+    getCount('maternal_siblings') >= 2 && hasFullSiblings &&
+    !hasFather && !has('daughter') && !hasSon && !has('son_son') && !has('granddaughter') && !hasGrandfather;
 
   const isAkdariya = has('husband') && has('mother') && hasGrandfather && getCount('full_sister') === 1 && 
                      !hasDirectProgeny && !has('son_son') && !has('granddaughter') && getCount('full_brother') === 0 && 
@@ -1001,7 +1101,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
   const isAnyAkdariya = isAkdariya || isAkdariyaPaternalSister;
 
   // Asaba ma'a al-ghayr (Sister with daughter or granddaughter) logic
-  if (has('full_sister') && hasFemaleDirectDescendant && !hasSon && !has('son_son') && !has('full_brother') && remainingFraction.compare(0) > 0) {
+  if (has('full_sister') && hasFemaleDirectDescendant && !hasSon && !has('son_son') && !hasFather && !hasGrandfather && !has('full_brother') && remainingFraction.compare(0) > 0) {
     const fsBlocking = checkBlocking('full_sister');
     const alreadyAdded = results.some(r => r.heirId === 'full_sister');
     if (!fsBlocking.isBlocked && !alreadyAdded) {
@@ -1057,8 +1157,11 @@ export function resolveResidue(state: PipelineState): PipelineState {
     const hasSiblings = has('full_brother') || has('full_sister') || 
                        has('paternal_brother') || has('paternal_sister');
 
-    if (hasSiblings && !hasMaleChildren) {
-      // ART. 158: Grandfather with Siblings
+    if (hasSiblings && !hasMaleChildren && !isAnyAkdariya) {
+      // Article 158 (as applied in the Algerian Family Code): compare the
+      // grandfather's statutory options against the amount left AFTER the
+      // other fixed-share heirs, not after prematurely assigning a sister's
+      // ordinary standalone fard.
       let broCount = 0;
       let sisCount = 0;
       let isFullPriority = false;
@@ -1073,77 +1176,82 @@ export function resolveResidue(state: PipelineState): PipelineState {
         isFullPriority = false;
       }
 
-      const oneSixthTotal = new Fraction(1, 6);
-      let bestShare = oneSixthTotal;
-      let reason = "الأحظ للجد (السدس) - م.158";
-
       const sisterId = isFullPriority ? 'full_sister' : 'paternal_sister';
+      const existingGF = results.find(r => r.heirId === 'grandfather');
+      const oneSixthTotal = new Fraction(1, 6);
+      // resolveFixedShares may already have entered the grandfather's 1/6
+      // because a female descendant exists. Restore it before comparing the
+      // three Article 158 alternatives.
+      const remainderAfterOtherFurud = existingGF
+        ? remainingFraction.add(existingGF.shareFraction)
+        : remainingFraction;
 
-      if (broCount > 0) {
-        const oneThirdRemaining = remainingFraction.div(3);
-        const totalParts = new Fraction(2).add(new Fraction(broCount).mul(2)).add(sisCount);
-        const muqasamaShare = remainingFraction.div(totalParts).mul(2);
+      let bestShare = oneSixthTotal;
+      let bestShareLabel = '1/6';
+      let reason = "الأحظ للجد (السدس من جميع المال) — م.158";
 
-        if (oneThirdRemaining.compare(bestShare) > 0) {
-          bestShare = oneThirdRemaining;
-          reason = "الأحظ للجد (ثلث الباقي) - م.158";
-        }
-        if (muqasamaShare.compare(bestShare) > 0) {
-          bestShare = muqasamaShare;
-          reason = "الأحظ للجد (المقاسمة) - م.158";
-        }
-
-        const otherHeirsExist = results.some(r => 
-          !r.isBlocked && 
-          !['grandfather', 'full_brother', 'full_sister', 
-            'paternal_brother', 'paternal_sister',
-            'mandatory_bequest', 'voluntary_bequest'].includes(r.heirId));
-        if (!otherHeirsExist) {
-          const oneThirdTotal = new Fraction(1, 3);
-          if (oneThirdTotal.compare(bestShare) > 0) {
-            bestShare = oneThirdTotal;
-            reason = "الأحظ للجد (ثلث التركة) - م.158";
-          }
-        }
-      } else if (sisCount > 0) {
-        const sisterFardShare = sisCount === 1 ? new Fraction(1, 2) : new Fraction(2, 3);
-        const actualSisterShare = (sisterFardShare.compare(remainingFraction) > 0 ? remainingFraction : sisterFardShare);
-
-        const effectiveShare = actualSisterShare.compare(remainingFraction) > 0
-          ? remainingFraction.compare(new Fraction(0)) > 0 ? remainingFraction : new Fraction(0)
-          : actualSisterShare;
-
-        if (!results.some(r => r.heirId === sisterId)) {
-          addResult(sisterId, effectiveShare, effectiveShare.compare(sisterFardShare) === 0 ? 'فرضاً مع الجد' : 'فرضاً مع الجد (عالت المسألة)', 'فرضاً مع الجد — م.158', false, 158);
-          remainingFraction = remainingFraction.sub(effectiveShare);
-        }
-
-        const safeRemaining = remainingFraction.compare(new Fraction(0)) > 0 ? remainingFraction : new Fraction(0);
-
-        if (safeRemaining.compare(oneSixthTotal) > 0) {
-          bestShare = safeRemaining;
-          reason = "الأحظ للجد (الباقي بعد فرض الأخوات) - م.158";
-        } else {
-          bestShare = oneSixthTotal;
-          reason = "الأحظ للجد (السدس) - م.158";
-        }
-
-        skipInSiblingSection.add(sisterId);
+      const oneThirdRemaining = remainderAfterOtherFurud.div(3);
+      if (oneThirdRemaining.compare(bestShare) > 0) {
+        bestShare = oneThirdRemaining;
+        bestShareLabel = 'ثلث الباقي';
+        reason = "الأحظ للجد (ثلث الباقي بعد أصحاب الفروض) — م.158";
       }
 
-      const existingGF = results.find(r => r.heirId === 'grandfather');
+      const totalMuqasamaParts = new Fraction(2)
+        .add(new Fraction(broCount).mul(2))
+        .add(sisCount);
+      const muqasamaShare = totalMuqasamaParts.compare(0) > 0
+        ? remainderAfterOtherFurud.div(totalMuqasamaParts).mul(2)
+        : new Fraction(0);
+      if (muqasamaShare.compare(bestShare) > 0) {
+        bestShare = muqasamaShare;
+        bestShareLabel = 'المقاسمة';
+        reason = "الأحظ للجد (المقاسمة كذكر من الإخوة) — م.158";
+      }
+
+      // A spouse is a fixed-share heir too. Article 158's "one third of
+      // the whole estate" alternative applies only when no other fixed-share
+      // heir is present; with a husband or wife, compare 1/6, 1/3 of the
+      // remainder after furud, and muqasama only.
+      const otherHeirsExist = results.some(r =>
+        !r.isBlocked &&
+        !['grandfather', 'full_brother', 'full_sister',
+          'paternal_brother', 'paternal_sister',
+          'mandatory_bequest', 'voluntary_bequest'].includes(r.heirId)
+      );
+      if (!otherHeirsExist && new Fraction(1, 3).compare(bestShare) > 0) {
+        bestShare = new Fraction(1, 3);
+        bestShareLabel = '1/3';
+        reason = "الأحظ للجد (ثلث جميع المال) — م.158";
+      }
+
+      // Keep the legally selected grandfather share and leave the rest of
+      // the post-furud pool to the sibling group. With sisters only, the
+      // grandfather is still treated as two shares in the muqasama option.
+      remainingFraction = remainderAfterOtherFurud.sub(bestShare);
       if (existingGF) {
-        if (bestShare.compare(existingGF.shareFraction) > 0) {
-          remainingFraction = remainingFraction.add(existingGF.shareFraction).sub(bestShare);
-          existingGF.shareFraction = bestShare;
-          existingGF.shareDecimal = bestShare.valueOf();
-          existingGF.amount = bestShare.valueOf() * netEstate;
-          existingGF.reason = reason;
-          existingGF.share = 'نصيب الأفضل';
-        }
+        existingGF.shareFraction = bestShare;
+        existingGF.shareDecimal = bestShare.valueOf();
+        existingGF.amount = bestShare.valueOf() * netEstate;
+        existingGF.reason = reason;
+        existingGF.share = bestShareLabel;
       } else {
-        addResult('grandfather', bestShare, 'نصيب الأفضل', reason);
-        remainingFraction = remainingFraction.sub(bestShare);
+        addResult('grandfather', bestShare, bestShareLabel, reason, false, 158);
+      }
+
+      if (sisCount > 0 && broCount === 0) {
+        const siblingPool = remainingFraction.compare(0) > 0 ? remainingFraction : new Fraction(0);
+        if (!results.some(r => r.heirId === sisterId && !r.isBlocked)) {
+          addResult(
+            sisterId,
+            siblingPool,
+            siblingPool.compare(0) > 0 ? 'الباقي بعد نصيب الجد — م.158' : 'لا باقي بعد نصيب الجد',
+            'نصيب الإخوة مع الجد وفق المقاسمة والبدائل المنصوص عليها في المادة 158',
+            false,
+            158
+          );
+        }
+        skipInSiblingSection.add(sisterId);
       }
     } else {
       const existingGF = results.find(r => r.heirId === 'grandfather');
@@ -1174,14 +1282,25 @@ export function resolveResidue(state: PipelineState): PipelineState {
         const sisCount = getCount('full_sister');
 
         if (broCount > 0) {
-          const totalParts = new Fraction(broCount).mul(2).add(sisCount);
-          const partShare = remainingFraction.div(totalParts);
+          if (remainingFraction.compare(0) > 0) {
+            const totalParts = new Fraction(broCount).mul(2).add(sisCount);
+            const partShare = remainingFraction.div(totalParts);
 
-          if (!skipInSiblingSection.has('full_brother')) addResult('full_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
-          if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
-            addResult('full_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
+            if (!skipInSiblingSection.has('full_brother')) addResult('full_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
+            if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
+              addResult('full_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
+            }
+            remainingFraction = new Fraction(0);
+          } else {
+            // Asaba do not receive a negative residue. Preserve the negative
+            // balance so applyAwlIfNeeded can proportionally reduce the fard shares.
+            if (!skipInSiblingSection.has('full_brother')) {
+              addResult('full_brother', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            }
+            if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
+              addResult('full_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            }
           }
-          remainingFraction = new Fraction(0);
         } else if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
           const share = sisCount === 1 ? new Fraction(1, 2) : new Fraction(2, 3);
           addResult('full_sister', share, sisCount === 1 ? '1/2' : '2/3', 'فرضاً لعدم وجود الفرع الوارث والأصل المذكر');
@@ -1206,19 +1325,32 @@ export function resolveResidue(state: PipelineState): PipelineState {
         const sisCount = getCount('paternal_sister');
 
         if (broCount > 0) {
-          const totalParts = new Fraction(broCount).mul(2).add(sisCount);
-          const partShare = remainingFraction.div(totalParts);
+          if (remainingFraction.compare(0) > 0) {
+            const totalParts = new Fraction(broCount).mul(2).add(sisCount);
+            const partShare = remainingFraction.div(totalParts);
 
-          addResult('paternal_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
-          if (sisCount > 0) {
-            addResult('paternal_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
-          }
-          remainingFraction = new Fraction(0);
-        } else if (sisCount > 0) {
-          if (hasFemaleDirectDescendant) {
-            const relationName = hasDaughter ? 'مع البنت' : 'مع بنت الابن';
-            addResult('paternal_sister', remainingFraction, 'الباقي تعصيباً', `عصبة مع الغير (${relationName})`);
+            addResult('paternal_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
+            if (sisCount > 0) {
+              addResult('paternal_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
+            }
             remainingFraction = new Fraction(0);
+          } else {
+            // Do not assign negative shares to residuary paternal siblings.
+            // Keep the negative balance intact for the Awl stage.
+            addResult('paternal_brother', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            if (sisCount > 0) {
+              addResult('paternal_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            }
+          }
+        } else if (sisCount > 0 && !skipInSiblingSection.has('paternal_sister')) {
+          if (hasFemaleDirectDescendant && !hasGrandfather) {
+            const relationName = hasDaughter ? 'مع البنت' : 'مع بنت الابن';
+            if (remainingFraction.compare(0) > 0) {
+              addResult('paternal_sister', remainingFraction, 'الباقي تعصيباً', `عصبة مع الغير (${relationName})`);
+              remainingFraction = new Fraction(0);
+            } else {
+              addResult('paternal_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب مع الغير بعد استغراق الفروض — العول');
+            }
           } else {
             let share = new Fraction(0);
             let reason = '';
@@ -1392,19 +1524,39 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
     } else {
       const spouses = inheritanceResults.filter(r => !r.isBlocked && (r.heirId === 'husband' || r.heirId === 'wife') && r.shareFraction.compare(0) > 0);
 
-      if (spouses.length > 0) {
+      if (spouses.length > 0 && state.ctx.confirmedNoDistantKindred) {
+        // Under Article 167, the residue is returned to a spouse only after
+        // confirming that there is no blood asaba, relative fixed-share heir,
+        // or entitled distant kindred.
         calcType = 'radd';
         spouses.forEach(spouse => {
           spouse.shareFraction = spouse.shareFraction.add(remainingFraction.div(spouses.length));
           spouse.amount = spouse.shareFraction.valueOf() * netEstate;
-          spouse.reason += ' (رداً)';
+          spouse.reason += ' (رداً بعد التحقق من عدم وجود ذوي أرحام — م.167)';
         });
         traditionalBase = inheritanceResults.filter(r => !r.isBlocked && r.shareFraction.compare(0) > 0)
           .reduce((acc, r) => lcm(acc, Number(r.shareFraction.d)), 1);
-      } else {
+      } else if (spouses.length > 0) {
+        if (!results.some(r => r.heirId === 'article_180_review')) {
+          results.push({
+            heirId: 'article_180_review',
+            nameAr: 'استقصاء ذوي الأرحام — المادتان 167 و168',
+            share: 'الباقي معلق',
+            shareDecimal: 0,
+            shareFraction: new Fraction(0),
+            shares: 0,
+            problemBase: 0,
+            amount: 0,
+            isBlocked: false,
+            reason: 'لا يُرد باقي التركة إلى الزوج أو الزوجة قبل التحقق من عدم وجود ذوي أرحام مستحقين، عملاً بالمادة 167.',
+            article: 167,
+            count: 1
+          });
+        }
+      } else if (state.ctx.confirmedNoDistantKindred) {
         results.push({
           heirId: 'treasury',
-          nameAr: 'بيت المال / الباقي',
+          nameAr: 'الخزينة العمومية / الباقي',
           share: 'الباقي',
           shareDecimal: remainingFraction.valueOf(),
           shareFraction: remainingFraction,
@@ -1412,11 +1564,29 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
           problemBase: 0,
           amount: remainingFraction.valueOf() * netEstate,
           isBlocked: false,
-          reason: 'لعدم وجود مستحق للرد أو عصبة',
+          reason: 'بعد التحقق من عدم وجود ذوي أرحام مستحقين — م.168 و180',
+          article: 180,
           count: 1
         });
         traditionalBase = results.filter(r => !r.isBlocked && r.shareFraction.compare(0) > 0)
           .reduce((acc, r) => lcm(acc, Number(r.shareFraction.d)), 1);
+      } else {
+        if (!results.some(r => r.heirId === 'article_180_review')) {
+          results.push({
+            heirId: 'article_180_review',
+            nameAr: 'استقصاء ذوي الأرحام — المادة 180',
+            share: 'الباقي معلق',
+            shareDecimal: 0,
+            shareFraction: new Fraction(0),
+            shares: 0,
+            problemBase: 0,
+            amount: 0,
+            isBlocked: false,
+            reason: 'لا يمكن إسناد الباقي إلى الخزينة قبل التحقق من عدم وجود ذوي أرحام مستحقين وفق المادة 168.',
+            article: 180,
+            count: 1
+          });
+        }
       }
     }
   }
@@ -1430,7 +1600,7 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
     const activeCount = getCountFromPresent(id);
     if (!includeImpededSibs) return activeCount;
     const rawEntry = state.ctx.heirs.find(h => h.heirId === id);
-    return rawEntry ? rawEntry.count : activeCount;
+    return rawEntry ? (rawEntry.motherReductionCount ?? rawEntry.count) : activeCount;
   };
   const siblingsCount = getSiblingCountForMother('full_brother') + getSiblingCountForMother('full_sister') + 
                         getSiblingCountForMother('paternal_brother') + getSiblingCountForMother('paternal_sister') + 
@@ -1528,7 +1698,11 @@ function distributeAmounts(res: CalculationResult[], totalNetEstate: number) {
   const remainders = exactValues.map((v, i) => v - floors[i]);
 
   const allocated = floors.reduce((a, b) => a + b, 0);
-  const undistributed = Math.round(totalNetEstate - allocated);
+  // Distribute only the value represented by the heirs' assigned fractions.
+  // Any remainder deliberately held for legal review (e.g. Article 167/168)
+  // must stay undistributed rather than being rounded into an existing heir.
+  const targetDistributed = Math.round(totalNetEstate * totalSharesFraction.valueOf());
+  const undistributed = Math.max(0, targetDistributed - allocated);
 
   const remainderIndices = remainders.map((r, i) => ({ remainder: r, index: i }));
   remainderIndices.sort((a, b) => b.remainder - a.remainder);
@@ -1552,7 +1726,8 @@ export function calculateInheritanceInternal(
   hasMandatoryBequest: boolean = false,
   deceasedChildren: (DeceasedChildGroup | { type: 'son' | 'daughter', count: number })[] = [],
   unbornOutcome: 'pending' | 'born_male' | 'born_female' | 'stillborn' = 'stillborn',
-  hasUnbornHeir: boolean = false
+  hasUnbornHeir: boolean = false,
+  confirmedNoDistantKindred: boolean = false
 ): CalculationResult[] {
   let state = createInitialPipelineState(
     heirs,
@@ -1563,7 +1738,8 @@ export function calculateInheritanceInternal(
     hasMandatoryBequest,
     deceasedChildren,
     unbornOutcome,
-    hasUnbornHeir
+    hasUnbornHeir,
+    confirmedNoDistantKindred
   );
 
   state = withholdForUnbornHeir(state);
