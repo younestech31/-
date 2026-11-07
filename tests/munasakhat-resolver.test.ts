@@ -1,9 +1,27 @@
 import { describe, it, expect, vi } from 'vitest';
 import { validateAllStages, resolveNoHeirsPolicy } from '../lib/inheritance/munasakhat-resolver';
 import type { MunasakhatStage } from '../components/inheritance/InheritanceCalculator';
-import { getCurrentStageIndexAfterRemoval, inferDeceasedGender } from '../lib/hooks/useMunasakhatStages';
+import { createMunasakhatStage, getCurrentStageIndexAfterRemoval, inferDeceasedGender } from '../lib/hooks/useMunasakhatStages';
 
 describe('Munasakhat Resolver Tests', () => {
+  it('links each new stage to the correct parent stage and deceased heir index', () => {
+    const stage = createMunasakhatStage({
+      stageId: 'stage-secondary',
+      parentStageId: 'stage-root',
+      heirName: 'الابن المتوفى',
+      amount: 85000,
+      heirId: 'son',
+      parentHeirIndex: 2,
+    });
+
+    expect(stage.parentStageId).toBe('stage-root');
+    expect(stage.parentHeirId).toBe('son');
+    expect(stage.deceasedHeirId).toBe('son');
+    expect(stage.parentHeirIndex).toBe(2);
+    expect(stage.inheritedAmount).toBe(85000);
+    expect(stage.deceasedGender).toBe('male');
+  });
+
   it('keeps the selected stage correct when deleting any stage from the stage list', () => {
     expect(getCurrentStageIndexAfterRemoval(2, 3)).toBe(2); // delete a later stage
     expect(getCurrentStageIndexAfterRemoval(2, 1)).toBe(1); // delete an earlier stage
@@ -109,10 +127,12 @@ describe('Munasakhat Resolver Tests', () => {
       bequest: 0,
     };
 
-    const result = resolveNoHeirsPolicy(stage, 150000, []);
+    const priorAgnate = [{ heirId: 'full_brother', amount: 50000 }] as unknown as Parameters<typeof resolveNoHeirsPolicy>[2];
+    const result = resolveNoHeirsPolicy(stage, 150000, priorAgnate);
     expect(result.policy).toBe('treasury');
     expect(result.amount).toBe(150000);
     expect(result.messageAr).toContain('تؤول تركة (أحمد المتوفى ثانيا) إلى الخزينة العامة');
+    expect(result.redistributeTo).toBeUndefined();
   });
 
   it('proves combined total (inheritedFromParentAmount + ownSeparateAssets) flows into stage calculateInheritance', async () => {
