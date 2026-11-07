@@ -1,9 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import { validateAllStages, resolveNoHeirsPolicy } from '../lib/inheritance/munasakhat-resolver';
 import type { MunasakhatStage } from '../components/inheritance/InheritanceCalculator';
-import { inferDeceasedGender } from '../lib/hooks/useMunasakhatStages';
+import { getCurrentStageIndexAfterRemoval, inferDeceasedGender } from '../lib/hooks/useMunasakhatStages';
 
 describe('Munasakhat Resolver Tests', () => {
+  it('keeps the selected stage correct when deleting any stage from the stage list', () => {
+    expect(getCurrentStageIndexAfterRemoval(2, 3)).toBe(2); // delete a later stage
+    expect(getCurrentStageIndexAfterRemoval(2, 1)).toBe(1); // delete an earlier stage
+    expect(getCurrentStageIndexAfterRemoval(2, 2)).toBe(1); // delete the selected stage
+    expect(getCurrentStageIndexAfterRemoval(0, 1)).toBe(0); // root remains selected
+  });
+
   it('infers gender for single-gender heirs and requires input for mixed groups', () => {
     expect(inferDeceasedGender('son')).toBe('male');
     expect(inferDeceasedGender('daughter')).toBe('female');
