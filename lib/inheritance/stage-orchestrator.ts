@@ -152,6 +152,9 @@ export function runInheritanceOrchestration(
     }
 
     const minorHeirNeedsJudicialPartition = stage.hasMinorHeir === true;
+    const missingHeirNeedsManualReview = presenceList.some(heir =>
+      heir.isPresent && heir.count > 1 && heir.missingPersonStatus === 'missing_presumed_alive'
+    );
     const deathOrderNeedsManualReview = stage.deathOrderUncertain === true;
     const hasInvoluntaryKiller = presenceList.some(heir =>
       heir.isPresent && heir.count > 0 && (
@@ -172,7 +175,7 @@ export function runInheritanceOrchestration(
           ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome)))
     );
 
-    const res = requiresManualClassification || tanzilNeedsManualReview || pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview
+    const res = requiresManualClassification || tanzilNeedsManualReview || pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview || missingHeirNeedsManualReview
       ? []
       : calculateInheritance(
           sanitizedPresence,
@@ -235,6 +238,7 @@ export function runInheritanceOrchestration(
       minorHeirNeedsJudicialPartition,
       deathOrderNeedsManualReview,
       involuntaryKillerNeedsCompensationReview,
+      missingHeirNeedsManualReview,
     });
   }
 
