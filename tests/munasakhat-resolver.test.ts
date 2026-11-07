@@ -97,6 +97,7 @@ describe('Munasakhat Resolver Tests', () => {
         heirPresence: {
           wife: { heirId: 'wife', count: 1, isPresent: true },
         },
+        confirmedSpouseEligibility: true,
         deceasedSonsCount: 0,
         deceasedDaughtersCount: 0,
         hasMandatoryBequest: false,
@@ -574,6 +575,30 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(270000);
   });
 
+  it('does not let an impeded intentional killer block the other heirs under Article 136', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('wife'),
+      present('mother'),
+      present('father'),
+      {
+        heirId: 'son',
+        count: 1,
+        isPresent: true,
+        isImpeded: true,
+        impedimentReasonId: 'intentional_killer',
+      },
+    ], 120000, 0, 0, 0);
+
+    // The impeded son is treated as absent for blocking: the wife retains 1/4,
+    // and the parents receive the remaining 3/4 under the Gharawayn calculation.
+    expect(amountFor(results, 'wife')).toBe(30000);
+    expect(amountFor(results, 'mother')).toBe(30000);
+    expect(amountFor(results, 'father')).toBe(60000);
+    expect(amountFor(results, 'son')).toBe(0);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(120000);
+  });
+
   it('applies Article 177 gharawayn for a husband and both parents', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
@@ -680,6 +705,7 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
       deceasedName: 'المتوفى',
       hasMandatoryBequest: false,
       confirmedDiyahExcluded: true,
+      confirmedSpouseEligibility: true,
       heirs: [
         present('wife'),
         {
@@ -696,6 +722,36 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(result.involuntaryKillerNeedsCompensationReview).toBe(false);
     expect(amountFor(result.results, 'wife')).toBe(25000);
     expect(amountFor(result.results, 'full_brother')).toBe(75000);
+  });
+
+  it('withholds spouse-based inheritance until the legal marriage cause is verified under Articles 130–132', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى',
+      hasMandatoryBequest: false,
+      heirs: [present('wife'), present('son')],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 80000, 0, 0, 0]);
+    expect(result.spouseEligibilityNeedsReview).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
+  it('calculates spouse inheritance after explicit Articles 130–132 eligibility verification', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى',
+      hasMandatoryBequest: false,
+      confirmedSpouseEligibility: true,
+      heirs: [present('wife'), present('son')],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 80000, 0, 0, 0]);
+    expect(result.spouseEligibilityNeedsReview).toBe(false);
+    expect(amountFor(result.results, 'wife')).toBe(10000); // 1/8
+    expect(amountFor(result.results, 'son')).toBe(70000);  // residue
   });
 
   it('blocks sequential inheritance when two deaths have no proven order under Article 129', async () => {
