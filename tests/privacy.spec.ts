@@ -96,7 +96,7 @@ test('Privacy verification - zero data leaves the browser', async ({ page }) => 
   const allowedOrigins = [
     'http://localhost:3000',
     'http://127.0.0.1:3000',
-    'https://lattab.vercel.app',
+    'https://mawarith.vercel.app',
     'https://mawarith.dz'
   ];
 
