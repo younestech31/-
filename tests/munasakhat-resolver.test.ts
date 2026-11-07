@@ -614,6 +614,21 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(90000);
   });
 
+  it('blocks sequential inheritance when two deaths have no proven order under Article 129', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'وفاتان في حادث واحد دون ثبوت السابق',
+      hasMandatoryBequest: false,
+      deathOrderUncertain: true,
+      heirs: [present('son'), present('daughter')],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 180000, 0, 0, 0]);
+    expect(result.deathOrderNeedsManualReview).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
   it('marks a stage with a minor heir as requiring judicial partition under Article 181', async () => {
     const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
     const stages: MunasakhatStage[] = [{
