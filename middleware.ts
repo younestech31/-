@@ -53,11 +53,39 @@ export function middleware(request: NextRequest) {
     // to framework-generated inline scripts and styles.
     requestHeaders.set('Content-Security-Policy', cspHeader);
 
-    const response = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    // Vercel/Next route matching can fail for these legacy Arabic URL segments
+    // even though the pages are present in the build manifest. Normalize only
+    // these known routes to ASCII internal targets while keeping the browser URL.
+    let decodedPathname = url.pathname;
+    try {
+      decodedPathname = decodeURIComponent(url.pathname);
+    } catch {
+      // Leave malformed/partially encoded paths untouched; normal routing handles them.
+    }
+
+    const internalRoute =
+      decodedPathname === '/ميراث-الزوجة'
+        ? '/wife-inheritance'
+        : decodedPathname === '/الوصية-الواجبة'
+          ? '/mandatory-bequest'
+          : null;
+
+    const responseUrl = request.nextUrl.clone();
+    if (internalRoute) {
+      responseUrl.pathname = internalRoute;
+    }
+
+    const response = internalRoute
+      ? NextResponse.rewrite(responseUrl, {
+          request: {
+            headers: requestHeaders,
+          },
+        })
+      : NextResponse.next({
+          request: {
+            headers: requestHeaders,
+          },
+        });
 
     response.headers.set('x-lang', 'ar');
     response.headers.set('Content-Security-Policy', cspHeader);
