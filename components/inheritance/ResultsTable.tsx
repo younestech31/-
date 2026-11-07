@@ -9,6 +9,7 @@ import { CalculationResult } from '@/lib/inheritance-calculator';
 import { INHERITANCE_BARS } from '@/data/inheritance-bars';
 import { MunasakhatStage } from './InheritanceCalculator';
 import { formatDZDAmount } from '@/lib/inheritance/document-branding';
+import { buildResultsClipboardText } from '@/lib/inheritance/results-clipboard';
 
 const FamilyTree = dynamic(() => import('./FamilyTree/FamilyTree'), {
   ssr: false,
@@ -202,40 +203,18 @@ const ResultsTable = memo(function ResultsTable({
             <button
               disabled={Boolean(currentStageValidation?.hasUnacknowledgedExclusions || isMunasakhatExportBlocked)}
               onClick={async () => {
-                const lines = [
-                  `نتائج التقسيم - ${currentStageIndex === 0 ? 'المسألة الأصلية' : `وفاة: ${currentStage.deceasedName}`}`
-                ];
-                if (problemBase) lines.push(`أصل المسألة: ${problemBase}`);
-                lines.push('--------------------------------------------------');
-                results.forEach(r => {
-                  const presence = currentStage?.heirPresence?.[r.heirId];
-                  const getPct = (frac: Fraction) => {
-                    const v = frac.valueOf() * 100;
-                    return v % 1 === 0 ? `${v}%` : `${v.toFixed(2)}%`;
-                  };
-                  if (r.count > 1) {
-                    for (let i=0; i<r.count; i++) {
-                      const customName = presence?.customNames?.[i];
-                      const baseName = `${r.nameAr} ${i + 1}`;
-                      const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
-                      const individualAmt = r.amount / r.count;
-                      const indShareFrac = r.shareFraction.div(r.count);
-                      const pctStr = r.isBlocked ? '0%' : getPct(indShareFrac);
-                      if (isPureSharesMode) {
-                        lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - النسبة: ${pctStr}`);
-                      } else {
-                        lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${formatDZDAmount(individualAmt, 'western', true)} (${pctStr})`);
-                      }
-                    }
-                  } else {
-                    const pctStr = r.isBlocked ? '0%' : getPct(r.shareFraction);
-                    if (isPureSharesMode) {
-                      lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - النسبة: ${pctStr}`);
-                    } else {
-                      lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${formatDZDAmount(r.amount, 'western', true)} (${pctStr})`);
-                    }
-                  }
-                });
+                const lines = buildResultsClipboardText({
+                  title: `نتائج التقسيم - ${currentStageIndex === 0 ? 'المسألة الأصلية' : `وفاة: ${currentStage.deceasedName}`}`,
+                  problemBase,
+                  results,
+                  customNamesByHeir: Object.fromEntries(
+                    results.map(result => [
+                      result.heirId,
+                      currentStage?.heirPresence?.[result.heirId]?.customNames,
+                    ])
+                  ),
+                  isPureSharesMode,
+                }).split('\\n');
                 try {
                   await navigator.clipboard.writeText(lines.join('\n'));
                   alert('تم نسخ النتائج كنص بنجاح');
