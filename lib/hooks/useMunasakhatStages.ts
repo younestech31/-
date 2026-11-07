@@ -270,6 +270,20 @@ export function useMunasakhatStages(
     });
   }, [currentStageIndex]);
 
+  const updateStageNoDistantKindredConfirmation = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          confirmedNoDistantKindred: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
   const acknowledgeStageExclusion = useCallback((heirId: string) => {
     setMunasakhatStages(prev => {
       const next = [...prev];
@@ -314,6 +328,7 @@ export function useMunasakhatStages(
     updateStageAlreadyInherited,
     updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
+    updateStageNoDistantKindredConfirmation,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
   };
