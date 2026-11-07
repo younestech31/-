@@ -476,6 +476,7 @@ export default function InheritanceCalculator({
             updateStageFinancialField={updateStageFinancialField}
             updateStageChildrenFromOtherUnion={updateStageChildrenFromOtherUnion}
             updateStageNoDistantKindredConfirmation={updateStageNoDistantKindredConfirmation}
+            requiresNoDistantKindredConfirmation={Boolean(currentStageResult?.noHeirsNeedsManualReview)}
             parentHeirName={currentStage.parentHeirId ? HEIRS.find(h => h.id === currentStage.parentHeirId)?.nameAr : undefined}
             className={expandedSection === 'estate' || mobileTab === 'estate' ? 'flex h-full' : 'hidden lg:flex'}
           />
