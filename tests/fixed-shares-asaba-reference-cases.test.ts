@@ -522,4 +522,18 @@ describe('Independent fraction and individual-allocation invariants', () => {
     expect(wives.individuals?.map(person => person.amount)).toEqual([15_000, 15_000]);
     expect(sons.individuals?.map(person => person.amount)).toEqual([84_000, 84_000]);
   });
+
+  it('distributes indivisible group amounts at centime precision without losing or creating value', () => {
+    const results = calculateInheritance(
+      [present('son', 3)],
+      240_001,
+      0, 0, 0,
+    );
+    const sons = getResult(results, 'son');
+    const amounts = sons.individuals?.map(person => person.amount) ?? [];
+
+    expect(amounts).toEqual([80_000.34, 80_000.33, 80_000.33]);
+    expect(amounts.reduce((sum, amount) => sum + amount, 0)).toBe(sons.amount);
+    expect(sons.individuals?.reduce((sum, person) => sum + person.shares, 0)).toBe(sons.shares);
+  });
 });
