@@ -41,6 +41,7 @@ interface EstatePanelProps {
   updateStageFinancialField: (field: 'debts' | 'funeralCosts' | 'bequest' | 'ownSeparateAssets', value: number) => void;
   updateStageChildrenFromOtherUnion?: (checked: boolean) => void;
   updateStageNoDistantKindredConfirmation: (checked: boolean) => void;
+  updateStageSpouseEligibilityConfirmation: (checked: boolean) => void;
   updateStagePregnancy: (hasUnbornHeir: boolean, outcome: NonNullable<MunasakhatStage['unbornOutcome']>) => void;
   updateStagePregnancyDisputed: (checked: boolean) => void;
   updateStageMinorHeirPresent: (checked: boolean) => void;
@@ -77,6 +78,7 @@ const EstatePanel = memo(function EstatePanel({
   updateStageFinancialField,
   updateStageChildrenFromOtherUnion,
   updateStageNoDistantKindredConfirmation,
+  updateStageSpouseEligibilityConfirmation,
   updateStagePregnancy,
   updateStagePregnancyDisputed,
   updateStageMinorHeirPresent,
@@ -305,6 +307,28 @@ const EstatePanel = memo(function EstatePanel({
             <label htmlFor="secondDeceasedHasChildrenFromOtherUnion" className="text-xs text-[#1e293b] cursor-pointer font-bold leading-normal">
               المتوفى الثاني له فروع (أبناء) من زواج/اتحاد آخر
             </label>
+          </div>
+        )}
+
+        {(currentStage.heirs?.length ? currentStage.heirs : Object.values(currentStage.heirPresence || {})).some(
+          heir => heir.isPresent && heir.count > 0 && ['husband', 'wife'].includes(heir.heirId)
+        ) && (
+          <div className="mb-3 rounded border border-sky-200 bg-sky-50/70 p-3">
+            <p className="mb-2 text-xs font-bold text-sky-950">التحقق من سبب الإرث بالزوجية — المواد 130–132</p>
+            <label className="flex cursor-pointer items-start gap-2 text-[11px] leading-relaxed text-sky-950">
+              <input
+                type="checkbox"
+                checked={currentStage.confirmedSpouseEligibility === true}
+                onChange={e => updateStageSpouseEligibilityConfirmation(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-sky-700"
+              />
+              <span>
+                أؤكد أنني تحققت من صحة عقد الزواج وعدم بطلانه، ومن قيام سبب التوارث وقت الوفاة؛ وإذا سبق الطلاق فقد راجعت ما إذا كانت الوفاة قبل صدور الحكم أو أثناء العدة وفق المادة 132.
+              </span>
+            </label>
+            <p className="mt-2 text-[10px] leading-relaxed text-sky-800">
+              اختيار «زوج» أو «زوجة» وحده لا يثبت قانوناً سبب الإرث. لا يعتمد المحرك الأنصبة ولا يصدّرها قبل هذا التحقق.
+            </p>
           </div>
         )}
 
