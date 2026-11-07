@@ -27,8 +27,9 @@ export interface MunasakhatStage {
   deceasedSonsCount?: number;
   deceasedDaughtersCount?: number;
   deceasedChildren?: DeceasedChildGroup[];
-  unbornOutcome?: 'stillborn' | 'born_male' | 'born_female' | 'twins_male_female' | 'twins_males' | 'twins_females';
+  unbornOutcome?: 'pending' | 'stillborn' | 'born_male' | 'born_female' | 'twins_male_female' | 'twins_males' | 'twins_females';
   hasUnbornHeir?: boolean;
+  pregnancyDisputed?: boolean;
   hasChildrenFromOtherUnion?: boolean;
   secondDeceasedHasChildrenFromOtherUnion?: boolean;
   /** Explicit Article 167/180 confirmation that no entitled distant kindred exists. */
