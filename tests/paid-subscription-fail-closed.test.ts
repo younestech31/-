@@ -10,10 +10,10 @@ const session = {
   role: 'notary' as const,
 };
 
-async function verifyWithDatabase(database: unknown) {
+async function verifyWithDatabase(database: unknown, includeEmailVerified = true) {
   vi.resetModules();
   const secret = process.env.SESSION_SECRET || '01234567890123456789012345678901';
-  const token = await new SignJWT(session)
+  const token = await new SignJWT(includeEmailVerified ? { ...session, emailVerified: true } : session)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('1h')
@@ -37,6 +37,12 @@ afterEach(() => {
 });
 
 describe('Paid subscription checks fail closed', () => {
+  it('rejects legacy JWTs that were issued before email verification was enforced', async () => {
+    const result = await verifyWithDatabase(null, false);
+    expect(result.isPaid).toBe(false);
+    expect(result.session).toBeNull();
+  });
+
   it('does not trust a paid JWT when the database is unavailable', async () => {
     const result = await verifyWithDatabase(null);
     expect(result.isPaid).toBe(false);
