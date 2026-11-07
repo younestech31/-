@@ -79,7 +79,7 @@ export default function MunasakhatExclusionWarningModal({
                   className="mt-1 flex items-center justify-center gap-1.5 w-full bg-[#0a5d38] hover:bg-[#084e2e] text-white py-1.5 px-3 rounded-md text-[11px] font-bold transition-all shadow-sm"
                 >
                   <Check size={13} />
-                  <span>أؤكد أن هذا الشخص حيّ ومستحق في هذه التركة (إدراجه مع منع التصدير الرسمي)</span>
+                  <span>تمت مراجعة هذه الحالة وإدراجها في الحساب (مع منع التصدير الرسمي عند الحاجة)</span>
                 </button>
               </div>
             ))}

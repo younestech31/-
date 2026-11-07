@@ -136,19 +136,15 @@ export function validateMunasakhatStageExclusions(
   stageIndex: number
 ) {
   const parentHeirId = stage.deceasedHeirId || stage.parentHeirId;
-  if (stageIndex === 0 || !parentHeirId) {
-    return {
-      unacknowledgedExclusions: [],
-      acknowledgedExclusions: [],
-      hasUnacknowledgedExclusions: false,
-    };
-  }
-
   const acknowledged = stage.acknowledgedExclusions || [];
   const presenceList = stage.heirs || (stage.heirPresence ? Object.values(stage.heirPresence) : []);
   const hasOtherUnion = stage.secondDeceasedHasChildrenFromOtherUnion
     ?? stage.hasChildrenFromOtherUnion
     ?? false;
+  const manualClassificationIds = new Set(['distant_kindred', 'maternal_grandfather']);
+  const requiresManualClassification = presenceList.some(
+    heir => heir.isPresent && Boolean(heir.count && heir.count > 0) && manualClassificationIds.has(heir.heirId)
+  );
 
   const unacknowledgedExclusions: { heirId: string; reason: string; source: string }[] = [];
   const acknowledgedExclusionsList: { heirId: string; reason: string; source: string }[] = [];
@@ -156,18 +152,24 @@ export function validateMunasakhatStageExclusions(
   presenceList.forEach((heir) => {
     if (!heir.isPresent || !heir.count || heir.count <= 0) return;
 
-    const assessment = isHeirExcludedInMunasakhat(
-      heir.heirId,
-      parentHeirId,
-      hasOtherUnion
-    );
-    if (!assessment.requiresReview) return;
+    const isManualKindred = manualClassificationIds.has(heir.heirId);
+    const relationshipAssessment = stageIndex > 0 && parentHeirId && !isManualKindred
+      ? isHeirExcludedInMunasakhat(heir.heirId, parentHeirId, hasOtherUnion)
+      : null;
+    if (!isManualKindred && !relationshipAssessment?.requiresReview) return;
 
-    const item = {
-      heirId: heir.heirId,
-      reason: assessment.reason,
-      source: assessment.source,
-    };
+    const item = isManualKindred
+      ? {
+          heirId: heir.heirId,
+          reason: 'هذا المدخل لا يحدد صلة ذي الرحم ودرجة القرابة وجهة الإدلاء. تشترط المادة 168 ترتيب المستحقين وفق هذه التفاصيل؛ ولا ينفذ المحرك قسمة آلية لهذه الفئة العامة.',
+          source: 'المادة 168 من قانون الأسرة — بوابة وزارة العدل: https://droit.mjustice.gov.dz/ar/content/قوانين-أساسية-2',
+        }
+      : {
+          heirId: heir.heirId,
+          reason: relationshipAssessment!.reason,
+          source: relationshipAssessment!.source,
+        };
+
     if (acknowledged.includes(heir.heirId)) {
       acknowledgedExclusionsList.push(item);
     } else {
@@ -179,6 +181,7 @@ export function validateMunasakhatStageExclusions(
     unacknowledgedExclusions,
     acknowledgedExclusions: acknowledgedExclusionsList,
     hasUnacknowledgedExclusions: unacknowledgedExclusions.length > 0,
+    requiresManualClassification,
   };
 }
 

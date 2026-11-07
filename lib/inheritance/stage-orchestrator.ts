@@ -28,8 +28,22 @@ export function runInheritanceOrchestration(
     // First pass: identify all present heirs that would be excluded by default
     const excludedHeirWarnings: Array<{ heirId: string; heirNameAr: string; reason: string; source?: string }> = [];
     const heirsToCheck = presenceList.filter(h => h.isPresent && h.count > 0 && !h.isImpeded);
+    const manualClassificationIds = new Set(['distant_kindred', 'maternal_grandfather']);
+    const manualClassificationHeirs = heirsToCheck.filter(h => manualClassificationIds.has(h.heirId));
+    const requiresManualClassification = manualClassificationHeirs.length > 0;
+
+    for (const h of manualClassificationHeirs) {
+      const heirDetails = HEIRS.find(x => x.id === h.heirId);
+      excludedHeirWarnings.push({
+        heirId: h.heirId,
+        heirNameAr: heirDetails?.nameAr || h.heirId,
+        reason: 'هذا المدخل لا يحدد صلة ذي الرحم ودرجة القرابة وجهة الإدلاء. ترتب المادة 168 المستحقين وفق هذه التفاصيل؛ لذلك لا يمكن اعتماد القسمة الآلية للفئة العامة.',
+        source: 'المادة 168 من قانون الأسرة — بوابة وزارة العدل: https://droit.mjustice.gov.dz/ar/content/قوانين-أساسية-2',
+      });
+    }
 
     for (const h of heirsToCheck) {
+      if (manualClassificationIds.has(h.heirId)) continue;
       if (index === 0 || !parentHeirId) continue;
       
       const { requiresReview, reason, source } = isHeirExcludedInMunasakhat(
@@ -53,6 +67,9 @@ export function runInheritanceOrchestration(
     // in the calculation, then hold result display until every prompt is reviewed.
     // A user-acknowledged inclusion remains marked as unverified and cannot be exported.
     const hasUnverifiedOverride = heirsToCheck.some(h => {
+      if (manualClassificationIds.has(h.heirId)) {
+        return Boolean(stage.acknowledgedExclusions?.includes(h.heirId));
+      }
       if (index === 0 || !parentHeirId) return false;
       const { requiresReview } = isHeirExcludedInMunasakhat(
         h.heirId,
@@ -133,7 +150,15 @@ export function runInheritanceOrchestration(
       }
     }
 
-    stagesData.push({ stage, results: res, netEstate: net, noHeirsRedistribution, excludedHeirWarnings, hasUnverifiedOverride });
+    stagesData.push({
+      stage,
+      results: res,
+      netEstate: net,
+      noHeirsRedistribution,
+      excludedHeirWarnings,
+      hasUnverifiedOverride,
+      requiresManualClassification,
+    });
   }
 
   return stagesData;

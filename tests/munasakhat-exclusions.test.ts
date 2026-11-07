@@ -115,6 +115,23 @@ describe('Munasakhat relationship review rules', () => {
     expect(secondary.hasUnverifiedOverride).toBe(false);
   });
 
+  it('blocks generic Dhu al-Arham aggregates pending individual lineage classification, even in the original estate', () => {
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى الأصلي',
+      deceasedGender: 'male',
+      hasMandatoryBequest: false,
+      heirs: [
+        { heirId: 'wife', count: 1, isPresent: true },
+        { heirId: 'distant_kindred', count: 1, isPresent: true },
+      ],
+    }];
+
+    const result = runInheritanceOrchestration([stages, 100000, 0, 0, 0])[0];
+    expect(result.requiresManualClassification).toBe(true);
+    expect(result.excludedHeirWarnings?.some(warning => warning.heirId === 'distant_kindred')).toBe(true);
+  });
+
   it('marks an acknowledged relationship match as non-exportable', () => {
     const stageResults = runInheritanceOrchestration([
       buildStages(['mother']),

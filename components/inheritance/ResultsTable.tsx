@@ -41,6 +41,7 @@ export interface StageResult {
   } | null;
   excludedHeirWarnings?: ExcludedHeirWarning[];
   hasUnverifiedOverride?: boolean;
+  requiresManualClassification?: boolean;
 }
 
 interface ResultsTableProps {
@@ -64,6 +65,7 @@ interface ResultsTableProps {
   /** نتائج فحص استبعادات المناسخة غير المؤكدة في المرحلة الحالية */
   currentStageValidation?: {
     hasUnacknowledgedExclusions?: boolean;
+    requiresManualClassification?: boolean;
     unacknowledgedExclusions?: Array<Pick<ExcludedHeirWarning, 'heirId' | 'reason' | 'source'> & { heirNameAr?: string }>;
   };
   isMunasakhatExportBlocked?: boolean;
@@ -286,6 +288,19 @@ const ResultsTable = memo(function ResultsTable({
           </div>
         )}
 
+        {currentStageValidation?.requiresManualClassification && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-4 mb-4 bg-rose-50 border-2 border-rose-300 text-rose-950 text-sm rounded-lg shadow-sm"
+          >
+            <p className="font-bold">لا يمكن اعتماد حساب ذوي الأرحام بهذا المدخل العام</p>
+            <p className="text-xs mt-1 leading-relaxed">
+              المادة 168 ترتب المستحقين بحسب صلة القرابة ودرجة القرب وكون الأصل من أصحاب الفروض. اختيار «ذوو الأرحام» أو «الجد لأم» وحده لا يحدد هذه البيانات، لذلك حُجب توزيع الأنصبة والتصدير إلى أن تتوفر طريقة لإدخال القرابة التفصيلية ومراجعتها.
+            </p>
+          </div>
+        )}
+
         {currentStageValidation?.hasUnacknowledgedExclusions && (
           <div
             role="alert"
@@ -324,7 +339,12 @@ const ResultsTable = memo(function ResultsTable({
           </div>
         )}
 
-        {currentStageValidation?.hasUnacknowledgedExclusions ? (
+        {currentStageValidation?.requiresManualClassification ? (
+          <div className="p-4 mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-900 text-sm">
+            <p className="font-bold">النتيجة محجوبة: يلزم تحديد صلة ذوي الأرحام بدقة</p>
+            <p className="text-xs mt-1">لا يقسم النظام حصة ذوي الأرحام ككتلة واحدة. يجب تحديد الوارث الفردي، ودرجة القرابة، وجهة الإدلاء، ثم تطبيق ترتيب المادة 168 بعد مراجعة قانونية.</p>
+          </div>
+        ) : currentStageValidation?.hasUnacknowledgedExclusions ? (
           <div className="p-4 mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-900 text-sm">
             <p className="font-bold">النتيجة الحسابية مخفية حتى إتمام المراجعة</p>
             <p className="text-xs mt-1">بعد مراجعة كل حالة، أزل من لا يدخل في التركة أو أكد إدراج من ثبتت أهليته. ستظهر الأنصبة بعد اكتمال المراجعة، وتظل الصادرات الرسمية محظورة إذا تم تأكيد إدراج حالة تحتاج إلى مراجعة مستقلة.</p>

@@ -167,7 +167,9 @@ export default function InheritanceCalculator({
     const acknowledged = munasakhatStages[stageIndex]?.acknowledgedExclusions || [];
     const hasPendingExclusions = (stageResult.excludedHeirWarnings || [])
       .some(warning => !acknowledged.includes(warning.heirId));
-    return hasPendingExclusions || Boolean(stageResult.hasUnverifiedOverride);
+    return hasPendingExclusions
+      || Boolean(stageResult.hasUnverifiedOverride)
+      || Boolean(stageResult.requiresManualClassification);
   });
 
   useEffect(() => {
