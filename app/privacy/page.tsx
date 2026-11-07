@@ -1,20 +1,17 @@
-import React from 'react';
 import Link from 'next/link';
-import { ShieldCheck, HardDrive, Cloud, Lock, ArrowRight } from 'lucide-react';
-import { OFFICE_INFO, PRODUCT_MODES } from '@/lib/config';
+import { ShieldCheck, HardDrive, Lock, ArrowRight, KeyRound } from 'lucide-react';
+import { PRODUCT_MODES } from '@/lib/config';
 
 export const metadata = {
-  title: 'سياسة الخصوصية وسرية بيانات التركات',
-  description: 'بيان الخصوصية وأساليب التشفير المحلي والسحابي المعمول بها في منصة مواريث للديوان العمومي للتوثيق.',
+  title: 'الخصوصية والتخزين المحلي',
+  description: 'كيف يحافظ تطبيق مواريث على بيانات المسائل داخل المتصفح.',
 };
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 font-sans" dir="rtl">
       <div className="max-w-4xl mx-auto space-y-8">
-        
-        {/* Header */}
-        <div className="border-b border-slate-800 pb-6 space-y-3">
+        <header className="border-b border-slate-800 pb-6 space-y-3">
           <Link href="/" className="inline-flex items-center text-xs text-emerald-400 font-bold hover:underline mb-2 gap-1">
             <ArrowRight className="w-4 h-4" />
             <span>العودة للحاسبة الرئيسية</span>
@@ -24,94 +21,49 @@ export default function PrivacyPage() {
               <ShieldCheck className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white font-amiri">سياسة الخصوصية وسرية التركات</h1>
-              <p className="text-xs text-slate-400">{OFFICE_INFO.officialDesignation} — {OFFICE_INFO.notaryFullName}</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-white font-amiri">الخصوصية والتخزين المحلي</h1>
+              <p className="text-xs text-slate-400">منصة مواريث الرقمية</p>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Product Modes Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* Local Mode */}
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-6 space-y-4 shadow-lg">
-            <div className="flex items-center gap-3 text-emerald-400">
-              <HardDrive className="w-6 h-6" />
-              <h2 className="text-lg font-bold text-white">{PRODUCT_MODES.LOCAL.nameAr}</h2>
-            </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {PRODUCT_MODES.LOCAL.descriptionAr}
-            </p>
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs space-y-2 text-slate-400">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                <Lock className="w-4 h-4" />
-                <span>التشفيـر الذاتي (AES-GCM 256):</span>
-              </div>
-              <p>
-                تُشفر البيانات المحفوظة بمفتاح فريد يُشتق تلقائياً على مستوى كل جهاز بواسطة WebCrypto API وتُخزن المفاتيح داخل IndexedDB محلياً فقط.
-              </p>
-            </div>
+        <section className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-6 space-y-4 shadow-lg">
+          <div className="flex items-center gap-3 text-emerald-400">
+            <HardDrive className="w-6 h-6" />
+            <h2 className="text-lg font-bold text-white">{PRODUCT_MODES.LOCAL.nameAr}</h2>
           </div>
-
-          {/* Cloud Mode */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-lg">
-            <div className="flex items-center gap-3 text-emerald-400">
-              <Cloud className="w-6 h-6" />
-              <h2 className="text-lg font-bold text-white">{PRODUCT_MODES.CLOUD.nameAr}</h2>
+          <p className="text-sm text-slate-300 leading-relaxed">{PRODUCT_MODES.LOCAL.descriptionAr}</p>
+          <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs space-y-2 text-slate-400">
+            <div className="flex items-center gap-2 text-emerald-400 font-semibold">
+              <Lock className="w-4 h-4" />
+              <span>التشفير المحلي</span>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              {PRODUCT_MODES.CLOUD.descriptionAr}
-            </p>
-            <div className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs space-y-2 text-slate-400">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold">
-                <Lock className="w-4 h-4" />
-                <span>حماية المكاتب الموثقة:</span>
-              </div>
-              <p>
-                تُحفظ الجلسات بواسطة رمكـز JWT الموقعة رقمياً (HS256). البيانات المنقولة في الوضع السحابي تكون مشفرة من جانب العميل بموافقة الموثق.
-              </p>
-            </div>
+            <p>تُشفر بيانات المسائل المحفوظة بمفتاح يُنشأ على الجهاز وتُخزن في مساحة المتصفح المحلية. لا تتوفر استعادة تلقائية عبر الأجهزة؛ استخدم التصدير والاستيراد اليدوي للاحتفاظ بنسخة احتياطية.</p>
           </div>
+        </section>
 
-        </div>
+        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5 text-sm text-slate-300 leading-relaxed">
+          <h2 className="text-lg font-bold text-white">ما الذي يُخزن محلياً؟</h2>
+          <ul className="list-disc pr-5 space-y-2">
+            <li>المسائل المحفوظة وإعدادات المكتب والتدقيق المحلي تبقى داخل تخزين المتصفح.</li>
+            <li>ملف الترخيص بعد تفعيله يُخزن على هذا المتصفح ويرتبط بمعرّف تثبيته.</li>
+            <li>لا توجد حسابات مستخدمين أو مزامنة ملفات أو قاعدة بيانات مركزية للمسائل.</li>
+            <li>إزالة بيانات الموقع أو تغيير المتصفح قد يؤدي إلى فقدان البيانات المحلية ومعرّف التثبيت؛ احتفظ دائماً بنسخة احتياطية من المسائل.</li>
+          </ul>
+        </section>
 
-        {/* Detailed Statements */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 text-sm text-slate-300 leading-relaxed">
-          <h3 className="text-lg font-bold text-white font-amiri border-b border-slate-800 pb-2">التزامات السرية القانونية للموثقين</h3>
-          
-          <div className="space-y-4 text-xs">
-            <h4 className="font-bold text-emerald-400 text-sm">1. عدم نقل الأسماء أو الأرقام في الوضع المحلي</h4>
-            <p>
-              عند استخدام الحاسبة في وضعها القياسي (الوضع المحلي)، فإن خوارزميات التصفية والعول والرد والوصية الواجبة وتوليد ملفات Word و Excel تُنفذ كلياً داخل ذاكرة متصفحك. لا يتصل التطبيق بأي خوادم تتبع أو تحليلات إعلانية خارجية.
-            </p>
-
-            <h4 className="font-bold text-emerald-400 text-sm">2. حماية بيانات الاعتماد واشتراكات المكاتب</h4>
-            <p>
-              يتم تخزين كلمات المرور الخاصة بحسابات الموثقين باستخدام خوارزمية التشفير الأحادي bcrypt مع التمليح الفريد. لا تُخزن كلمات المرور كنصوص صريحة تحت أي ظرف.
-            </p>
-
-            <h4 className="font-bold text-emerald-400 text-sm">3. الامتثال للسر المهني للتوثيق</h4>
-            <p>
-              تخضع كافة الاستشارات والمسائل المحسوبة للسر المهني المحدد بموجب أحكام القانون رقم 06-02 المنظم لمهنة التوثيق بالجزائر.
-            </p>
-
-            <h4 className="font-bold text-emerald-400 text-sm">4. مراقبة أخطاء البرمجية المحافظة على الخصوصية</h4>
-            <p>
-              لضمان استقرار الخوارزميات ودقة الحسابات في البيئة الإنتاجية، يقتصر نظام تتبع الأعطال البرمجية الاستثنائية على إرسال بيانات تقنية مجردة فقط (نص البرمجة المسبب للخطأ، المسار، ومعرف الإصدار). يُحظر تماماً نقل أية مدخلات للمسائل، أو أسماء الورثة، أو قيمة التركات، أو تسجيل شاشة المستخدم (DOM/Session Replay).
-            </p>
-
-            <h4 className="font-bold text-emerald-400 text-sm">5. اعتماد ومعالجة ملفات PDF المخرجة</h4>
-            <p>
-              تخضع عملية الاعتماد النهائي وتأكيد الترخيص لملفات PDF المخرجة لفحص تقني سري وجيز عبر الخادم للتأكد من حالة الاشتراك والترخيص وإضافة العلامة المائية للمكاتب غير المعتمدة، خلافاً لخوارزميات الحساب الشرعي والقوانين ذاتها التي تُنفذ كلياً محلياً داخل المتصفح دون أن تمس الخادم. (Exported-file finalization briefly touches the server for paid-status verification, unlike calculation itself which never does.)
-            </p>
+        <section className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-3 text-sm text-slate-300 leading-relaxed">
+          <div className="flex items-center gap-2 text-emerald-400">
+            <KeyRound className="w-5 h-5" />
+            <h2 className="text-lg font-bold text-white">الترخيص اليدوي</h2>
           </div>
-        </div>
+          <p>يُتحقق من توقيع ملف Pro ومدته ومعرّف التثبيت محلياً باستخدام المفتاح العام المضمّن في التطبيق. لا يحتاج هذا الفحص إلى الاتصال بخادم، ولا يُرسل ملف الترخيص أو بيانات المسائل إلى خدمة دفع أو تخزين.</p>
+          <Link href="/license" className="inline-flex rounded-lg border border-emerald-700 px-4 py-2 font-semibold text-emerald-300 hover:bg-emerald-950">إدارة الترخيص والتفعيل</Link>
+        </section>
 
-        {/* Footer info */}
-        <div className="text-center text-xs text-slate-500 pt-4 border-t border-slate-800">
-          منصة مواريث الرقمية — {OFFICE_INFO.officialDesignation}
-        </div>
-
+        <footer className="text-center text-xs text-slate-500 pt-4 border-t border-slate-800">
+          مواريث — الحسابات والبيانات المحفوظة تُدار محلياً في المتصفح.
+        </footer>
       </div>
     </div>
   );

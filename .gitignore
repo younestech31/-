@@ -5,7 +5,11 @@ coverage/
 *.log
 .env*
 !.env.example
+/.license-keys/
 /scripts/
+!/scripts/
+!/scripts/license-keys.mjs
+!/scripts/issue-license.mjs
 test-*.ts
 test_*.mjs
 fix.mjs

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, FolderOpen, FilePlus, BookOpen, FileText, Table, FileSignature, FileDown, Settings } from 'lucide-react';
+import Link from 'next/link';
+import { X, Save, FolderOpen, FilePlus, BookOpen, FileText, Table, FileSignature, FileDown, Settings, KeyRound } from 'lucide-react';
 import Image from 'next/image';
 import { useInheritanceState } from '@/lib/hooks/useInheritanceState';
 import { HEIRS } from '@/data/heirs';
@@ -150,7 +151,7 @@ export default function InheritanceCalculator({
     noHeirsRedistribution,
     currentStageValidation,
     inputWarnings,
-    savedCases, setSavedCases,
+    savedCases,
     toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, updateImpediment,
     addMunasakhatStage, removeStage,
     updateStageName, updateStageGender, updateStageMandatoryBequest, updateStageDeceasedChildren, updateStageAlreadyInherited, updateStageFinancialField,
@@ -325,6 +326,14 @@ export default function InheritanceCalculator({
                   <Settings size={13} className="text-[#D9A85E]" />
                   <span>إعدادات المكتب</span>
                 </button>
+              <Link
+                href="/license"
+                className="flex-1 md:flex-none min-w-[70px] md:min-w-0 flex items-center justify-center gap-1 bg-emerald-700/80 hover:bg-emerald-700 text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-colors h-8 md:h-[34px] shrink-0 shadow-sm"
+                title="إدارة الترخيص وتفعيل Pro"
+              >
+                <KeyRound size={13} />
+                <span>الترخيص</span>
+              </Link>
               </div>
 
               {/* مجموعة التقارير والتصدير: Horizontal scrolling strip on mobile */}
@@ -560,10 +569,6 @@ export default function InheritanceCalculator({
           importData={importData}
           exportData={exportData}
           isImporting={isImporting}
-          isEntitlementsLoading={state.isEntitlementsLoading}
-          isPaid={state.isPaid}
-          cloudSyncPassphrase={officeSettings.cloudSyncPassphrase}
-          onCloudCasesRestored={(restoredList) => setSavedCases(restoredList)}
         />
 
         <HeirExplanationModal selectedHeirExplanation={selectedHeirExplanation} setSelectedHeirExplanation={setSelectedHeirExplanation} />

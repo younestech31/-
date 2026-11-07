@@ -29,8 +29,6 @@ export default function OfficeSettingsModal({
   const [showDisclaimer, setShowDisclaimer] = useState(settings.showDisclaimer ?? true);
   const [exportLanguage, setExportLanguage] = useState<'ar' | 'fr'>(settings.exportLanguage || 'ar');
   const [digitFormat, setDigitFormat] = useState<'western' | 'arabic-indic'>(settings.digitFormat || 'western');
-  const [auditLedgerOptIn, setAuditLedgerOptIn] = useState(settings.auditLedgerOptIn ?? false);
-  const [cloudSyncPassphrase, setCloudSyncPassphrase] = useState(settings.cloudSyncPassphrase || '');
 
   // Sync state with props when modal opens or settings change
   useEffect(() => {
@@ -45,8 +43,6 @@ export default function OfficeSettingsModal({
       setShowDisclaimer(settings.showDisclaimer ?? true);
       setExportLanguage(settings.exportLanguage || 'ar');
       setDigitFormat(settings.digitFormat || 'western');
-      setAuditLedgerOptIn(settings.auditLedgerOptIn ?? false);
-      setCloudSyncPassphrase(settings.cloudSyncPassphrase || '');
     }
   }, [isOpen, settings]);
 
@@ -64,14 +60,12 @@ export default function OfficeSettingsModal({
       showDisclaimer,
       exportLanguage,
       digitFormat,
-      auditLedgerOptIn,
-      cloudSyncPassphrase: cloudSyncPassphrase.trim(),
     });
     onClose();
   };
 
   const handleReset = () => {
-    if (confirm('هل أنت متأكد من رغبتك في استعادة الإعدادات الافتراضية للموثق (الأستاذ لعطب محمد)؟')) {
+    if (confirm('هل أنت متأكد من رغبتك في استعادة الإعدادات الافتراضية للموثق (الإعدادات الافتراضية)؟')) {
       onReset();
       onClose();
     }
@@ -142,7 +136,7 @@ export default function OfficeSettingsModal({
                 type="text"
                 value={notaryNameAr}
                 onChange={e => setNotaryNameAr(e.target.value)}
-                placeholder="مثال: الأستاذ لعطب محمد"
+                placeholder="مثال: اسم الموثق أو المكتب"
                 className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38] font-semibold text-[#1e293b]"
               />
             </div>
@@ -166,7 +160,7 @@ export default function OfficeSettingsModal({
                 type="text"
                 value={titleAr}
                 onChange={e => setTitleAr(e.target.value)}
-                placeholder="مثال: موثق لدى محكمة فلاوسن — ولاية وهران"
+                placeholder="مثال: بيانات المكتب أو جهة الاختصاص"
                 className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38]"
               />
             </div>
@@ -178,7 +172,7 @@ export default function OfficeSettingsModal({
                 type="text"
                 value={addressAr}
                 onChange={e => setAddressAr(e.target.value)}
-                placeholder="مثال: حي العقيد لطفي، وهران"
+                placeholder="مثال: العنوان"
                 className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38]"
               />
             </div>
@@ -191,7 +185,7 @@ export default function OfficeSettingsModal({
                   type="text"
                   value={phone}
                   onChange={e => setPhone(e.target.value)}
-                  placeholder="مثال: +213 562 29 69 81"
+                  placeholder="مثال: +213 5XX XX XX XX"
                   className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38] text-left"
                   dir="ltr"
                 />
@@ -210,25 +204,7 @@ export default function OfficeSettingsModal({
               </div>
             </div>
 
-            {/* Cloud Sync Passphrase */}
-            <div>
-              <label className="block text-xs font-bold text-[#475569] mb-1.5 flex items-center gap-1">
-                <span>عبارة مرور التشفير السحابي (Cloud Sync Passphrase)</span>
-              </label>
-              <input
-                type="password"
-                autoComplete="new-password"
-                value={cloudSyncPassphrase}
-                onChange={e => setCloudSyncPassphrase(e.target.value)}
-                placeholder="عبارة مرور لاشتقاق مفتاح PBKDF2 لتشفير واستعادة القضايا"
-                className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38]"
-              />
-              <p className="text-[11px] text-[#64748b] mt-1">
-                تُستخدم لاشتقاق مفتاح PBKDF2 / AES-GCM. لا تُرسل إلى الخادم ولا تُحفظ في التخزين المحلي؛ تبقى في ذاكرة هذه الجلسة فقط، وستحتاج إلى إدخالها مجددًا بعد تحديث الصفحة. استخدم عبارة طويلة وفريدة.
-              </p>
             </div>
-
-          </div>
 
             {/* Official Mode & Disclaimer Toggles */}
             <div className="p-3 bg-amber-50/60 rounded-lg border border-amber-200/80 space-y-3">
@@ -254,8 +230,8 @@ export default function OfficeSettingsModal({
               {!isOfficialMode && (
                 <div className="flex items-center justify-between pt-2 border-t border-amber-200/50">
                   <div>
-                    <h4 className="text-xs font-bold text-[#1e293b]">تضمين التنبيه وإخلاء المسؤولية</h4>
-                    <p className="text-[11px] text-[#64748b]">عرض صندوق الإخلاء القانوني في أول مستند PDF</p>
+                    <h4 className="text-xs font-bold text-[#1e293b]">تضمين التنبيه التوضيحي</h4>
+                    <p className="text-[11px] text-[#64748b]">عرض مربع التنبيه في مستند PDF</p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -268,22 +244,6 @@ export default function OfficeSettingsModal({
                   </label>
                 </div>
               )}
-
-              <div className="flex items-center justify-between pt-2 border-t border-amber-200/50">
-                <div>
-                  <h4 className="text-xs font-bold text-[#1e293b]">تفعيل السجل السحابي للتحقق التشفيري (Audit Ledger)</h4>
-                  <p className="text-[11px] text-[#64748b]">تخزين البصمة المعماة ومجاميع الأنصبة سحابياً للتحقق من المستند من أجهزة أخرى بدون تخزين أسماء الورثة</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={auditLedgerOptIn}
-                    onChange={(e) => setAuditLedgerOptIn(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0a5d38]"></div>
-                </label>
-              </div>
             </div>
 
             {/* Mawarith Brand Reminder */}

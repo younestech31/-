@@ -12,51 +12,53 @@ import { useHeirPresence } from './useHeirPresence';
 import { useInheritanceWorker } from './useInheritanceWorker';
 import { usePdfExport } from './usePdfExport';
 import { runInheritanceOrchestration } from '@/lib/inheritance/stage-orchestrator';
+import { getStoredLicenseStatus, LICENSE_UPDATED_EVENT } from '@/lib/licensing/manual-license';
 
 export function useInheritanceState() {
-  // Plan / Billing state derived from server entitlements
+  // Professional access is verified locally; no session, billing API, or database is queried.
   const [userPlan, setUserPlan] = useState<'free' | 'pro' | 'notary'>('free');
   const [isPaid, setIsPaid] = useState<boolean>(false);
   const [isEntitlementsLoading, setIsEntitlementsLoading] = useState<boolean>(true);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [licenseStatus, setLicenseStatus] = useState<import('@/lib/licensing/manual-license').LicenseStatus | null>(null);
+  // Retained as null compatibility fields for components that still consume the previous shape.
+  const organizationId: string | null = null;
+  const userId: string | null = null;
 
   useEffect(() => {
     let isMounted = true;
-    async function checkEntitlements() {
+    const refreshLocalLicense = async () => {
       try {
-        const res = await fetch('/api/entitlements');
-        if (res.ok) {
-          const data = await res.json();
-          if (isMounted) {
-            setIsPaid(Boolean(data.isPaid));
-            setUserPlan(data.plan || 'free');
-            setOrganizationId(data.organizationId || null);
-            setUserId(data.userId || null);
-          }
-        } else {
-          if (isMounted) {
-            setIsPaid(false);
-            setUserPlan('free');
-            setOrganizationId(null);
-            setUserId(null);
-          }
-        }
+        const status = await getStoredLicenseStatus();
+        if (!isMounted) return;
+        setLicenseStatus(status);
+        setIsPaid(status.isPaid);
+        setUserPlan(status.isPaid ? 'pro' : 'free');
       } catch {
-        if (isMounted) {
-          setIsPaid(false);
-          setUserPlan('free');
-          setOrganizationId(null);
-          setUserId(null);
-        }
+        if (!isMounted) return;
+        setLicenseStatus(null);
+        setIsPaid(false);
+        setUserPlan('free');
       } finally {
-        if (isMounted) {
-          setIsEntitlementsLoading(false);
-        }
+        if (isMounted) setIsEntitlementsLoading(false);
       }
-    }
-    checkEntitlements();
-    return () => { isMounted = false; };
+    };
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') void refreshLocalLicense();
+    };
+
+    void refreshLocalLicense();
+    window.addEventListener(LICENSE_UPDATED_EVENT, refreshLocalLicense);
+    window.addEventListener('storage', refreshLocalLicense);
+    window.addEventListener('focus', refreshLocalLicense);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      isMounted = false;
+      window.removeEventListener(LICENSE_UPDATED_EVENT, refreshLocalLicense);
+      window.removeEventListener('storage', refreshLocalLicense);
+      window.removeEventListener('focus', refreshLocalLicense);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, []);
 
   // Primary Financial & Deceased attributes for Stage 0
@@ -374,17 +376,32 @@ export function useInheritanceState() {
       });
   }, [allStagesResults, estate, debts, funeralCosts, bequest, deceasedGender, showToast, isCalculatorEmpty, officeSettings]);
 
-  const exportToPDFApplet = useCallback(() => {
+  const exportToPDFApplet = useCallback(async () => {
     if (isCalculatorEmpty) {
       showToast('لا يمكن التصدير: الرجاء إضافة ورثة أولاً.', 'error');
       return;
     }
-    exportToPDFClient(allStagesResults, { estate, debts, funeralCosts, bequest, deceasedGender }, officeSettings, isPaid)
-      .then(() => showToast('تم تصدير PDF بنجاح ✓', 'success'))
-      .catch((err) => {
-        showToast(err.message || 'حدث خطأ أثناء تصدير PDF.', 'error');
-      });
-  }, [allStagesResults, estate, debts, funeralCosts, bequest, deceasedGender, showToast, isCalculatorEmpty, exportToPDFClient, officeSettings, isPaid]);
+    try {
+      // Re-check the signed local license at export time so an expired license
+      // cannot stay active merely because the calculator tab remained open.
+      const currentLicense = await getStoredLicenseStatus();
+      setLicenseStatus(currentLicense);
+      setIsPaid(currentLicense.isPaid);
+      setUserPlan(currentLicense.isPaid ? 'pro' : 'free');
+      await exportToPDFClient(
+        allStagesResults,
+        { estate, debts, funeralCosts, bequest, deceasedGender },
+        officeSettings,
+        currentLicense.isPaid,
+      );
+      showToast('تم تصدير PDF بنجاح ✓', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'حدث خطأ أثناء تصدير PDF.', 'error');
+    }
+  }, [
+    allStagesResults, estate, debts, funeralCosts, bequest, deceasedGender,
+    showToast, isCalculatorEmpty, exportToPDFClient, officeSettings,
+  ]);
 
   const handleCopyFullSummary = useCallback(async () => {
     if (isCalculatorEmpty) {
@@ -418,6 +435,7 @@ export function useInheritanceState() {
     isPaid,
     userPlan,
     isEntitlementsLoading,
+    licenseStatus,
     organizationId,
     userId,
     deceasedGender, setDeceasedGender,

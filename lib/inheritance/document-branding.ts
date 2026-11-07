@@ -1,4 +1,3 @@
-import { OFFICE_INFO } from '../config';
 import QRCode from 'qrcode';
 import { formatBilingualDate } from '../datetime/hijri';
 import { CalculationAuditRecord } from './calculation-audit';
@@ -53,32 +52,31 @@ export interface OfficeSettings {
   documentRefNumber?: string;    // Unique document reference number
   exportLanguage?: 'ar' | 'fr';  // Language toggle for export documents
   digitFormat?: 'western' | 'arabic-indic'; // Numeral formatting toggle
-  auditLedgerOptIn?: boolean;   // Opt-in toggle for server-side audit ledger
-  cloudSyncPassphrase?: string;  // Session-only passphrase; never persist this field
 }
 
-/** Return office settings safe to persist; the cloud passphrase is memory-only. */
-export function getPersistedOfficeSettings(
-  settings: OfficeSettings
-): Omit<OfficeSettings, 'cloudSyncPassphrase'> {
-  const persisted = { ...settings };
+/** Remove legacy server-only fields before persisting settings locally. */
+export function getPersistedOfficeSettings(settings: OfficeSettings): OfficeSettings {
+  const persisted = { ...settings } as OfficeSettings & {
+    auditLedgerOptIn?: unknown;
+    cloudSyncPassphrase?: unknown;
+  };
+  delete persisted.auditLedgerOptIn;
   delete persisted.cloudSyncPassphrase;
   return persisted;
 }
 
 export const DEFAULT_OFFICE_SETTINGS: OfficeSettings = {
-  notaryNameAr: 'الأستاذ لعطب محمد',
-  officialDesignationAr: 'الديوان العمومي للتوثيق',
-  titleAr: 'موثق لدى محكمة فلاوسن — ولاية وهران',
-  addressAr: 'حي العقيد لطفي، وهران',
-  phone: '+213 562 29 69 81',
-  email: 'maitrelattabmohamed@gmail.com',
+  notaryNameAr: '',
+  officialDesignationAr: 'بيانات المكتب',
+  titleAr: '',
+  addressAr: '',
+  phone: '',
+  email: '',
   isOfficialMode: false,
   showDisclaimer: true,
   documentRefNumber: '',
   exportLanguage: 'ar',
   digitFormat: 'western',
-  auditLedgerOptIn: false,
 };
 
 // Unified Arabic font family for all documents
@@ -86,19 +84,17 @@ export const EXPORT_FONT_FAMILY = 'Amiri';
 
 // Shared office & legal content
 export const EXPORT_OFFICE_INFO = {
-  notaryNameAr: OFFICE_INFO.notaryFullName,
-  addressAr: 'حي العقيد لطفي، وهران',
-  phone: OFFICE_INFO.phone.display,
-  email: OFFICE_INFO.email,
-  officialDesignationAr: OFFICE_INFO.officialDesignation,
-  titleAr: OFFICE_INFO.title,
-  legalBasisAr: OFFICE_INFO.legalBasis,
-  
-  disclaimerTitleAr: 'تنبيه وإخلاء مسؤولية قانونية رسمية (منصة رقمية مساعدة وليست وسيلة إعلان):',
-  disclaimerTextAr: 'إن العملية الحسابية والوثيقة المرفقة هي تصفية آلية استرشادية تقنية بحتة تم إعدادها لتوفير التسهيل والتدقيق النظري المسبق ولا يعتبر هذا الموقع أو مستخرجاته وسيلة دعاية أو إشهار بأي شكل من الأشكال. كما لا يمكن بأي حال من الأحوال أن تحل هذه الحاسبة محل الفريضة الشرعية الأصلية الموثقة رسمياً تحت مسؤولية الموثق لدى المحاكم والمجالس القضائية.',
-  
-  footerTextAr: 'العنوان: حي العقيد لطفي، وهران - مستخرج إلكتروني رسمي صادر من المنصة الرسمية',
-  footerPageLabelAr: (page: number, total: number) => `الأستاذ الموثق لعطب محمد بوهران | صفحة ${page} من ${total}`,
+  notaryNameAr: '',
+  addressAr: '',
+  phone: '',
+  email: '',
+  officialDesignationAr: 'بيانات المكتب',
+  titleAr: '',
+  legalBasisAr: '',
+  disclaimerTitleAr: 'تنبيه توضيحي:',
+  disclaimerTextAr: 'هذا التقرير أُعدّ باستخدام منصة مواريث لأغراض المراجعة والحساب. راجع جميع المعطيات والنتائج قبل اعتمادها.',
+  footerTextAr: 'تم إعداد هذا التقرير باستخدام منصة مواريث.',
+  footerPageLabelAr: (page: number, total: number) => `مواريث | صفحة ${page} من ${total}`,
 } as const;
 
 /**
@@ -209,7 +205,7 @@ export const EXPORT_TABLE_COLUMNS = [
 // Canonical filename patterns
 export function EXPORT_FILENAME(name: string, ext: string, notaryName?: string, lang: 'ar' | 'fr' = 'ar'): string {
   const cleanName = name.replace(/[\s\/:*?"<>|]+/g, '_') || (lang === 'fr' ? 'Succession' : 'تركة');
-  const cleanNotary = notaryName ? notaryName.replace(/[\s\/:*?"<>|]+/g, '_') : 'Notaire_Lattab';
+  const cleanNotary = notaryName ? notaryName.replace(/[\s\/:*?"<>|]+/g, '_') : 'Mawarith';
   const dateStr = new Date().toISOString().split('T')[0];
   return `${cleanNotary}_Succes_Faritha_${cleanName}_${lang.toUpperCase()}_${dateStr}.${ext}`;
 }
@@ -243,7 +239,7 @@ export function getNotarialAttestationData(
       return {
         title: 'ATTESTATION DE CONFORMITÉ ET VÉRIFICATION CRYPTOGRAPHIQUE',
         attestationText: `Je soussigné, ${settings.notaryNameAr || 'Maître Notaire'}, titulaire de l'office notarial, certifie la conformité légale des calculs de dévolution successorale ci-dessus établis conformément aux Articles 139 à 180 du Code de la Famille Algérien. Le présent acte comporte une empreinte numérique SHA-256 infalsifiable vérifiable en scannant le code QR ci-contre.`,
-        notaryName: settings.notaryNameAr || 'Maître Lattab Mohamed - Notaire',
+        notaryName: settings.notaryNameAr || 'Maître Notaire',
         caseRef: `Réf. Acte: ${caseRef}`,
         formattedDate: `Date d'établissement: ${dateStr}`,
         auditHash,
@@ -265,7 +261,7 @@ export function getNotarialAttestationData(
       return {
         title: 'إشهاد المصادقة التوثيقية ورمز التحقق التشفيري (SHA-256)',
         attestationText: `أشهد أنا الموثق الموقّع أدناه، صاحب الديوان العمومي للتوثيق، بصحة ومطابقة عملية تصفية التركة المرفقة للأنصبة الشرعية والمواد 139 إلى 180 من قانون الأسرة الجزائري. تحمل هذه الوثيقة رمز تحقق تشفيري بـ SHA-256 لمنع أي تغيير يدوياً في السهام.`,
-        notaryName: settings.notaryNameAr || 'الأستاذ لعطب محمد — موثق',
+        notaryName: settings.notaryNameAr || 'الموثق',
         caseRef: `رقم مرجع الفريضة: ${caseRef}`,
         formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
         auditHash,
