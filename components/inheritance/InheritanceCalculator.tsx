@@ -49,6 +49,7 @@ export interface MunasakhatStage {
   hasChildrenFromOtherUnion?: boolean;
   confirmedNoDistantKindred?: boolean;
   hasMinorHeir?: boolean;
+  deathOrderUncertain?: boolean;
   acknowledgedExclusions?: string[];
   heirs?: import('@/lib/inheritance/inheritance-calculator').HeirPresence[];
 }
