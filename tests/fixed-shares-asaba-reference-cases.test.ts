@@ -491,6 +491,50 @@ describe('Independent fixed-share and residuary reference matrix (Arts. 143–15
 });
 
 describe('Independent fraction and individual-allocation invariants', () => {
+  it.each(referenceCases)('conserves assigned fractions at centime precision for $id', testCase => {
+    const estate = 1_000_003.01;
+    const results = calculateInheritance(
+      testCase.heirs,
+      estate,
+      0,
+      0,
+      0,
+      false,
+      [],
+      'stillborn',
+      false,
+      true,
+    );
+    const distributable = results.filter(result =>
+      !['mandatory_bequest', 'voluntary_bequest', 'unborn_withholding'].includes(result.heirId) &&
+      !result.isBlocked
+    );
+    const assignedFraction = distributable.reduce(
+      (sum, result) => sum + result.shareFraction.valueOf(),
+      0,
+    );
+    const targetCents = Math.round(Math.round(estate * 100) * assignedFraction);
+    const actualCents = distributable.reduce(
+      (sum, result) => sum + Math.round(result.amount * 100),
+      0,
+    );
+
+    expect(actualCents).toBe(targetCents);
+    expect(actualCents).toBeLessThanOrEqual(Math.round(estate * 100));
+
+    for (const result of distributable) {
+      expect(Number.isFinite(result.amount)).toBe(true);
+      expect(Math.abs(result.amount * 100 - Math.round(result.amount * 100))).toBeLessThan(1e-7);
+      if (result.individuals?.length) {
+        const individualCents = result.individuals.reduce(
+          (sum, person) => sum + Math.round(person.amount * 100),
+          0,
+        );
+        expect(individualCents).toBe(Math.round(result.amount * 100));
+      }
+    }
+  });
+
   it('keeps every non-blocked share non-negative and prevents total allocations above the distributable estate', () => {
     const scenarios: HeirPresence[][] = [
       [present('wife'), present('mother'), present('father'), present('daughter')],
