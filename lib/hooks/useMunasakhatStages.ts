@@ -37,6 +37,41 @@ export const INITIAL_STAGES: MunasakhatStage[] = [
   },
 ];
 
+export function createMunasakhatStage(args: {
+  stageId: string;
+  parentStageId?: string;
+  heirName: string;
+  amount: number;
+  heirId: string;
+  parentHeirIndex: number;
+}): MunasakhatStage {
+  const defaultHeirs: HeirPresence[] = HEIRS.map(h => {
+    if (h.id === 'father' || h.id === 'mother' || h.id === 'husband' || h.id === 'wife') {
+      return { heirId: h.id, count: 1, isPresent: false };
+    }
+    return { heirId: h.id, count: 0, isPresent: false };
+  });
+
+  return {
+    id: args.stageId,
+    titleAr: `مناسخة: وفاة ${args.heirName}`,
+    deceasedName: args.heirName,
+    deceasedNameAr: args.heirName,
+    deceasedHeirId: args.heirId,
+    parentHeirId: args.heirId,
+    parentStageId: args.parentStageId,
+    parentHeirIndex: Math.max(0, Math.trunc(args.parentHeirIndex)),
+    deceasedGender: inferDeceasedGender(args.heirId) ?? undefined,
+    inheritedAmount: Math.max(0, args.amount),
+    heirs: defaultHeirs,
+    hasMandatoryBequest: false,
+    deceasedChildren: [],
+    unbornOutcome: 'stillborn',
+    hasUnbornHeir: false,
+    hasChildrenFromOtherUnion: false,
+  };
+}
+
 export function useMunasakhatStages(
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
 ) {
@@ -64,35 +99,22 @@ export function useMunasakhatStages(
     heirName: string,
     amount: number,
     heirId: string,
-    _index: number
+    parentHeirIndex: number
   ) => {
-    const defaultHeirs: HeirPresence[] = HEIRS.map(h => {
-      if (h.id === 'father' || h.id === 'mother' || h.id === 'husband' || h.id === 'wife') {
-        return { heirId: h.id, count: 1, isPresent: false };
-      }
-      return { heirId: h.id, count: 0, isPresent: false };
+    const parentStage = munasakhatStages[currentStageIndex];
+    const newStage = createMunasakhatStage({
+      stageId: `stage-${Date.now()}`,
+      parentStageId: parentStage?.id,
+      heirName,
+      amount,
+      heirId,
+      parentHeirIndex,
     });
-
-    const newStage: MunasakhatStage = {
-      id: `stage-${Date.now()}`,
-      titleAr: `مناسخة: وفاة ${heirName}`,
-      deceasedName: heirName,
-      deceasedNameAr: heirName,
-      deceasedHeirId: heirId,
-      deceasedGender: inferDeceasedGender(heirId) ?? undefined,
-      inheritedAmount: amount,
-      heirs: defaultHeirs,
-      hasMandatoryBequest: false,
-      deceasedChildren: [],
-      unbornOutcome: 'stillborn',
-      hasUnbornHeir: false,
-      hasChildrenFromOtherUnion: false,
-    };
 
     setMunasakhatStages(prev => [...prev, newStage]);
     setCurrentStageIndex(prev => prev + 1);
     showToast(`تمت إضافة مرحلة مناسخة لـ: ${heirName}`, 'success');
-  }, [showToast]);
+  }, [showToast, munasakhatStages, currentStageIndex]);
 
   const removeStage = useCallback((index: number) => {
     if (index === 0) {
