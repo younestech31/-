@@ -45,6 +45,7 @@ export interface StageResult {
   tanzilNeedsManualReview?: boolean;
   noHeirsNeedsManualReview?: boolean;
   pregnancyNeedsManualReview?: boolean;
+  minorHeirNeedsJudicialPartition?: boolean;
 }
 
 interface ResultsTableProps {
@@ -307,6 +308,19 @@ const ResultsTable = memo(function ResultsTable({
             </ul>
             <p className="text-xs mt-2">
               يعرض النظام نتائج استكشافية فقط، ويعطّل تصدير المستندات حتى تُعالج هذه الصورة في المحرك وتُراجع قانونياً.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.minorHeirNeedsJudicialPartition && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-violet-300 bg-violet-50 p-4 text-sm text-violet-950"
+          >
+            <p className="font-bold">القسمة تستلزم الطريق القضائي — المادة 181</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لوجود قاصر بين الورثة، لا تُعتمد هذه النتيجة كقسمة توثيقية نهائية. يمكن استخدام الأنصبة الظاهرة للمراجعة والتحضير، لكن إنجاز القسمة يكون عن طريق القضاء وفق المادة 181، مع مراعاة أحكام الولاية والوصاية والملكية الشائعة.
             </p>
           </div>
         )}
