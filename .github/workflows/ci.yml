@@ -38,17 +38,23 @@ jobs:
       - name: Synchronize npm lockfile
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
 
-      # Refresh every dependency that can be updated within the version ranges
-      # already declared in package.json; no forced major-version changes.
+      # Refresh versions already permitted by package.json without forcing majors.
       - name: Update compatible dependency versions
         run: npm update --package-lock-only --ignore-scripts --no-audit --no-fund
 
-      - name: Install dependencies
+      # Apply npm's non-breaking security remediations to the lockfile.
+      # --package-lock-only avoids mutating node_modules before the clean install.
+      # Never use --force: incompatible major upgrades require deliberate review.
+      - name: Apply compatible security fixes
+        run: npm audit fix --package-lock-only --ignore-scripts --no-fund
+
+      - name: Install dependencies from lockfile
         run: npm ci --no-audit --no-fund
 
-      # Security versions are pinned in package.json overrides; do not run
-      # npm audit fix here because npm's resolver can abort on peer conflicts.
-      # Persist the reproducible lockfile generated from package.json.
+      - name: Run dependency vulnerability audit
+        run: npm audit --audit-level=high
+
+      # Commit only after lockfile installation and the security audit both pass.
       - name: Commit synchronized package-lock.json on Gptcoder
         if: github.ref == 'refs/heads/Gptcoder'
         shell: bash
@@ -63,9 +69,6 @@ jobs:
           git add package-lock.json
           git commit -m "chore(deps): apply compatible security updates"
           git push origin "HEAD:${GITHUB_REF_NAME}"
-
-      - name: Run dependency vulnerability audit
-        run: npm audit --audit-level=high
 
       - name: Run Linter
         run: npm run lint
