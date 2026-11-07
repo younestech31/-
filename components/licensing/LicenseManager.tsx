@@ -7,6 +7,7 @@ import {
   activateLicenseFile,
   getOrCreateInstallationId,
   getStoredLicenseStatus,
+  isPublicKeyConfigured,
   type LicenseStatus,
 } from '@/lib/licensing/manual-license';
 
@@ -25,6 +26,7 @@ function formatDate(value: string): string {
 }
 
 export default function LicenseManager() {
+  const licenseSystemReady = isPublicKeyConfigured();
   const [installationId, setInstallationId] = useState('');
   const [status, setStatus] = useState<LicenseStatus | null>(null);
   const [selectedDays, setSelectedDays] = useState<number>(90);
@@ -120,6 +122,11 @@ export default function LicenseManager() {
         </header>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
+          {!licenseSystemReady && (
+            <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+              لم يتم إعداد مفتاح التحقق الخاص بمواريث بعد. التفعيل التجاري غير جاهز حالياً؛ لا تحوّل أي مبلغ قبل ظهور خطط الاشتراك وإتاحة التفعيل.
+            </div>
+          )}
           <div className="flex items-start gap-3">
             <KeyRound className="mt-1 text-emerald-700" size={22} />
             <div>
@@ -161,10 +168,10 @@ export default function LicenseManager() {
             </p>
           </div>
 
-          <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-emerald-800 px-4 py-3 font-bold text-white hover:bg-emerald-900 ${isActivating ? 'pointer-events-none opacity-60' : ''}`}>
+          <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-emerald-700 bg-emerald-800 px-4 py-3 font-bold text-white hover:bg-emerald-900 ${!licenseSystemReady || isActivating ? 'pointer-events-none opacity-60' : ''}`} aria-disabled={!licenseSystemReady || isActivating}>
             <Upload size={18} />
-            {isActivating ? 'جارٍ التحقق من الترخيص…' : 'استيراد ملف الترخيص وتفعيله'}
-            <input type="file" accept=".mwlicense,.json,application/json" className="hidden" onChange={handleActivate} disabled={isActivating} />
+            {!licenseSystemReady ? 'التفعيل غير جاهز حالياً' : isActivating ? 'جارٍ التحقق من الترخيص…' : 'استيراد ملف الترخيص وتفعيله'}
+            <input type="file" accept=".mwlicense,.json,application/json" className="hidden" onChange={handleActivate} disabled={!licenseSystemReady || isActivating} />
           </label>
 
           {message && (
@@ -174,6 +181,7 @@ export default function LicenseManager() {
           )}
         </section>
 
+        {licenseSystemReady ? (
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
           <div>
             <h2 className="text-lg font-bold">طلب تفعيل Pro</h2>
@@ -222,6 +230,12 @@ export default function LicenseManager() {
             الأسعار تجريبية قابلة للمراجعة. لا يوجد تجديد تلقائي؛ ينتهي الترخيص في التاريخ المحدد ويمكن طلب التجديد يدوياً.
           </p>
         </section>
+        ) : (
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-600">
+            <h2 className="font-bold text-slate-900">خطط Pro ستتاح بعد تهيئة التوقيع</h2>
+            <p className="mt-2">لن تظهر بيانات التحويل أو طلبات الاشتراك قبل إعداد مفتاح التحقق واختبار إصدار الترخيص وتفعيله بنجاح.</p>
+          </section>
+        )}
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-600">
           <h2 className="font-bold text-slate-900">ما يبقى متاحاً مجاناً؟</h2>

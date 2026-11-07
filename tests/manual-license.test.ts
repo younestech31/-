@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import {
   stableStringify,
+  isPublicKeyConfigured,
   verifyLicenseEnvelopeWithKey,
   type MawarithLicensePayload,
 } from '@/lib/licensing/manual-license';
@@ -49,6 +50,11 @@ beforeAll(async () => {
 });
 
 describe('Mawarith manual license verification', () => {
+  it('recognizes configured and missing public verification keys safely', () => {
+    expect(isPublicKeyConfigured('')).toBe(false);
+    expect(isPublicKeyConfigured('not-a-key')).toBe(false);
+    expect(isPublicKeyConfigured(publicKeyBase64)).toBe(true);
+  });
   it('accepts a correctly signed, unexpired license for the matching installation', async () => {
     const result = await verifyLicenseEnvelopeWithKey(envelope, installationId, publicKeyBase64, now);
     expect(result.isPaid).toBe(true);
