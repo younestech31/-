@@ -21,7 +21,7 @@ function stableStringify(value) {
 function pemToBytes(pem, label) {
   const match = pem.match(new RegExp('-----BEGIN ' + label + '-----([\\s\\S]+?)-----END ' + label + '-----'));
   if (!match) throw new Error('Invalid PEM file: expected ' + label + '.');
-  return new Uint8Array(Buffer.from(match[1].replace(/\\s/g, ''), 'base64'));
+  return new Uint8Array(Buffer.from(match[1].replace(/\s/g, ''), 'base64'));
 }
 
 function usage() {
