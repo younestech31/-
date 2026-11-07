@@ -406,13 +406,13 @@ export function withholdForUnbornHeir(state: PipelineState): PipelineState {
       const sExist = sonHeirs.find(h => h.heirId === 'son');
       if (sExist) { sExist.count += 1; sExist.isPresent = true; }
       else { sonHeirs.push({ heirId: 'son', count: 1, isPresent: true }); }
-      const sonResults = calculateInheritance(sonHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false), ctx.confirmedNoDistantKindred;
+      const sonResults = calculateInheritance(sonHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false, ctx.confirmedNoDistantKindred);
 
       const daughterHeirs = activeHeirs.map(h => ({ ...h }));
       const dExist = daughterHeirs.find(h => h.heirId === 'daughter');
       if (dExist) { dExist.count += 1; dExist.isPresent = true; }
       else { daughterHeirs.push({ heirId: 'daughter', count: 1, isPresent: true }); }
-      const daughterResults = calculateInheritance(daughterHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false), ctx.confirmedNoDistantKindred;
+      const daughterResults = calculateInheritance(daughterHeirs, ctx.estate, ctx.debts, ctx.funeralCosts, 0, false, ctx.deceasedChildren, 'stillborn', false, ctx.confirmedNoDistantKindred);
 
       let hasFullBlock = false;
       for (const nr of normalResults) {
