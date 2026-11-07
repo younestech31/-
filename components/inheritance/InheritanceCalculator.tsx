@@ -483,7 +483,7 @@ export default function InheritanceCalculator({
             currentNetEstate={currentNetEstate}
             estate={estate} debts={debts} funeralCosts={funeralCosts} bequest={bequest} netEstate={netEstate}
             deceasedGender={deceasedGender} setDeceasedGender={setDeceasedGender}
-            setEstate={setEstate} setDebts={setDebts} setFuneralCosts={setFuneralCosts} setBequest={setBequest}
+            setEstate={(value) => { setEstate(value); updateStageDiyahExcludedConfirmation(false); }} setDebts={setDebts} setFuneralCosts={setFuneralCosts} setBequest={setBequest}
             updateStageName={updateStageName}
             updateStageMandatoryBequest={updateStageMandatoryBequest}
             updateStageDeceasedChildren={updateStageDeceasedChildren}
