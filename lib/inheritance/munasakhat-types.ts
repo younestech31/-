@@ -31,6 +31,8 @@ export interface MunasakhatStage {
   hasUnbornHeir?: boolean;
   hasChildrenFromOtherUnion?: boolean;
   secondDeceasedHasChildrenFromOtherUnion?: boolean;
+  /** Explicit Article 167/180 confirmation that no entitled distant kindred exists. */
+  confirmedNoDistantKindred?: boolean;
   acknowledgedExclusions?: string[];
 }
 
