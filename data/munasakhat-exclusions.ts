@@ -164,7 +164,7 @@ export function validateMunasakhatStageExclusions(
   const grandmotherDegreeNeedsManualReview =
     (presentMaternalGrandmother && presentPaternalGrandmother) ||
     presenceList.some(heir =>
-      heir.isPresent && heir.count > 1 &&
+      heir.isPresent && heir.count !== undefined && heir.count > 1 &&
       ['maternal_grandmother', 'paternal_grandmother'].includes(heir.heirId)
     );
   if (grandmotherDegreeNeedsManualReview) {
