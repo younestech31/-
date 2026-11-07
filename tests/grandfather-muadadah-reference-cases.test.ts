@@ -127,6 +127,68 @@ const referenceCases: ReferenceCase[] = [
       paternal_brother: { fraction: '1/27', amount: 20_000 },
       paternal_sister: { fraction: '1/54', amount: 10_000 },
     },
+  },,
+  {
+    id: 'art158-grandfather-one-full-brother-muqasama-half',
+    basis: 'Article 158 / Zayd method: one brother gives the grandfather one half by muqasama, better than one third of the whole',
+    estate: 100_000,
+    heirs: [present('grandfather'), present('full_brother')],
+    expected: {
+      grandfather: { fraction: '1/2', amount: 50_000 },
+      full_brother: { fraction: '1/2', amount: 50_000 },
+    },
+  },
+  {
+    id: 'art158-grandfather-one-full-sister-muqasama-two-thirds',
+    basis: 'Article 158 / Zayd method: the grandfather counts as two shares against one sister, so he takes two thirds by muqasama',
+    estate: 90_000,
+    heirs: [present('grandfather'), present('full_sister')],
+    expected: {
+      grandfather: { fraction: '2/3', amount: 60_000 },
+      full_sister: { fraction: '1/3', amount: 30_000 },
+    },
+  },
+  {
+    id: 'art158-grandfather-two-full-sisters-muqasama-equals-third',
+    basis: 'Article 158 / Zayd method: grandfather two shares against two sisters; muqasama and one third are equal',
+    estate: 180_000,
+    heirs: [present('grandfather'), present('full_sister', 2)],
+    expected: {
+      grandfather: { fraction: '1/2', amount: 90_000 },
+      full_sister: { fraction: '1/2', amount: 90_000, individualAmounts: [45_000, 45_000] },
+    },
+  },
+  {
+    id: 'art158-grandfather-three-full-sisters-muqasama-two-fifths',
+    basis: 'Article 158 / Zayd method: three sisters are more than twice the grandfather; one third is better than muqasama',
+    estate: 150_000,
+    heirs: [present('grandfather'), present('full_sister', 3)],
+    expected: {
+      grandfather: { fraction: '1/3', amount: 50_000 },
+      full_sister: { fraction: '2/3', amount: 100_000, individualAmounts: [33_333.33, 33_333.33, 33_333.34] },
+    },
+  },
+  {
+    id: 'art158-wife-grandfather-full-brother-post-fard-muqasama',
+    basis: 'Article 158 with a fixed-share heir: after wife quarter, grandfather and one full brother divide the three-quarter residue equally',
+    estate: 400_000,
+    heirs: [present('wife'), present('grandfather'), present('full_brother')],
+    expected: {
+      wife: { fraction: '1/4', amount: 100_000 },
+      grandfather: { fraction: '3/8', amount: 150_000 },
+      full_brother: { fraction: '3/8', amount: 150_000 },
+    },
+  },
+  {
+    id: 'art158-husband-grandfather-full-sister-post-fard-muqasama',
+    basis: 'Article 158 with a fixed-share heir: husband half; grandfather and one full sister divide the remaining half in two-to-one ratio',
+    estate: 120_000,
+    heirs: [present('husband'), present('grandfather'), present('full_sister')],
+    expected: {
+      husband: { fraction: '1/2', amount: 60_000 },
+      grandfather: { fraction: '1/3', amount: 40_000 },
+      full_sister: { fraction: '1/6', amount: 20_000 },
+    },
   },
 ];
 
