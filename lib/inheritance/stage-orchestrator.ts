@@ -120,18 +120,28 @@ export function runInheritanceOrchestration(
       };
     }
 
-    const res = calculateInheritance(
-      sanitizedPresence,
-      stageEstate,
-      stageDebts,
-      stageFuneral,
-      stageBequest,
-      stage.hasMandatoryBequest && !tanzilNeedsManualReview,
-      deceasedChildrenForCalculation,
-      'stillborn',
-      false,
-      stage.confirmedNoDistantKindred === true,
+    const unsupportedMultiplePregnancy = Boolean(
+      stage.hasUnbornHeir &&
+      ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome || '')
     );
+    const pregnancyNeedsManualReview = Boolean(stage.pregnancyDisputed || unsupportedMultiplePregnancy);
+
+    const res = pregnancyNeedsManualReview
+      ? []
+      : calculateInheritance(
+          sanitizedPresence,
+          stageEstate,
+          stageDebts,
+          stageFuneral,
+          stageBequest,
+          stage.hasMandatoryBequest && !tanzilNeedsManualReview,
+          deceasedChildrenForCalculation,
+          stage.unbornOutcome === 'twins_male_female' || stage.unbornOutcome === 'twins_males' || stage.unbornOutcome === 'twins_females'
+            ? 'stillborn'
+            : (stage.unbornOutcome || 'stillborn'),
+          stage.hasUnbornHeir ?? false,
+          stage.confirmedNoDistantKindred === true,
+        );
 
     if (hasUnverifiedOverride) {
       res.forEach(r => {
@@ -154,7 +164,7 @@ export function runInheritanceOrchestration(
              r.heirId !== 'treasury'
       );
 
-      if (activeHeirs.length === 0 && net > 0 && stage.confirmedNoDistantKindred === true) {
+      if (activeHeirs.length === 0 && net > 0 && stage.confirmedNoDistantKindred === true && !pregnancyNeedsManualReview && !tanzilNeedsManualReview) {
         const parentStageData = stagesData.find(
           sd => sd.stage.id === stage.parentStageId
         );
@@ -175,6 +185,7 @@ export function runInheritanceOrchestration(
       requiresManualClassification,
       tanzilNeedsManualReview,
       noHeirsNeedsManualReview,
+      pregnancyNeedsManualReview,
     });
   }
 
