@@ -6,7 +6,7 @@ import { generateFullLegalSummary } from '@/lib/inheritance/legal-summary';
 import { validateMunasakhatStageExclusions } from '@/data/munasakhat-exclusions';
 import { CalculationResult } from '@/lib/inheritance/inheritance-calculator';
 
-import { useMunasakhatStages, INITIAL_STAGES } from './useMunasakhatStages';
+import { useMunasakhatStages, INITIAL_STAGES, inferDeceasedGender } from './useMunasakhatStages';
 import { useSavedCases } from './useSavedCases';
 import { useHeirPresence } from './useHeirPresence';
 import { useInheritanceWorker } from './useInheritanceWorker';
@@ -148,6 +148,13 @@ export function useInheritanceState() {
   );
 
   // Sub-hook 3: Heir Presence & Modifiers
+  const currentGender = useMemo(() => {
+    if (currentStageIndex === 0) return deceasedGender;
+    const stage = munasakhatStages[currentStageIndex];
+    return stage?.deceasedGender ?? inferDeceasedGender(stage?.deceasedHeirId);
+  }, [currentStageIndex, munasakhatStages, deceasedGender]);
+
+  // Each Munasakhat stage has its own deceased; never reuse the first deceased's gender.
   const {
     toggleHeir,
     updateCount,
@@ -156,13 +163,7 @@ export function useInheritanceState() {
     updateImpediment,
     filteredHeirs,
     inputWarnings,
-  } = useHeirPresence(munasakhatStages, setMunasakhatStages, currentStageIndex, deceasedGender, showToast);
-
-  // Derived financial & gender for current stage
-  const currentGender = useMemo(() => {
-    if (currentStageIndex === 0) return deceasedGender;
-    return 'male'; // Default for secondary deceased in munasakhat
-  }, [currentStageIndex, deceasedGender]);
+  } = useHeirPresence(munasakhatStages, setMunasakhatStages, currentStageIndex, currentGender, showToast);
 
   // Derived stage validations
   const stageValidations = useMemo(() => {
