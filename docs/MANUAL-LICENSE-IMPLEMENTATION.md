@@ -32,6 +32,8 @@ Run this on the owner's trusted computer:
 This creates:
 - .license-keys/private-key.pem — private signing key; ignored by Git.
 - .license-keys/public-key.pem — public key copy.
+
+Generated customer `*.mwlicense` files are ignored by Git so they cannot be accidentally committed to the public repository.
 - Updated lib/licensing/public-key.ts — public verification key; safe to commit.
 
 Back up the private key offline. Do not run key generation again after issuing customer licenses unless intentionally rotating the key and reissuing all licenses. The script refuses to overwrite an existing key pair unless --rotate is supplied.

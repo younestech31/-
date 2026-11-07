@@ -6,6 +6,8 @@ coverage/
 .env*
 !.env.example
 /.license-keys/
+# Customer license files contain installation and customer identifiers; never commit them.
+*.mwlicense
 /scripts/
 !/scripts/
 !/scripts/license-keys.mjs
