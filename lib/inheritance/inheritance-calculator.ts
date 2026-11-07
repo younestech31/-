@@ -1145,6 +1145,10 @@ export function resolveResidue(state: PipelineState): PipelineState {
         reason = "الأحظ للجد (المقاسمة كذكر من الإخوة) — م.158";
       }
 
+      // A spouse is a fixed-share heir too. Article 158's "one third of
+      // the whole estate" alternative applies only when no other fixed-share
+      // heir is present; with a husband or wife, compare 1/6, 1/3 of the
+      // remainder after furud, and muqasama only.
       const otherHeirsExist = results.some(r =>
         !r.isBlocked &&
         !['grandfather', 'full_brother', 'full_sister',
