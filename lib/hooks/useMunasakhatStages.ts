@@ -250,6 +250,9 @@ export function useMunasakhatStages(
         next[currentStageIndex] = {
           ...stage,
           [field]: Math.max(0, value),
+          ...((field === 'estate' || field === 'ownSeparateAssets')
+            ? { confirmedDiyahExcluded: false }
+            : {}),
         };
       }
       return next;
