@@ -16,6 +16,7 @@ async function loadPost(existingRows: unknown[], insertedRows: unknown[] = []) {
   const select = vi.fn(() => ({
     from: () => ({
       where: () => ({ limit: async () => existingRows }),
+      orderBy: async () => existingRows,
     }),
   }));
   const onConflictDoNothing = vi.fn().mockReturnValue({
@@ -31,15 +32,16 @@ async function loadPost(existingRows: unknown[], insertedRows: unknown[] = []) {
     checkRateLimit: async () => ({ success: true, remaining: 9 }),
   }));
 
-  const { POST } = await import('@/app/api/audit-records/route');
+  const { GET, POST } = await import('@/app/api/audit-records/route');
   const { NextRequest } = await import('next/server');
   const post = async (body: unknown) => POST(new NextRequest('http://localhost/api/audit-records', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   }));
+  const get = async () => GET(new NextRequest('http://localhost/api/audit-records'));
 
-  return { post, select, insert, onConflictDoNothing };
+  return { get, post, select, insert, onConflictDoNothing };
 }
 
 afterEach(() => {
@@ -49,6 +51,29 @@ afterEach(() => {
 });
 
 describe('Server audit ledger append-only guarantees', () => {
+  it('describes ledger GET as predecessor-reference checking, not cryptographic verification', async () => {
+    const payload = validPayload();
+    const record = {
+      ...payload,
+      createdAt: new Date('2026-11-07T00:00:00.000Z'),
+    };
+    const { get } = await loadPost([record]);
+
+    const response = await get();
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toMatchObject({
+      predecessorReferencesPresent: true,
+      totalRecords: 1,
+      brokenAtRecord: null,
+      verificationScope: 'predecessor-reference-only',
+      cryptographicIntegrityVerified: false,
+      digitalSignatureVerified: false,
+    });
+    expect(data).not.toHaveProperty('chainValid');
+  });
+
   it('rejects identifying or unknown summary fields', async () => {
     const { post, insert } = await loadPost([]);
     const payload = { ...validPayload(), summary: { ...validPayload().summary, heirNames: ['private'] } };

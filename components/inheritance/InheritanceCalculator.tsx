@@ -163,6 +163,12 @@ export default function InheritanceCalculator({
   const currentWarnings = currentStageResult?.excludedHeirWarnings || [];
   const acknowledgedExclusions = currentStage?.acknowledgedExclusions || [];
   const activeWarningsCount = currentWarnings.filter(w => !acknowledgedExclusions.includes(w.heirId)).length;
+  const isMunasakhatExportBlocked = allStagesResults.some((stageResult, stageIndex) => {
+    const acknowledged = munasakhatStages[stageIndex]?.acknowledgedExclusions || [];
+    const hasPendingExclusions = (stageResult.excludedHeirWarnings || [])
+      .some(warning => !acknowledged.includes(warning.heirId));
+    return hasPendingExclusions || Boolean(stageResult.hasUnverifiedOverride);
+  });
 
   useEffect(() => {
     if (activeWarningsCount > 0) {
@@ -179,6 +185,7 @@ export default function InheritanceCalculator({
   }, [isEstatePanelOpen]);
 
   const handleLegalSummary = () => {
+    if (isMunasakhatExportBlocked) return;
     const text = generateFullLegalSummary(allStagesResults, {
       estate,
       debts,
@@ -299,7 +306,7 @@ export default function InheritanceCalculator({
               <div className="flex items-center gap-2 justify-start md:justify-center overflow-x-auto no-scrollbar whitespace-nowrap bg-white/[0.04] p-1.5 md:p-1 rounded-lg md:rounded-xl border border-white/10 shadow-inner w-full md:w-auto max-w-full shrink-0">
                 <button 
                   onClick={handleLegalSummary} 
-                  disabled={isCalculatorEmpty}
+                  disabled={isCalculatorEmpty || isMunasakhatExportBlocked}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title="تنزيل ملخص نصي قانوني"
                 >
@@ -309,7 +316,7 @@ export default function InheritanceCalculator({
                 
                 <button 
                   onClick={exportToExcelApplet} 
-                  disabled={isExportingExcel || isCalculatorEmpty || state.isEntitlementsLoading}
+                  disabled={isExportingExcel || isCalculatorEmpty || state.isEntitlementsLoading || isMunasakhatExportBlocked}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير النتائج كملف Excel (XLSX)"}
                 >
@@ -323,7 +330,7 @@ export default function InheritanceCalculator({
                 
                 <button 
                   onClick={exportToWordApplet} 
-                  disabled={isExportingWord || isCalculatorEmpty || state.isEntitlementsLoading}
+                  disabled={isExportingWord || isCalculatorEmpty || state.isEntitlementsLoading || isMunasakhatExportBlocked}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير وثيقة رسمية Word (DOCX)"}
                 >
@@ -337,7 +344,7 @@ export default function InheritanceCalculator({
 
                 <button 
                   onClick={exportToPDFApplet} 
-                  disabled={isExportingPDF || isCalculatorEmpty || state.isEntitlementsLoading}
+                  disabled={isExportingPDF || isCalculatorEmpty || state.isEntitlementsLoading || isMunasakhatExportBlocked}
                   className="flex items-center gap-1 md:gap-1.5 bg-[#B8894A]/15 hover:bg-[#B8894A]/30 border border-[#B8894A]/40 text-[#D9A85E] hover:text-white rounded-md md:rounded-lg px-2 md:px-3 py-1.5 md:py-1 text-[10px] md:text-[11px] font-semibold transition-all hover:scale-[1.02] active:scale-95 h-8 md:h-[34px] shrink-0 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   title={isCalculatorEmpty ? "يرجى إضافة ورثة أولاً للتصدير" : "تصدير وثيقة رسمية PDF"}
                 >
@@ -496,6 +503,7 @@ export default function InheritanceCalculator({
             setSelectedHeirExplanation={setSelectedHeirExplanation}
             updateImpediment={updateImpediment}
             currentStageValidation={currentStageValidation}
+            isMunasakhatExportBlocked={isMunasakhatExportBlocked}
             noHeirsRedistribution={noHeirsRedistribution}
             isCalculating={isWorkerCalculating}
             handleCopyFullSummary={handleCopyFullSummary}

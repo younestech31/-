@@ -66,6 +66,7 @@ interface ResultsTableProps {
     hasUnacknowledgedExclusions?: boolean;
     unacknowledgedExclusions?: ExcludedHeirWarning[];
   };
+  isMunasakhatExportBlocked?: boolean;
   /** سياسة توزيع الحصة عند غياب الورثة في المسألة الثانوية */
   noHeirsRedistribution: StageResult['noHeirsRedistribution'];
   isCalculating: boolean;
@@ -93,6 +94,7 @@ const ResultsTable = memo(function ResultsTable({
   setSelectedHeirExplanation,
   updateImpediment,
   currentStageValidation,
+  isMunasakhatExportBlocked = false,
   noHeirsRedistribution: _noHeirsRedistribution,
   isCalculating,
   handleCopyFullSummary,
@@ -175,14 +177,16 @@ const ResultsTable = memo(function ResultsTable({
           {allStagesResults.length > 1 ? (
             <button
               onClick={handleCopyFullSummary}
-              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#0a5d38] font-bold hover:bg-[#0a5d38]/10 flex items-center gap-1`}
-              title="نسخ الملخص الكامل لجميع مراحل المناسخات"
+              disabled={isMunasakhatExportBlocked}
+              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#0a5d38] font-bold hover:bg-[#0a5d38]/10 flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed`}
+              title={isMunasakhatExportBlocked ? 'راجع استبعادات المناسخة قبل نسخ الملخص' : 'نسخ الملخص الكامل لجميع مراحل المناسخات'}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <span>نسخ الملخص</span>
             </button>
           ) : (
             <button
+              disabled={Boolean(currentStageValidation?.hasUnacknowledgedExclusions || isMunasakhatExportBlocked)}
               onClick={async () => {
                 const lines = [
                   `نتائج التقسيم - ${currentStageIndex === 0 ? 'المسألة الأصلية' : `وفاة: ${currentStage.deceasedName}`}`
@@ -225,8 +229,8 @@ const ResultsTable = memo(function ResultsTable({
                   alert('فشل نسخ النتائج');
                 }
               }}
-              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#64748b] hover:text-[#1a1a1a] flex items-center gap-1`}
-              title="نسخ كنص للطباعة القانونية"
+              className={`px-3 py-1 text-xs rounded-sm transition-colors text-[#64748b] hover:text-[#1a1a1a] flex items-center gap-1 disabled:opacity-40 disabled:cursor-not-allowed`}
+              title={isMunasakhatExportBlocked ? 'راجع استبعادات المناسخة قبل نسخ النتائج' : 'نسخ كنص للطباعة القانونية'}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <span className="hidden sm:inline">نسخ النص</span>
@@ -288,9 +292,9 @@ const ResultsTable = memo(function ResultsTable({
             aria-live="assertive"
             className="p-4 mb-4 bg-rose-50 border-2 border-rose-300 text-rose-950 text-sm rounded-lg shadow-sm"
           >
-            <p className="font-bold">النتائج المعروضة مؤقتة: توجد استبعادات لم تُراجع بعد</p>
+            <p className="font-bold">تم حجب عرض الأنصبة مؤقتًا لوجود استبعادات غير مراجعة</p>
             <p className="text-xs mt-1 leading-relaxed">
-              استُبعدت العناصر التالية من حساب هذه المرحلة وفق قواعد التنبيه الحالية. لا تعتمد على هذه الأنصبة ولا تصدر مستنداً قبل مراجعة صلة كل وارث والتحقق من انطباق القاعدة على الشخص المعني.
+              لن نعرض توزيعًا قد يُفهم على أنه نتيجة نهائية بينما توجد أسماء أُسقطت تلقائيًا وفق قواعد المناسخة. راجع كل حالة أدناه: أزل اختيار من لا يدخل في المسألة، أو أكّد أن قاعدة الاستبعاد لا تنطبق لإدراج الوارث بعد مراجعتك.
             </p>
             <ul className="mt-3 space-y-2">
               {(currentStageValidation.unacknowledgedExclusions || []).map(warning => (
@@ -320,7 +324,12 @@ const ResultsTable = memo(function ResultsTable({
           </div>
         )}
 
-        {results.length > 0 ? (
+        {currentStageValidation?.hasUnacknowledgedExclusions ? (
+          <div className="p-4 mb-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-900 text-sm">
+            <p className="font-bold">النتيجة الحسابية مخفية حتى إتمام المراجعة</p>
+            <p className="text-xs mt-1">بعد مراجعة التحذيرات وإزالة أسباب الالتباس، ستظهر الأنصبة تلقائيًا. لا يمكن تصدير المستندات أو نسخ النتائج مع بقاء هذه المراجعة معلّقة.</p>
+          </div>
+        ) : results.length > 0 ? (
           viewMode === 'table' ? (
             <TableView
               results={results}
