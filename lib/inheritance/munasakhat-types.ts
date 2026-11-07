@@ -36,6 +36,8 @@ export interface MunasakhatStage {
   confirmedNoDistantKindred?: boolean;
   /** Article 181: any minor among the heirs requires judicial partition. */
   hasMinorHeir?: boolean;
+  /** Article 129: two or more deaths with an unproven order of death. */
+  deathOrderUncertain?: boolean;
   acknowledgedExclusions?: string[];
 }
 
