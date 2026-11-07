@@ -120,6 +120,7 @@ export function runInheritanceOrchestration(
       };
     }
 
+    const minorHeirNeedsJudicialPartition = stage.hasMinorHeir === true;
     const pregnancyNeedsManualReview = Boolean(
       stage.pregnancyDisputed ||
       (stage.hasUnbornHeir &&
@@ -187,6 +188,7 @@ export function runInheritanceOrchestration(
       tanzilNeedsManualReview,
       noHeirsNeedsManualReview,
       pregnancyNeedsManualReview,
+      minorHeirNeedsJudicialPartition,
     });
   }
 
