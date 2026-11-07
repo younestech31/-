@@ -121,6 +121,7 @@ export function runInheritanceOrchestration(
     }
 
     const minorHeirNeedsJudicialPartition = stage.hasMinorHeir === true;
+    const deathOrderNeedsManualReview = stage.deathOrderUncertain === true;
     const pregnancyNeedsManualReview = Boolean(
       stage.pregnancyDisputed ||
       (stage.hasUnbornHeir &&
@@ -128,7 +129,7 @@ export function runInheritanceOrchestration(
           ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome)))
     );
 
-    const res = pregnancyNeedsManualReview
+    const res = pregnancyNeedsManualReview || deathOrderNeedsManualReview
       ? []
       : calculateInheritance(
           sanitizedPresence,
@@ -189,6 +190,7 @@ export function runInheritanceOrchestration(
       noHeirsNeedsManualReview,
       pregnancyNeedsManualReview,
       minorHeirNeedsJudicialPartition,
+      deathOrderNeedsManualReview,
     });
   }
 
