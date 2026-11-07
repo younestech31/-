@@ -42,15 +42,24 @@ export function runInheritanceOrchestration(
     const hasPaternalSiblingLine = heirsToCheck.some(h => ['paternal_brother', 'paternal_sister'].includes(h.heirId));
     const hasUnresolvedGrandfatherMuadadah = hasGrandfather && hasFullSiblingLine && hasPaternalSiblingLine;
     const hasGranddaughter = heirsToCheck.some(h => h.heirId === 'granddaughter');
+    const hasSonSon = heirsToCheck.some(h => h.heirId === 'son_son');
     const hasPotentialGranddaughterCousinAsaba = heirsToCheck.some(h =>
       ['full_nephew', 'paternal_nephew', 'full_uncle_son', 'paternal_uncle_son'].includes(h.heirId)
     );
     const granddaughterCousinDegreeNeedsManualReview =
       hasGranddaughter && hasPotentialGranddaughterCousinAsaba;
+    // The input model groups every degree of son's son/daughter under one ID.
+    // Arts. 155 and 163 make the effect of a male descendant degree-dependent;
+    // never assume that every recorded son's son can make every son's daughter
+    // an asaba or block her. Hold the production result until the UI captures
+    // the exact branch and degree of each descendant.
+    const granddaughterSonSonDegreeNeedsManualReview =
+      hasGranddaughter && hasSonSon;
     const requiresManualClassification =
       manualClassificationHeirs.length > 0 ||
       hasUnresolvedGrandfatherMuadadah ||
       granddaughterCousinDegreeNeedsManualReview ||
+      granddaughterSonSonDegreeNeedsManualReview ||
       grandmotherDegreeNeedsManualReview;
 
     if (grandmotherDegreeNeedsManualReview) {
@@ -68,6 +77,15 @@ export function runInheritanceOrchestration(
         heirNameAr: 'بنت الابن',
         reason: 'المادة 155: قد تصبح بنت الابن عصبة بغيرها مع ابن عمها المساوي لها في الدرجة أو ابن ابن عمها الأنزل درجة. لا يسجل النموذج الحالي درجة هذا القريب وجهة الإدلاء بدقة؛ لذلك أوقف الحساب الآلي لهذه الصورة إلى أن تُراجع القرابة والدرجة.',
         source: 'المادة 155 من قانون الأسرة الجزائري — النص المرفق.',
+      });
+    }
+
+    if (granddaughterSonSonDegreeNeedsManualReview) {
+      excludedHeirWarnings.push({
+        heirId: 'granddaughter_son_son_degree',
+        heirNameAr: 'درجة ابن الابن وبنت الابن',
+        reason: 'المادتان 155 و163: لا تسجل المدخلات الحالية درجة ابن الابن وبنت الابن ولا فرع كل منهما. لا يجوز افتراض أن كل ابن ابن يعصّب كل بنت ابن أو يحجبها؛ فقد يختلف الحكم باختلاف الدرجة وجهة الإدلاء. عُلّق الحساب الآلي إلى حين توثيق درجة كل فرع ومراجعته.',
+        source: 'المادتان 155 و163 من قانون الأسرة الجزائري — النص المرفق.',
       });
     }
 
