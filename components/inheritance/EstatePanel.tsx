@@ -43,6 +43,7 @@ interface EstatePanelProps {
   updateStageNoDistantKindredConfirmation: (checked: boolean) => void;
   updateStagePregnancy: (hasUnbornHeir: boolean, outcome: NonNullable<MunasakhatStage['unbornOutcome']>) => void;
   updateStagePregnancyDisputed: (checked: boolean) => void;
+  updateStageMinorHeirPresent: (checked: boolean) => void;
   requiresNoDistantKindredConfirmation?: boolean;
   parentHeirName?: string;
 }
@@ -76,6 +77,7 @@ const EstatePanel = memo(function EstatePanel({
   updateStageNoDistantKindredConfirmation,
   updateStagePregnancy,
   updateStagePregnancyDisputed,
+  updateStageMinorHeirPresent,
   requiresNoDistantKindredConfirmation = false,
   parentHeirName,
 }: EstatePanelProps) {
@@ -320,6 +322,21 @@ const EstatePanel = memo(function EstatePanel({
             </p>
           </div>
         )}
+
+        <div className="mb-3 rounded border border-violet-200 bg-violet-50/70 p-3">
+          <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-violet-950">
+            <input
+              type="checkbox"
+              checked={currentStage.hasMinorHeir === true}
+              onChange={e => updateStageMinorHeirPresent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-violet-700"
+            />
+            <span className="font-semibold">يوجد قاصر بين الورثة (المادة 181)</span>
+          </label>
+          <p className="mt-2 text-[10px] leading-relaxed text-violet-800">
+            عند وجود قاصر، تظل الأنصبة الحسابية استرشادية، لكن القسمة لا تُستكمل توثيقياً خارج المسار القضائي.
+          </p>
+        </div>
 
         <div className="mb-3 rounded border border-sky-200 bg-sky-50/60 p-3">
           <label className="flex cursor-pointer items-start gap-2 text-xs leading-relaxed text-sky-950">
