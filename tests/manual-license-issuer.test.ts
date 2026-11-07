@@ -33,7 +33,7 @@ describe('Offline license issuer integration', () => {
       const publicKeyBase64 = Buffer.from(publicDer).toString('base64');
       await writeFile(privatePath, toPem('PRIVATE KEY', privateDer), { mode: 0o600 });
       await writeFile(publicPath, toPem('PUBLIC KEY', publicDer), { mode: 0o600 });
-      await writeFile(publicSourcePath, `export const LICENSE_PUBLIC_KEY_SPKI = "${publicKeyBase64}";\\n`, { mode: 0o600 });
+      await writeFile(publicSourcePath, `export const LICENSE_PUBLIC_KEY_SPKI = "${publicKeyBase64}";\n`, { mode: 0o600 });
 
       const installationId = '8a3a9fc4-cffd-4b45-8e43-ecad84eeb723';
       const scriptPath = path.resolve(process.cwd(), 'scripts/issue-license.mjs');
@@ -91,7 +91,7 @@ describe('Offline license issuer integration', () => {
       const wrongPublicSourcePath = path.join(tempDirectory, 'wrong-public-key.ts');
       const wrongPublicKeyBase64 = Buffer.from(wrongPublicDer).toString('base64');
       await writeFile(wrongPublicPath, toPem('PUBLIC KEY', wrongPublicDer), { mode: 0o600 });
-      await writeFile(wrongPublicSourcePath, `export const LICENSE_PUBLIC_KEY_SPKI = "${wrongPublicKeyBase64}";\\n`, { mode: 0o600 });
+      await writeFile(wrongPublicSourcePath, `export const LICENSE_PUBLIC_KEY_SPKI = "${wrongPublicKeyBase64}";\n`, { mode: 0o600 });
       const mismatchedOutput = path.join(tempDirectory, 'mismatched.mwlicense');
       await expect(execFileAsync(process.execPath, [
         scriptPath,
