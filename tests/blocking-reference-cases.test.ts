@@ -41,6 +41,11 @@ const statutoryBlockingCases: RuleCase[] = [
   { id: 'art162-grandson-blocks-paternal-nephew', article: 162, heir: 'paternal_nephew', blockers: ['son_son'] },
   { id: 'art162-father-blocks-paternal-nephew', article: 162, heir: 'paternal_nephew', blockers: ['father'] },
   { id: 'art162-grandfather-blocks-full-nephew', article: 162, heir: 'full_nephew', blockers: ['grandfather'] },
+  { id: 'art162-grandfather-blocks-paternal-nephew', article: 162, heir: 'paternal_nephew', blockers: ['grandfather'] },
+  { id: 'art153-grandfather-blocks-full-uncle', article: 153, heir: 'full_uncle', blockers: ['grandfather'] },
+  { id: 'art153-grandfather-blocks-paternal-uncle', article: 153, heir: 'paternal_uncle', blockers: ['grandfather'] },
+  { id: 'art153-grandfather-blocks-full-uncle-son', article: 153, heir: 'full_uncle_son', blockers: ['grandfather'] },
+  { id: 'art153-grandfather-blocks-paternal-uncle-son', article: 153, heir: 'paternal_uncle_son', blockers: ['grandfather'] },
   { id: 'art163-two-daughters-block-lower-granddaughter', article: 163, heir: 'granddaughter', blockers: ['daughter'], counts: { daughter: 2 } },
 
   { id: 'art164-father-blocks-full-sister', article: 164, heir: 'full_sister', blockers: ['father'] },
