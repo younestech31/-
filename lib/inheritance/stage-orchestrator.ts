@@ -1,4 +1,4 @@
-import { calculateInheritance } from '@/lib/inheritance/inheritance-calculator';
+import { calculateInheritance, type DeceasedChildGroup } from '@/lib/inheritance/inheritance-calculator';
 import { resolveNoHeirsPolicy } from '@/lib/inheritance/munasakhat-resolver';
 import type { MunasakhatStage } from '@/components/inheritance/InheritanceCalculator';
 import type { StageResult } from '@/components/inheritance/ResultsTable';
@@ -79,10 +79,10 @@ export function runInheritanceOrchestration(
     // Preserve Article 171/172 metadata for each deceased-child group.
     // The UI keeps the legacy count fields separately, so use those counts
     // while carrying the matching group's gift / prior-inheritance metadata.
-    const deceasedChildrenForCalculation = ([
+    const deceasedChildrenForCalculation: DeceasedChildGroup[] = ([
       { type: 'son' as const, count: sonsCount },
       { type: 'daughter' as const, count: daughtersCount },
-    ]).filter(group => group.count > 0).map(group => {
+    ]).filter(group => group.count > 0).map((group): DeceasedChildGroup => {
       const configuredGroup = stage.deceasedChildren?.find(child => child.type === group.type);
       return configuredGroup ? { ...configuredGroup, count: group.count } : group;
     });
