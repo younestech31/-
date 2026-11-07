@@ -18,7 +18,7 @@ vi.mock('jspdf', async (importOriginal) => {
         }
         return originalText.call(this, text, x, y, opts);
       };
-      this.save = (() => this) as typeof this.save;
+      this.save = (() => this) as unknown as typeof this.save;
     }
   }
   return {
