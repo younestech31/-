@@ -161,6 +161,7 @@ const EstatePanel = memo(function EstatePanel({
           {currentStageIndex === 0 ? (
             <input
               type="number"
+              step="0.01"
               min="0"
               value={estate === 0 ? '' : estate}
               onChange={e => setEstate(e.target.value === '' ? 0 : Number(e.target.value))}
@@ -184,6 +185,7 @@ const EstatePanel = memo(function EstatePanel({
                 </label>
                 <input
                   type="number"
+                  step="0.01"
                   min="0"
                   value={currentStage.ownSeparateAssets === undefined || currentStage.ownSeparateAssets === 0 ? '' : currentStage.ownSeparateAssets}
                   onChange={e => updateStageFinancialField('ownSeparateAssets', e.target.value === '' ? 0 : Number(e.target.value))}
@@ -234,6 +236,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1">الديون العينية</label>
               <input
                 type="number"
+                step="0.01"
                 min="0"
                 value={debts === 0 ? '' : debts}
                 onChange={e => setDebts(e.target.value === '' ? 0 : Number(e.target.value))}
@@ -245,6 +248,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1">مصاريف الجنازة</label>
               <input
                 type="number"
+                step="0.01"
                 min="0"
                 value={funeralCosts === 0 ? '' : funeralCosts}
                 onChange={e => setFuneralCosts(e.target.value === '' ? 0 : Number(e.target.value))}
@@ -256,6 +260,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1">الوصية (في حدود الثلث)</label>
               <input
                 type="number"
+                step="0.01"
                 min="0"
                 value={bequest === 0 ? '' : bequest}
                 onChange={e => setBequest(e.target.value === '' ? 0 : Number(e.target.value))}
@@ -270,6 +275,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1 font-bold text-[#0a5d38]">ديون الوارث المتوفى (خاصة به)</label>
               <input
                 type="number"
+                step="0.01"
                 min="0"
                 value={currentStage.debts === undefined || currentStage.debts === 0 ? '' : currentStage.debts}
                 onChange={e => updateStageFinancialField('debts', e.target.value === '' ? 0 : Number(e.target.value))}
@@ -281,6 +287,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1 font-bold text-[#0a5d38]">مصاريف جنازة الوارث المتوفى</label>
               <input
                 type="number"
+                step="0.01"
                 min="0"
                 value={currentStage.funeralCosts === undefined || currentStage.funeralCosts === 0 ? '' : currentStage.funeralCosts}
                 onChange={e => updateStageFinancialField('funeralCosts', e.target.value === '' ? 0 : Number(e.target.value))}
@@ -292,6 +299,7 @@ const EstatePanel = memo(function EstatePanel({
               <label className="block text-xs text-[#64748b] mb-1 font-bold text-[#0a5d38]">وصية الوارث المتوفى (بحدود الثلث)</label>
               <input
                 type="number"
+                step="0.01"
                 min="0"
                 value={currentStage.bequest === undefined || currentStage.bequest === 0 ? '' : currentStage.bequest}
                 onChange={e => updateStageFinancialField('bequest', e.target.value === '' ? 0 : Number(e.target.value))}
@@ -502,6 +510,7 @@ const EstatePanel = memo(function EstatePanel({
                   <label className="block text-[10px] text-[#92400e] mb-1">أبناء (ذكور) متوفون</label>
                   <input
                     type="number"
+                    step="1"
                     min="0"
                     value={currentStage.deceasedSonsCount || ''}
                     onChange={e => updateStageDeceasedChildren('deceasedSonsCount', Number(e.target.value))}
@@ -512,6 +521,7 @@ const EstatePanel = memo(function EstatePanel({
                   <label className="block text-[10px] text-[#92400e] mb-1">بنات متوفيات</label>
                   <input
                     type="number"
+                    step="1"
                     min="0"
                     value={currentStage.deceasedDaughtersCount || ''}
                     onChange={e => updateStageDeceasedChildren('deceasedDaughtersCount', Number(e.target.value))}
@@ -535,6 +545,7 @@ const EstatePanel = memo(function EstatePanel({
                         <label className="block text-[10px] text-amber-800 mb-0.5">ما ورثوه من أبيهم/أمهم (إن وجد):</label>
                         <input
                           type="number"
+                          step="0.01"
                           min="0"
                           value={currentStage.alreadyInheritedFromParentAmount || ''}
                           onChange={e => updateStageAlreadyInherited?.(Number(e.target.value))}
