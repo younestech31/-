@@ -23,6 +23,7 @@ import { formatDZDAmount } from '@/lib/inheritance/document-branding';
 export interface MunasakhatStage {
   id: string;
   deceasedName?: string;
+  deceasedNameAr?: string;
   deceasedGender?: 'male' | 'female';
   estate?: number;
   parentHeirId?: string;
