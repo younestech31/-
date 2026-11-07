@@ -5,6 +5,11 @@ import { HEIRS } from '@/data/heirs';
 import { HeirPresence, DeceasedChildGroup } from '@/lib/inheritance/inheritance-calculator';
 import { MunasakhatStage } from '@/lib/inheritance/munasakhat-types';
 
+export function inferDeceasedGender(heirId?: string): 'male' | 'female' | null {
+  const gender = HEIRS.find(heir => heir.id === heirId)?.gender;
+  return gender === 'male' || gender === 'female' ? gender : null;
+}
+
 export const DEFAULT_HEIRS_STAGE0: HeirPresence[] = HEIRS.map(h => ({
   heirId: h.id,
   count: 0,
@@ -89,6 +94,16 @@ export function useMunasakhatStages(
     setCurrentStageIndex(prev => Math.max(0, prev - 1));
     showToast('تم حذف مرحلة المناسخة بنجاح.', 'info');
   }, [showToast]);
+
+  const updateStageGender = useCallback((gender: 'male' | 'female') => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (!stage || currentStageIndex === 0) return prev;
+      next[currentStageIndex] = { ...stage, deceasedGender: gender };
+      return next;
+    });
+  }, [currentStageIndex]);
 
   const updateStageName = useCallback((name: string) => {
     setMunasakhatStages(prev => {
