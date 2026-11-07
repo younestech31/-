@@ -730,6 +730,66 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(amountFor(result.results, 'daughter')).toBeGreaterThan(0);
   });
 
+  it('calculates and withholds the share of one missing heir under Article 133', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('wife'),
+      {
+        heirId: 'son',
+        count: 1,
+        isPresent: true,
+        missingPersonStatus: 'missing_presumed_alive',
+      },
+    ], 120000, 0, 0, 0);
+
+    const wife = results.find(result => result.heirId === 'wife');
+    const missingSon = results.find(result => result.heirId === 'son');
+    expect(wife?.amount).toBe(15000); // 1/8 because the missing son is treated as alive
+    expect(missingSon?.amount).toBe(105000);
+    expect(missingSon?.isWithheld).toBe(true);
+    expect(missingSon?.article).toBe(133);
+    expect(missingSon?.reason).toContain('موقوف للمفقود');
+  });
+
+  it('blocks calculation when one missing person is not distinguishable within a multi-person heir group', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('wife'),
+      {
+        heirId: 'son',
+        count: 2,
+        isPresent: true,
+        missingPersonStatus: 'missing_presumed_alive',
+      },
+    ], 120000, 0, 0, 0);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].heirId).toBe('article_133_review');
+    expect(results[0].amount).toBe(0);
+  });
+
+  it('flags a missing heir among a multi-person group for manual review in orchestration', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى الأصلي',
+      hasMandatoryBequest: false,
+      heirs: [
+        present('wife'),
+        {
+          heirId: 'son',
+          count: 2,
+          isPresent: true,
+          missingPersonStatus: 'missing_presumed_alive',
+        },
+      ],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 120000, 0, 0, 0]);
+    expect(result.missingHeirNeedsManualReview).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
   it('blocks direct Article 173 calculation while pregnancy outcome is pending', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
