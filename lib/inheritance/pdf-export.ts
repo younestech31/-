@@ -459,7 +459,7 @@ function renderStageVectorPDF(
   // 2. Legal Disclaimer Box OR Official Notary Banner (Stage 0 Page 1)
   if (stageIdx === 0) {
     if (office.isOfficialMode || office.showDisclaimer === false) {
-      // Official Notary Certification Banner
+      // Professional office header; this is formatting only, not an official attestation.
       pdf.setFillColor(...hexToRgb(COLOR_PALETTE.greenLight));
       pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.amber));
       pdf.setLineWidth(0.4);
@@ -468,13 +468,13 @@ function renderStageVectorPDF(
       safeSetFont(pdf, 'Amiri', 'bold');
       pdf.setFontSize(9);
       pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
-      pdf.text(fixArabicRtl('إصدار محرر رسمي للفريضة الشرعية — الديوان العمومي للتوثيق'), 192, currentY + 5, { align: 'right' });
+      pdf.text(fixArabicRtl('تقرير مهني للمراجعة — بيانات المكتب كما أدخلها المستخدم'), 192, currentY + 5, { align: 'right' });
 
       safeSetFont(pdf, 'Amiri', 'normal');
       pdf.setFontSize(8);
       pdf.setTextColor(...hexToRgb('#1E293B'));
-      pdf.text(fixArabicRtl(`رقم المرجع الرسمي للوثيقة: ${docRefNumber}`), 192, currentY + 10, { align: 'right' });
-      pdf.text(fixArabicRtl(`الأستاذ الموثق المعتمـد: ${office.notaryNameAr} — ${office.titleAr}`), 192, currentY + 14, { align: 'right' });
+      pdf.text(fixArabicRtl(`مرجع التقرير: ${docRefNumber}`), 192, currentY + 10, { align: 'right' });
+      pdf.text(fixArabicRtl(`بيانات الموثق/المكتب: ${office.notaryNameAr} — ${office.titleAr}`), 192, currentY + 14, { align: 'right' });
 
       if (qrDataUrl) {
         try {
