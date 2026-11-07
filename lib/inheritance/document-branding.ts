@@ -232,7 +232,8 @@ export function getNotarialAttestationData(
   const caseRef = settings.documentRefNumber || auditRecord?.caseRef || generateDocumentRefNumber();
   const dateStr = formatBilingualDate(new Date(), lang);
   const auditHash = auditRecord?.combinedHash || 'SHA256-PENDING-NOTARIAL-SEAL';
-  const isVerified = Boolean(settings.notaryLicenseVerified);
+  // A user-editable local flag is not proof of statutory notary accreditation or legal validation.
+  const isVerified = false;
 
   if (lang === 'fr') {
     if (isVerified) {
@@ -247,13 +248,13 @@ export function getNotarialAttestationData(
       };
     } else {
       return {
-        title: 'RAPPORT DE CALCUL ET VÉRIFICATION CRYPTOGRAPHIQUE (SHA-256)',
-        attestationText: `Calcul de dévolution successorale établi via la plateforme Mawarith conformément aux Articles 139 à 180 du Code de la Famille Algérien. Le code de vérification (SHA-256) garantit l'intégrité technique des calculs.`,
+        title: 'RAPPORT DE CALCUL — CONTRÔLE REQUIS',
+        attestationText: `Rapport de calcul généré par la plateforme Mawarith à des fins d'aide à la vérification. Il ne constitue pas un acte authentique ni une attestation notariale. Toute validation, signature ou apposition d'un sceau relève exclusivement du professionnel habilité après contrôle indépendant. L'empreinte SHA-256 sert uniquement au contrôle technique d'intégrité.`,
         notaryName: settings.notaryNameAr || 'Plateforme Mawarith',
         caseRef: `Réf. Acte: ${caseRef}`,
         formattedDate: `Date d'établissement: ${dateStr}`,
         auditHash,
-        signatureBoxTitle: 'Aperçu du rapport technique',
+        signatureBoxTitle: 'Zone réservée à la vérification externe',
       };
     }
   } else {
@@ -263,19 +264,19 @@ export function getNotarialAttestationData(
         attestationText: `أشهد أنا الموثق الموقّع أدناه، صاحب الديوان العمومي للتوثيق، بصحة ومطابقة عملية تصفية التركة المرفقة للأنصبة الشرعية والمواد 139 إلى 180 من قانون الأسرة الجزائري. تحمل هذه الوثيقة رمز تحقق تشفيري بـ SHA-256 لمنع أي تغيير يدوياً في السهام.`,
         notaryName: settings.notaryNameAr || 'الموثق',
         caseRef: `رقم مرجع الفريضة: ${caseRef}`,
-        formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
+        formattedDate: `تاريخ إعداد التقرير: ${dateStr}`,
         auditHash,
         signatureBoxTitle: 'توقيع وخاتم الموثق',
       };
     } else {
       return {
-        title: 'تقرير التصفية الآلية ورمز التحقق التشفيري (SHA-256)',
-        attestationText: `تم إعداد هذا الحساب باستخدام منصة مواريث بالحاسبة الفقهية الآلية وفق المواد 139 إلى 180 من قانون الأسرة الجزائري. رمز التحقق التشفيري المرفق (SHA-256) يُستخدم للتحقق التقني من تكامل الحسابات وعدم تعديلها.`,
+        title: 'تقرير حساب آلي — غير مصادق عليه',
+        attestationText: `تم إعداد هذا التقرير آلياً بواسطة منصة مواريث للمساعدة على الحساب والمراجعة فقط. لا يُعدّ عقداً رسمياً أو إشهاداً توثيقياً أو مصادقة على صحة الوقائع والمعطيات. لا يكتسب أي صفة رسمية إلا بعد المراجعة المستقلة والإجراءات والتوقيع والختم من الجهة المختصة. وتُستخدم بصمة SHA-256 للتحقق التقني من سلامة الملف فقط.`,
         notaryName: settings.notaryNameAr || 'منصة مواريث الرقمية',
         caseRef: `رقم مرجع الفريضة: ${caseRef}`,
         formattedDate: `تاريخ التحرير والإشهاد: ${dateStr}`,
         auditHash,
-        signatureBoxTitle: 'معاينة المستخرج التقني',
+        signatureBoxTitle: 'مخصص للمراجعة والتحقق الخارجي',
       };
     }
   }
