@@ -42,6 +42,7 @@ export interface StageResult {
   excludedHeirWarnings?: ExcludedHeirWarning[];
   hasUnverifiedOverride?: boolean;
   requiresManualClassification?: boolean;
+  tanzilNeedsManualReview?: boolean;
 }
 
 interface ResultsTableProps {
@@ -66,6 +67,8 @@ interface ResultsTableProps {
   currentStageValidation?: {
     hasUnacknowledgedExclusions?: boolean;
     requiresManualClassification?: boolean;
+    manualClassificationReasons?: string[];
+    tanzilNeedsManualReview?: boolean;
     unacknowledgedExclusions?: Array<Pick<ExcludedHeirWarning, 'heirId' | 'reason' | 'source'> & { heirNameAr?: string }>;
   };
   isMunasakhatExportBlocked?: boolean;
@@ -294,9 +297,27 @@ const ResultsTable = memo(function ResultsTable({
             aria-live="assertive"
             className="p-4 mb-4 bg-rose-50 border-2 border-rose-300 text-rose-950 text-sm rounded-lg shadow-sm"
           >
-            <p className="font-bold">لا يمكن اعتماد حساب ذوي الأرحام بهذا المدخل العام</p>
+            <p className="font-bold">لا يمكن اعتماد هذه الصورة آلياً قبل استكمال المراجعة القانونية</p>
+            <ul className="mt-2 space-y-1 text-xs leading-relaxed list-disc pr-5">
+              {(currentStageValidation.manualClassificationReasons || [
+                'تتطلب هذه المسألة تحديد صلة القرابة ودرجة القرب وجهة الإدلاء قبل اعتماد الأنصبة.'
+              ]).map(reason => <li key={reason}>{reason}</li>)}
+            </ul>
+            <p className="text-xs mt-2">
+              يعرض النظام نتائج استكشافية فقط، ويعطّل تصدير المستندات حتى تُعالج هذه الصورة في المحرك وتُراجع قانونياً.
+            </p>
+          </div>
+        )}
+
+        {currentStageValidation?.tanzilNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-4 mb-4 bg-amber-50 border-2 border-amber-300 text-amber-950 text-sm rounded-lg shadow-sm"
+          >
+            <p className="font-bold">التنزيل (المواد 169–172) لم يُحتسب آلياً في هذه المرحلة</p>
             <p className="text-xs mt-1 leading-relaxed">
-              المادة 168 ترتب المستحقين بحسب صلة القرابة ودرجة القرب وكون الأصل من أصحاب الفروض. اختيار «ذوو الأرحام» أو «الجد لأم» وحده لا يحدد هذه البيانات، لذلك حُجب توزيع الأنصبة والتصدير إلى أن تتوفر طريقة لإدخال القرابة التفصيلية ومراجعتها.
+              المدخل الحالي يسجل أعداد الأبناء المتوفين فقط، ولا يسجل كل فرع من الأحفاد، ومن يرث منهم مباشرة، وما خُصّ به كل فرد بوصية أو هبة، وما ورثه من أبيه أو أمه، ولا طريقة توزيع مناب كل فرع بينهم. لذلك أوقف المحرك حساب مبلغ التنزيل بدلاً من إصدار رقم قد يكون مضللاً. يلزم استكمال نموذج الفروع التفصيلي ومراجعته قبل اعتماد أي مبلغ.
             </p>
           </div>
         )}
