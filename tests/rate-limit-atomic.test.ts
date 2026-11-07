@@ -28,7 +28,7 @@ describe('Database rate limiter uses an atomic UPSERT', () => {
   });
 
   it('rejects the attempt when the atomic counter is already at its limit', async () => {
-    const returning = vi.fn().mockResolvedValue([{ count: 5 }]);
+    const returning = vi.fn().mockResolvedValue([{ count: 6 }]);
     const onConflictDoUpdate = vi.fn().mockReturnValue({ returning });
     const values = vi.fn().mockReturnValue({ onConflictDoUpdate });
     const database = { insert: vi.fn().mockReturnValue({ values }) };

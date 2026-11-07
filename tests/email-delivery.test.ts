@@ -52,7 +52,12 @@ describe('Production email delivery', () => {
 
     const send = vi.fn().mockResolvedValue({ data: { id: 'email-1' }, error: null });
     vi.doMock('resend', () => ({
-      Resend: vi.fn(() => ({ emails: { send } })),
+      Resend: class MockResend {
+        emails: { send: typeof send };
+        constructor(_apiKey: string) {
+          this.emails = { send };
+        }
+      },
     }));
 
     const { sendVerificationEmail } = await import('@/lib/email');
@@ -74,7 +79,12 @@ describe('Production email delivery', () => {
 
     const send = vi.fn().mockResolvedValue({ data: { id: 'email-1' }, error: null });
     vi.doMock('resend', () => ({
-      Resend: vi.fn(() => ({ emails: { send } })),
+      Resend: class MockResend {
+        emails: { send: typeof send };
+        constructor(_apiKey: string) {
+          this.emails = { send };
+        }
+      },
     }));
 
     const { sendVerificationEmail } = await import('@/lib/email');
