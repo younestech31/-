@@ -31,9 +31,13 @@ export function runInheritanceOrchestration(
     const manualClassificationIds = new Set(['distant_kindred', 'maternal_grandfather']);
     const manualClassificationHeirs = heirsToCheck.filter(h => manualClassificationIds.has(h.heirId));
     const hasGrandfather = heirsToCheck.some(h => h.heirId === 'grandfather');
-    const grandmotherDegreeNeedsManualReview = heirsToCheck.some(h =>
-      ['maternal_grandmother', 'paternal_grandmother'].includes(h.heirId) && h.count > 1
-    );
+    const hasMaternalGrandmother = heirsToCheck.some(h => h.heirId === 'maternal_grandmother');
+    const hasPaternalGrandmother = heirsToCheck.some(h => h.heirId === 'paternal_grandmother');
+    const grandmotherDegreeNeedsManualReview =
+      (hasMaternalGrandmother && hasPaternalGrandmother) ||
+      heirsToCheck.some(h =>
+        ['maternal_grandmother', 'paternal_grandmother'].includes(h.heirId) && h.count > 1
+      );
     const hasFullSiblingLine = heirsToCheck.some(h => ['full_brother', 'full_sister'].includes(h.heirId));
     const hasPaternalSiblingLine = heirsToCheck.some(h => ['paternal_brother', 'paternal_sister'].includes(h.heirId));
     const hasUnresolvedGrandfatherMuadadah = hasGrandfather && hasFullSiblingLine && hasPaternalSiblingLine;
@@ -53,7 +57,7 @@ export function runInheritanceOrchestration(
       excludedHeirWarnings.push({
         heirId: 'grandmother_degree',
         heirNameAr: 'الجدة',
-        reason: 'المادتان 149(4) و161: يتوقف تقسيم السدس بين الجدات أو اختصاص الأقرب به على درجة كل جدة. النموذج الحالي لا يميز الجدة عن أم الجدة ولا يسجل درجة القرابة؛ لذلك أوقف الحساب الآلي عند إدخال أكثر من جدة في الجهة نفسها.',
+        reason: 'المادتان 149(4) و161: تقسيم السدس يتوقف على درجة كل جدة؛ فإذا اجتمعت جدتان في درجة واحدة اشتركتا فيه، وإذا كانت إحداهما أبعد اختصت الأقرب به. النموذج لا يسجل درجة الجدة أو كونها جدة مباشرة/أبعد؛ لذلك عُلّق الحساب الآلي عند إدخال جدتين أو أكثر.',
         source: 'المادتان 149(4) و161 من قانون الأسرة الجزائري — النص المرفق.',
       });
     }
