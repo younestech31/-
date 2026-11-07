@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SavedCase, MunasakhatStage } from '@/lib/inheritance/munasakhat-types';
 import { OfficeSettings, DEFAULT_OFFICE_SETTINGS, getPersistedOfficeSettings } from '@/lib/inheritance/document-branding';
 import { encryptData, decryptData } from '@/lib/crypto';
-import { getStoredLicenseStatus } from '@/lib/licensing/manual-license';
+import { getStoredLicenseStatus, hasLicenseFeature } from '@/lib/licensing/manual-license';
 import {
   decryptMawarithBackup,
   encryptMawarithBackup,
@@ -288,7 +288,7 @@ export function useSavedCases(
   const exportEncryptedBackup = useCallback(async (passphrase: string): Promise<boolean> => {
     try {
       const license = await getStoredLicenseStatus();
-      if (!license.isPaid) {
+      if (!hasLicenseFeature(license, 'encrypted-backup')) {
         showToast('ميزة النسخ الاحتياطي المشفّر متاحة ضمن ترخيص Pro الساري فقط.', 'error');
         return false;
       }
@@ -330,7 +330,7 @@ export function useSavedCases(
     setIsImporting(true);
     try {
       const license = await getStoredLicenseStatus();
-      if (!license.isPaid) {
+      if (!hasLicenseFeature(license, 'encrypted-backup')) {
         showToast('استيراد النسخة الاحتياطية المشفّرة متاح ضمن ترخيص Pro الساري فقط.', 'error');
         return false;
       }

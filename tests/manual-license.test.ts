@@ -3,6 +3,7 @@ import { webcrypto } from 'node:crypto';
 import {
   stableStringify,
   isPublicKeyConfigured,
+  hasLicenseFeature,
   verifyLicenseEnvelopeWithKey,
   type MawarithLicensePayload,
 } from '@/lib/licensing/manual-license';
@@ -34,7 +35,7 @@ beforeAll(async () => {
     issuedAt: '2026-11-07T11:00:00.000Z',
     expiresAt: '2027-02-05T11:00:00.000Z',
     installationId,
-    features: ['professional-pdf-export'],
+    features: ['professional-pdf-export', 'encrypted-backup'],
   };
   const signature = await webcrypto.subtle.sign(
     { name: 'ECDSA', hash: 'SHA-256' },
@@ -61,6 +62,14 @@ describe('Mawarith manual license verification', () => {
     expect(result.plan).toBe('professional');
     expect(result.license?.licenseId).toBe('MW-TEST-0001');
     expect(result.reason).toBeNull();
+    expect(hasLicenseFeature(result, 'professional-pdf-export')).toBe(true);
+    expect(hasLicenseFeature(result, 'encrypted-backup')).toBe(true);
+  });
+
+  it('does not grant an entitlement when the license is not valid', async () => {
+    const invalid = await verifyLicenseEnvelopeWithKey(envelope, 'another-installation-id-0001', publicKeyBase64, now);
+    expect(hasLicenseFeature(invalid, 'professional-pdf-export')).toBe(false);
+    expect(hasLicenseFeature(invalid, 'encrypted-backup')).toBe(false);
   });
 
   it('rejects a license issued for a different installation', async () => {

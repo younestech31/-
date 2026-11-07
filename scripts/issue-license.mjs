@@ -21,7 +21,7 @@ function stableStringify(value) {
 function pemToBytes(pem, label) {
   const match = pem.match(new RegExp('-----BEGIN ' + label + '-----([\\s\\S]+?)-----END ' + label + '-----'));
   if (!match) throw new Error('Invalid PEM file: expected ' + label + '.');
-  return new Uint8Array(Buffer.from(match[1].replace(/\\s/g, ''), 'base64'));
+  return new Uint8Array(Buffer.from(match[1].replace(/\s/g, ''), 'base64'));
 }
 
 function usage() {
@@ -39,6 +39,8 @@ const installationId = readOption('installation-id');
 const customerName = readOption('customer');
 const days = Number(readOption('days'));
 const privateKeyPath = path.resolve(root, readOption('private-key', '.license-keys/private-key.pem'));
+const publicKeyPath = path.resolve(root, readOption('public-key', '.license-keys/public-key.pem'));
+const publicKeySourcePath = path.resolve(root, readOption('public-key-source', 'lib/licensing/public-key.ts'));
 const licenseId = readOption('license-id', 'MW-' + randomUUID());
 const outputPath = path.resolve(root, readOption('output', 'mawarith-' + licenseId.replace(/[^A-Za-z0-9_-]/g, '_') + '.mwlicense'));
 
@@ -53,10 +55,26 @@ if (
 }
 
 let privatePem;
+let publicPem;
+let publicKeySource;
 try {
   privatePem = await readFile(privateKeyPath, 'utf8');
+  publicPem = await readFile(publicKeyPath, 'utf8');
+  publicKeySource = await readFile(publicKeySourcePath, 'utf8');
 } catch {
-  console.error('Cannot read private key at ' + privateKeyPath + '. Run npm run license:keys on the owner\'s offline computer first.');
+  console.error('Cannot read the owner key pair or pinned client public key. Run npm run license:keys on the owner\'s trusted offline computer, then commit only lib/licensing/public-key.ts.');
+  process.exit(1);
+}
+
+const publicKeyMatch = publicKeySource.match(/LICENSE_PUBLIC_KEY_SPKI\s*=\s*["']([A-Za-z0-9+/=]+)["']/);
+if (!publicKeyMatch?.[1]) {
+  console.error('The pinned browser verification key is missing or malformed. Refusing to issue a license.');
+  process.exit(1);
+}
+
+const publicDer = pemToBytes(publicPem, 'PUBLIC KEY');
+if (Buffer.from(publicDer).toString('base64') !== publicKeyMatch[1]) {
+  console.error('The owner public key does not match lib/licensing/public-key.ts. Refusing to issue a license that customers could not activate.');
   process.exit(1);
 }
 
@@ -67,6 +85,29 @@ const privateKey = await webcrypto.subtle.importKey(
   false,
   ['sign'],
 );
+const publicKey = await webcrypto.subtle.importKey(
+  'spki',
+  publicDer,
+  { name: 'ECDSA', namedCurve: 'P-256' },
+  false,
+  ['verify'],
+);
+const keyPairChallenge = webcrypto.getRandomValues(new Uint8Array(32));
+const challengeSignature = await webcrypto.subtle.sign(
+  { name: 'ECDSA', hash: 'SHA-256' },
+  privateKey,
+  keyPairChallenge,
+);
+const keyPairMatches = await webcrypto.subtle.verify(
+  { name: 'ECDSA', hash: 'SHA-256' },
+  publicKey,
+  challengeSignature,
+  keyPairChallenge,
+);
+if (!keyPairMatches) {
+  console.error('The private and public keys do not form a valid pair. Refusing to issue a license.');
+  process.exit(1);
+}
 
 const issuedAt = new Date();
 const expiresAt = new Date(issuedAt.getTime() + days * 24 * 60 * 60 * 1000);
@@ -79,7 +120,7 @@ const payload = {
   issuedAt: issuedAt.toISOString(),
   expiresAt: expiresAt.toISOString(),
   installationId,
-  features: ['professional-pdf-export'],
+  features: ['professional-pdf-export', 'encrypted-backup'],
 };
 
 const signature = await webcrypto.subtle.sign(

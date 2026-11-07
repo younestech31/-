@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "Gptcoder": false,
-      "main": true
+      "main": true,
+      "work/mawarith": false
     }
   }
 }

@@ -6,6 +6,7 @@ export const LICENSE_UPDATED_EVENT = 'mawarith:license-updated';
 
 export const LICENSE_FEATURES = [
   'professional-pdf-export',
+  'encrypted-backup',
 ] as const;
 
 export type LicenseFeature = (typeof LICENSE_FEATURES)[number];
@@ -47,6 +48,11 @@ export interface LicenseStatus {
   installationId: string | null;
   license: MawarithLicensePayload | null;
   reason: LicenseFailureReason | null;
+}
+
+/** A paid state is not a substitute for checking a specific entitlement. */
+export function hasLicenseFeature(status: LicenseStatus, feature: LicenseFeature): boolean {
+  return status.isPaid && status.license?.features.includes(feature) === true;
 }
 
 const CLOCK_SKEW_MS = 5 * 60 * 1000;

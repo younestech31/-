@@ -12,12 +12,13 @@ import { useHeirPresence } from './useHeirPresence';
 import { useInheritanceWorker } from './useInheritanceWorker';
 import { usePdfExport } from './usePdfExport';
 import { runInheritanceOrchestration } from '@/lib/inheritance/stage-orchestrator';
-import { getStoredLicenseStatus, LICENSE_UPDATED_EVENT } from '@/lib/licensing/manual-license';
+import { getStoredLicenseStatus, hasLicenseFeature, LICENSE_UPDATED_EVENT } from '@/lib/licensing/manual-license';
 
 export function useInheritanceState() {
   // Professional access is verified locally; no session, billing API, or database is queried.
   const [userPlan, setUserPlan] = useState<'free' | 'pro' | 'notary'>('free');
   const [isPaid, setIsPaid] = useState<boolean>(false);
+  const [hasEncryptedBackup, setHasEncryptedBackup] = useState<boolean>(false);
   const [isEntitlementsLoading, setIsEntitlementsLoading] = useState<boolean>(true);
   const [licenseStatus, setLicenseStatus] = useState<import('@/lib/licensing/manual-license').LicenseStatus | null>(null);
   // Retained as null compatibility fields for components that still consume the previous shape.
@@ -32,11 +33,13 @@ export function useInheritanceState() {
         if (!isMounted) return;
         setLicenseStatus(status);
         setIsPaid(status.isPaid);
+        setHasEncryptedBackup(hasLicenseFeature(status, 'encrypted-backup'));
         setUserPlan(status.isPaid ? 'pro' : 'free');
       } catch {
         if (!isMounted) return;
         setLicenseStatus(null);
         setIsPaid(false);
+        setHasEncryptedBackup(false);
         setUserPlan('free');
       } finally {
         if (isMounted) setIsEntitlementsLoading(false);
@@ -389,6 +392,7 @@ export function useInheritanceState() {
       const currentLicense = await getStoredLicenseStatus();
       setLicenseStatus(currentLicense);
       setIsPaid(currentLicense.isPaid);
+      setHasEncryptedBackup(hasLicenseFeature(currentLicense, 'encrypted-backup'));
       setUserPlan(currentLicense.isPaid ? 'pro' : 'free');
       await exportToPDFClient(
         allStagesResults,
@@ -435,6 +439,7 @@ export function useInheritanceState() {
   return {
     // state
     isPaid,
+    hasEncryptedBackup,
     userPlan,
     isEntitlementsLoading,
     licenseStatus,

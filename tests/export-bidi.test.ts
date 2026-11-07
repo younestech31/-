@@ -74,12 +74,13 @@ describe('Bidi, French-locale, Digits & Notarial Attestation Export Tests', () =
   it('generates Notarial Attestation Block data for Arabic and French', () => {
     const verifiedSettings = { ...DEFAULT_OFFICE_SETTINGS, notaryLicenseVerified: true };
     const dataAr = getNotarialAttestationData(verifiedSettings, null, 'ar');
-    expect(dataAr.title).toContain('إشهاد المصادقة التوثيقية');
-    expect(dataAr.attestationText).toContain('139 إلى 180');
+    expect(dataAr.title).toContain('غير مصادق عليه');
+    expect(dataAr.attestationText).toContain('لا يُعدّ عقداً رسمياً');
+    expect(dataAr.attestationText).not.toContain('أشهد أنا الموثق');
 
     const dataFr = getNotarialAttestationData(verifiedSettings, null, 'fr');
-    expect(dataFr.title).toContain('ATTESTATION DE CONFORMITÉ');
-    expect(dataFr.attestationText).toContain('Articles 139 à 180');
+    expect(dataFr.title).toContain('RAPPORT DE CALCUL');
+    expect(dataFr.attestationText).toContain('ne constitue pas un acte authentique');
   });
 
   it('exporters execute successfully with French language and Latin customNames', async () => {

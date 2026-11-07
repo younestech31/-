@@ -27,8 +27,13 @@ describe('Offline license issuer integration', () => {
       const privateDer = new Uint8Array(await webcrypto.subtle.exportKey('pkcs8', pair.privateKey));
       const publicDer = new Uint8Array(await webcrypto.subtle.exportKey('spki', pair.publicKey));
       const privatePath = path.join(tempDirectory, 'private-key.pem');
+      const publicPath = path.join(tempDirectory, 'public-key.pem');
+      const publicSourcePath = path.join(tempDirectory, 'public-key.ts');
       const outputPath = path.join(tempDirectory, 'issued.mwlicense');
+      const publicKeyBase64 = Buffer.from(publicDer).toString('base64');
       await writeFile(privatePath, toPem('PRIVATE KEY', privateDer), { mode: 0o600 });
+      await writeFile(publicPath, toPem('PUBLIC KEY', publicDer), { mode: 0o600 });
+      await writeFile(publicSourcePath, `export const LICENSE_PUBLIC_KEY_SPKI = "${publicKeyBase64}";\n`, { mode: 0o600 });
 
       const installationId = '8a3a9fc4-cffd-4b45-8e43-ecad84eeb723';
       const scriptPath = path.resolve(process.cwd(), 'scripts/issue-license.mjs');
@@ -39,11 +44,12 @@ describe('Offline license issuer integration', () => {
         '--days', '30',
         '--license-id', 'MW-ISSUER-INTEGRATION-TEST',
         '--private-key', privatePath,
+        '--public-key', publicPath,
+        '--public-key-source', publicSourcePath,
         '--output', outputPath,
       ]);
 
       const envelope = JSON.parse(await readFile(outputPath, 'utf8')) as unknown;
-      const publicKeyBase64 = Buffer.from(publicDer).toString('base64');
       const status = await verifyLicenseEnvelopeWithKey(
         envelope,
         installationId,
@@ -54,7 +60,7 @@ describe('Offline license issuer integration', () => {
       expect(status.isPaid).toBe(true);
       expect(status.license?.licenseId).toBe('MW-ISSUER-INTEGRATION-TEST');
       expect(status.license?.customerName).toBe('مكتب اختبار الترخيص');
-      expect(status.license?.features).toEqual(['professional-pdf-export']);
+      expect(status.license?.features).toEqual(['professional-pdf-export', 'encrypted-backup']);
       const invalidOutput = path.join(tempDirectory, 'invalid-plan.mwlicense');
       let invalidPlanRejected = false;
       try {
@@ -64,6 +70,8 @@ describe('Offline license issuer integration', () => {
           '--customer', 'مكتب اختبار الترخيص',
           '--days', '31',
           '--private-key', privatePath,
+          '--public-key', publicPath,
+          '--public-key-source', publicSourcePath,
           '--output', invalidOutput,
         ]);
       } catch {
@@ -71,6 +79,31 @@ describe('Offline license issuer integration', () => {
       }
       expect(invalidPlanRejected).toBe(true);
       await expect(readFile(invalidOutput, 'utf8')).rejects.toThrow();
+
+      // A mismatched public key must fail before a license file is created.
+      const wrongPair = await webcrypto.subtle.generateKey(
+        { name: 'ECDSA', namedCurve: 'P-256' },
+        true,
+        ['sign', 'verify'],
+      );
+      const wrongPublicDer = new Uint8Array(await webcrypto.subtle.exportKey('spki', wrongPair.publicKey));
+      const wrongPublicPath = path.join(tempDirectory, 'wrong-public-key.pem');
+      const wrongPublicSourcePath = path.join(tempDirectory, 'wrong-public-key.ts');
+      const wrongPublicKeyBase64 = Buffer.from(wrongPublicDer).toString('base64');
+      await writeFile(wrongPublicPath, toPem('PUBLIC KEY', wrongPublicDer), { mode: 0o600 });
+      await writeFile(wrongPublicSourcePath, `export const LICENSE_PUBLIC_KEY_SPKI = "${wrongPublicKeyBase64}";\n`, { mode: 0o600 });
+      const mismatchedOutput = path.join(tempDirectory, 'mismatched.mwlicense');
+      await expect(execFileAsync(process.execPath, [
+        scriptPath,
+        '--installation-id', installationId,
+        '--customer', 'مكتب اختبار الترخيص',
+        '--days', '30',
+        '--private-key', privatePath,
+        '--public-key', wrongPublicPath,
+        '--public-key-source', wrongPublicSourcePath,
+        '--output', mismatchedOutput,
+      ])).rejects.toThrow();
+      await expect(readFile(mismatchedOutput, 'utf8')).rejects.toThrow();
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }

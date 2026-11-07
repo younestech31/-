@@ -459,22 +459,25 @@ function renderStageVectorPDF(
   // 2. Legal Disclaimer Box OR Official Notary Banner (Stage 0 Page 1)
   if (stageIdx === 0) {
     if (office.isOfficialMode || office.showDisclaimer === false) {
-      // Official Notary Certification Banner
+      // Professional office header; this is formatting only, not an official attestation.
       pdf.setFillColor(...hexToRgb(COLOR_PALETTE.greenLight));
       pdf.setDrawColor(...hexToRgb(COLOR_PALETTE.amber));
       pdf.setLineWidth(0.4);
-      pdf.roundedRect(15, currentY, 180, 16, 2, 2, 'FD');
+      pdf.roundedRect(15, currentY, 180, 20, 2, 2, 'FD');
 
       safeSetFont(pdf, 'Amiri', 'bold');
       pdf.setFontSize(9);
       pdf.setTextColor(...hexToRgb(COLOR_PALETTE.greenDark));
-      pdf.text(fixArabicRtl('إصدار محرر رسمي للفريضة الشرعية — الديوان العمومي للتوثيق'), 192, currentY + 5, { align: 'right' });
+      pdf.text(fixArabicRtl('تقرير مهني للمراجعة — بيانات المكتب كما أدخلها المستخدم'), 192, currentY + 5, { align: 'right' });
 
       safeSetFont(pdf, 'Amiri', 'normal');
       pdf.setFontSize(8);
       pdf.setTextColor(...hexToRgb('#1E293B'));
-      pdf.text(fixArabicRtl(`رقم المرجع الرسمي للوثيقة: ${docRefNumber}`), 192, currentY + 10, { align: 'right' });
-      pdf.text(fixArabicRtl(`الأستاذ الموثق المعتمـد: ${office.notaryNameAr} — ${office.titleAr}`), 192, currentY + 14, { align: 'right' });
+      pdf.text(fixArabicRtl(`مرجع التقرير: ${docRefNumber}`), 192, currentY + 10, { align: 'right' });
+      pdf.text(fixArabicRtl(`بيانات الموثق/المكتب: ${office.notaryNameAr} — ${office.titleAr}`), 192, currentY + 14, { align: 'right' });
+      pdf.setFontSize(7);
+      pdf.setTextColor(...hexToRgb('#7F1D1D'));
+      pdf.text(fixArabicRtl('لا يشكل هذا التقرير محرراً رسمياً ولا يثبت اعتماد الموثق أو صحة الوقائع.'), 192, currentY + 18, { align: 'right' });
 
       if (qrDataUrl) {
         try {
@@ -484,7 +487,7 @@ function renderStageVectorPDF(
         }
       }
 
-      currentY += 19;
+      currentY += 23;
     } else {
       // Standard Legal Disclaimer Box
       pdf.setFillColor(...hexToRgb(COLOR_PALETTE.redLight));

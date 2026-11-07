@@ -101,10 +101,16 @@ export default function LicenseManager() {
     }
   };
 
-  const whatsappNumber = process.env.NEXT_PUBLIC_MAWARITH_WHATSAPP || '';
-  const whatsappUrl = whatsappNumber
-    ? 'https://wa.me/' + whatsappNumber.replace(/[^0-9]/g, '') + '?text=' + encodeURIComponent(requestMessage)
+  const whatsappNumber = process.env.NEXT_PUBLIC_MAWARITH_WHATSAPP?.trim() || '';
+  const supportEmail = process.env.NEXT_PUBLIC_MAWARITH_SUPPORT_EMAIL?.trim() || '';
+  const normalizedWhatsAppNumber = whatsappNumber.replace(/[^0-9]/g, '');
+  const whatsappUrl = normalizedWhatsAppNumber.length >= 8 && normalizedWhatsAppNumber.length <= 15
+    ? 'https://wa.me/' + normalizedWhatsAppNumber + '?text=' + encodeURIComponent(requestMessage)
     : '';
+  const emailUrl = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail)
+    ? 'mailto:' + supportEmail + '?subject=' + encodeURIComponent('طلب تفعيل مواريث Pro') + '&body=' + encodeURIComponent(requestMessage)
+    : '';
+  const hasConfiguredContact = Boolean(whatsappUrl || emailUrl);
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900 px-4 py-8 sm:px-6" dir="rtl">
@@ -225,9 +231,31 @@ export default function LicenseManager() {
                 فتح واتساب
               </a>
             )}
+            {emailUrl && (
+              <a
+                href={emailUrl}
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-3 text-center text-sm font-bold text-slate-800 hover:bg-slate-50"
+              >
+                مراسلة البريد الإلكتروني
+              </a>
+            )}
+          </div>
+          {!hasConfiguredContact && (
+            <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-950">
+              لم تُهيّأ وسيلة التواصل الرسمية بعد. يمكنك نسخ الطلب، لكن لا تحوّل أي مبلغ ولا ترسل بياناتك المالية قبل التأكد من قناة تواصل موثوقة مع مالك مواريث.
+            </p>
+          )}
+          <div className="rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-700">
+            <p className="font-bold">ماذا يشمل Pro؟</p>
+            <ul className="mt-1 list-disc space-y-1 pr-5">
+              <li>تصدير تقارير PDF دون العلامة المائية التوضيحية.</li>
+              <li>تصدير واستيراد نسخة احتياطية مشفّرة للمسائل وإعدادات المكتب.</li>
+              <li>لا تُرسل بيانات التركات أو كلمة مرور النسخة الاحتياطية إلى خادم.</li>
+            </ul>
+            <p className="mt-2 text-xs text-slate-500">تبقى الحسابات الشرعية، مسائل المواريث، وWord وExcel والحفظ العادي متاحة مجاناً.</p>
           </div>
           <p className="text-xs leading-6 text-slate-500">
-            الأسعار تجريبية قابلة للمراجعة. لا يوجد تجديد تلقائي؛ ينتهي الترخيص في التاريخ المحدد ويمكن طلب التجديد يدوياً.
+            الأسعار تجريبية قابلة للمراجعة. لا يوجد تجديد تلقائي؛ ينتهي الترخيص في التاريخ المحدد ويمكن طلب التجديد يدوياً. يرتبط الترخيص بملف المتصفح الحالي، وقد يستلزم حذف بيانات الموقع أو تغيير المتصفح إصدار ترخيص بديل.
           </p>
         </section>
         ) : (
@@ -239,7 +267,7 @@ export default function LicenseManager() {
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 text-sm leading-7 text-slate-600">
           <h2 className="font-bold text-slate-900">ما يبقى متاحاً مجاناً؟</h2>
-          <p>الحسابات، جميع مسائل المواريث المتاحة في المحرك، الأمثلة، الحفظ المحلي، والاستيراد والتصدير الاحتياطي تبقى متاحة دون اشتراك. ترخيص Pro يزيل العلامة التوضيحية من تقارير PDF.</p>
+          <p>الحسابات وجميع مسائل المواريث المتاحة في المحرك والأمثلة والحفظ المحلي ونسخ JSON العادية وتصدير Word وExcel تبقى متاحة دون اشتراك. يضيف Pro تصدير PDF دون العلامة المائية ونسخاً احتياطية مشفّرة قابلة للاستعادة.</p>
         </section>
 
         <footer className="text-center">

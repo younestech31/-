@@ -14,11 +14,11 @@ describe('Document Fraud Prevention and Notarial Attestation Gating (C4)', () =>
     expect(attestationData.attestationText).not.toContain('أشهد أنا الموثق');
     expect(attestationData.attestationText).toContain('منصة مواريث');
     expect(attestationData.title).not.toContain('إشهاد المصادقة');
-    expect(attestationData.title).toContain('تقرير التصفية الآلية');
-    expect(attestationData.signatureBoxTitle).toBe('معاينة المستخرج التقني');
+    expect(attestationData.title).toContain('تقرير حساب آلي — غير مصادق عليه');
+    expect(attestationData.signatureBoxTitle).toBe('المراجعة والتحقق الخارجي');
   });
 
-  it('generates first-person attestation ONLY when notaryLicenseVerified is explicitly true', () => {
+  it('never generates a first-person attestation from a user-editable verification flag', () => {
     const verifiedSettings: OfficeSettings = {
       ...DEFAULT_OFFICE_SETTINGS,
       isOfficialMode: true,
@@ -27,9 +27,10 @@ describe('Document Fraud Prevention and Notarial Attestation Gating (C4)', () =>
 
     const attestationData = getNotarialAttestationData(verifiedSettings, null, 'ar');
 
-    expect(attestationData.attestationText).toContain('أشهد أنا الموثق');
-    expect(attestationData.title).toContain('رمز التحقق التشفيري');
-    expect(attestationData.signatureBoxTitle).toBe('توقيع وخاتم الموثق');
+    expect(attestationData.attestationText).toContain('لا يُعدّ عقداً رسمياً');
+    expect(attestationData.attestationText).not.toContain('أشهد أنا الموثق');
+    expect(attestationData.title).toContain('غير مصادق عليه');
+    expect(attestationData.signatureBoxTitle).toBe('المراجعة والتحقق الخارجي');
   });
 
   it('does NOT use "جنائي" wording in attestation titles or text', () => {

@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main, Gptcoder, chore/manual-license-hardening]
+    branches: [main, Gptcoder, chore/manual-license-hardening, work/mawarith]
   pull_request:
     branches: [main]
 
