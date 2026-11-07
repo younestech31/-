@@ -194,7 +194,7 @@ export default function InheritanceCalculator({
       || Boolean(stageResult.involuntaryKillerNeedsCompensationReview)
       || Boolean(stageResult.missingHeirNeedsManualReview)
       || Boolean(stageResult.spouseEligibilityNeedsReview)
-       || Boolean(stageResult.financialInputNeedsManualReview);
+      || Boolean(stageResult.financialInputNeedsManualReview);
   });
 
   useEffect(() => {
