@@ -150,6 +150,8 @@ export function useInheritanceState() {
     confirmDelete,
     exportData,
     importData,
+    exportEncryptedBackup,
+    importEncryptedBackup,
   } = useSavedCases(
     estate, debts, funeralCosts, bequest, deceasedGender,
     munasakhatStages, setMunasakhatStages,
@@ -507,6 +509,8 @@ export function useInheritanceState() {
     confirmDelete,
     exportData,
     importData,
+    exportEncryptedBackup,
+    importEncryptedBackup,
     loadClassicCase,
     exportToExcelApplet,
     exportToWordApplet,
