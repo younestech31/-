@@ -287,6 +287,20 @@ export function useMunasakhatStages(
     });
   }, [currentStageIndex]);
 
+  const updateStageSpouseEligibilityConfirmation = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          confirmedSpouseEligibility: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
   const updateStagePregnancy = useCallback((
     hasUnbornHeir: boolean,
     unbornOutcome: NonNullable<MunasakhatStage['unbornOutcome']>
@@ -406,6 +420,7 @@ export function useMunasakhatStages(
     updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
     updateStageNoDistantKindredConfirmation,
+    updateStageSpouseEligibilityConfirmation,
     updateStagePregnancy,
     updateStagePregnancyDisputed,
     updateStageMinorHeirPresent,
