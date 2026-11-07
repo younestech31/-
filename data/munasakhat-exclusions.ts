@@ -168,6 +168,16 @@ export function validateMunasakhatStageExclusions(
     );
   }
 
+  const hasGranddaughter = presentIds.has('granddaughter');
+  const hasPotentialGranddaughterCousinAsaba = [
+    'full_nephew', 'paternal_nephew', 'full_uncle_son', 'paternal_uncle_son',
+  ].some(heirId => presentIds.has(heirId));
+  if (hasGranddaughter && hasPotentialGranddaughterCousinAsaba) {
+    manualClassificationReasons.push(
+      'المادة 155: قد تصبح بنت الابن عصبة بغيرها مع قريب ذكر في درجتها أو ابن ابن عمها الأنزل درجة. لا يسجل النموذج درجة القريب وجهة الإدلاء، لذلك عُلّق الحساب الآلي حتى تراجع القرابة.'
+    );
+  }
+
   const deceasedSonsCount = stage.deceasedSonsCount
     ?? (stage.deceasedChildren?.filter(child => child.type === 'son').reduce((sum, child) => sum + child.count, 0) || 0);
   const deceasedDaughtersCount = stage.deceasedDaughtersCount
