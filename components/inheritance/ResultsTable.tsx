@@ -44,6 +44,7 @@ export interface StageResult {
   requiresManualClassification?: boolean;
   tanzilNeedsManualReview?: boolean;
   noHeirsNeedsManualReview?: boolean;
+  pregnancyNeedsManualReview?: boolean;
 }
 
 interface ResultsTableProps {
@@ -306,6 +307,19 @@ const ResultsTable = memo(function ResultsTable({
             </ul>
             <p className="text-xs mt-2">
               يعرض النظام نتائج استكشافية فقط، ويعطّل تصدير المستندات حتى تُعالج هذه الصورة في المحرك وتُراجع قانونياً.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.pregnancyNeedsManualReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+          >
+            <p className="font-bold">توقّف الحساب الآلي بسبب حالة الحمل — المادتان 173 و174</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              الحمل غير المحسوم أو المتعدد، أو النزاع حول ثبوته، يحتاج إلى تحديد النصيب الموقوف والتحقق مما إذا كان يحجب بعض الورثة حجب حرمان. لا تُعرض أنصبة نهائية ولا تُصدّر التقارير حتى تُراجع الحالة ويُحدد الحكم المناسب.
             </p>
           </div>
         )}
