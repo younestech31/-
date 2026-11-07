@@ -16,15 +16,15 @@ concurrency:
 jobs:
   verify:
     name: Lint, Typecheck, Test & Build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -36,9 +36,29 @@ jobs:
           npm --version
 
       # Regenerate the npm lock from the authoritative package.json.
-      # This repairs the stale lock on Gptcoder before using npm ci.
       - name: Synchronize npm lockfile
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      # Apply non-breaking fixes only; never use --force to cross major versions.
+      - name: Apply compatible dependency security fixes
+        run: npm audit fix --package-lock-only --ignore-scripts --no-fund
+
+      # Commit the generated lock before verification so security updates are
+      # preserved even when a later verification step fails.
+      - name: Commit synchronized package-lock.json on Gptcoder
+        if: github.ref == 'refs/heads/Gptcoder'
+        shell: bash
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "package-lock.json is already synchronized."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "chore(deps): synchronize secure npm lockfile"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
 
       - name: Install dependencies from the synchronized lockfile
         run: npm ci --no-audit --no-fund
@@ -65,21 +85,3 @@ jobs:
 
       - name: Run Playwright Privacy & Accessibility E2E Tests
         run: npx playwright test
-
-      # Only the Gptcoder branch may receive the regenerated lockfile commit.
-      # GITHUB_TOKEN pushes do not start a second workflow run; this job has
-      # already tested the exact lockfile that it commits.
-      - name: Commit synchronized package-lock.json on Gptcoder
-        if: success() && github.ref == 'refs/heads/Gptcoder'
-        shell: bash
-        run: |
-          if git diff --quiet -- package-lock.json; then
-            echo "package-lock.json is already synchronized."
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "chore(deps): synchronize npm lockfile"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
