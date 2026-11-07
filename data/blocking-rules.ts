@@ -319,8 +319,9 @@ export const BLOCKING_RULES: BlockingRule[] = [
     conditionAr: 'ابن العم الشقيق يحجب ابن العم لأب'
   },
   /**
-   * Note: Maps to 'granddaughter' since the codebase uses this unified ID for
-   * all paternal granddaughters, and the degree relationships are handled dynamically.
+   * The input model uses one generic ID for sons' daughters of all degrees.
+   * Degree-dependent cases are therefore held for manual review by the stage
+   * orchestrator under Arts. 155 and 163; this rule table cannot infer lineage.
    */
   {
     blocker: 'son_son',
@@ -333,8 +334,8 @@ export const BLOCKING_RULES: BlockingRule[] = [
     blocker: 'two_daughters',
     blocked: 'granddaughter',
     type: 'full',
-    article: 160,
-    conditionAr: 'بنتان أو أكثر يحجبن بنات الابن'
+    article: 163,
+    conditionAr: 'البنتان أو بنات الابن الأعلى درجة تحجب بنت الابن الأدنى ما لم يوجد من يعصبها — م.163'
   },
   {
     blocker: 'son',
@@ -462,42 +463,42 @@ export const BLOCKING_RULES: BlockingRule[] = [
     blocker: 'father',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'الأب يحجب أولاد الأم'
   },
   {
     blocker: 'grandfather',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'الجد يحجب أولاد الأم'
   },
   {
     blocker: 'son',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'الابن يحجب أولاد الأم'
   },
   {
     blocker: 'daughter',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'البنت تحجب أولاد الأم'
   },
   {
     blocker: 'son_son',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'ابن الابن يحجب أولاد الأم'
   },
   {
     blocker: 'granddaughter',
     blocked: 'maternal_siblings',
     type: 'full',
-    article: 164,
+    article: 148,
     conditionAr: 'بنت الابن تحجب أولاد الأم'
   },
   // حجب النقصان (م. 160)
