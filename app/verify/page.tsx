@@ -16,6 +16,7 @@ function VerifyContent() {
   const [inputHash, setInputHash] = useState(hashParam);
   const [loading, setLoading] = useState(false);
   const [record, setRecord] = useState<CalculationAuditRecord | null>(null);
+  const [recordSource, setRecordSource] = useState<'local' | 'server' | null>(null);
   const [searched, setSearched] = useState(false);
   const [allRecords, setAllRecords] = useState<CalculationAuditRecord[]>([]);
 
@@ -32,14 +33,18 @@ function VerifyContent() {
   const handleVerifyHash = async (hashToVerify: string) => {
     const cleanHash = hashToVerify.trim();
     if (!cleanHash) return;
-    setLoading(true);
     setSearched(true);
+    setRecord(null);
+    setRecordSource(null);
+    if (!/^[a-f0-9]{64}$/i.test(cleanHash)) return;
+    setLoading(true);
 
     try {
       // 1. Try local IndexedDB store
       const foundLocal = await getAuditRecordFromIndexedDB(cleanHash);
       if (foundLocal) {
         setRecord(foundLocal);
+        setRecordSource('local');
         return;
       }
 
@@ -53,21 +58,26 @@ function VerifyContent() {
             inputHash: '',
             sharesHash: '',
             combinedHash: data.record.combinedHash,
+            previousRecordHash: data.record.previousRecordHash || 'GENESIS',
             registryVersion: data.record.registryVersion,
             timestamp: data.record.timestamp,
             buildId: data.record.buildId,
-            caseRef: 'REF-DZD-NOTARY',
+            // The server ledger intentionally does not store a case reference.
+            caseRef: '',
             summary: data.record.summary,
           };
           setRecord(remoteRecord);
+          setRecordSource('server');
           return;
         }
       }
 
       setRecord(null);
+      setRecordSource(null);
     } catch (err) {
       console.error('Verification query failed:', err);
       setRecord(null);
+      setRecordSource(null);
     } finally {
       setLoading(false);
     }
@@ -84,8 +94,8 @@ function VerifyContent() {
               <Shield className="w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-wide">التحقق التشفيري المباشر من التركات</h1>
-              <p className="text-sm text-slate-400">منظومة مطابقة البصمة الرقمية للفرائض (نظام بدون خادم / Zero-Trust)</p>
+              <h1 className="text-2xl font-bold text-white tracking-wide">التحقق من سجل البصمة الرقمية</h1>
+              <p className="text-sm text-slate-400">البحث عن سجل محفوظ والتحقق من مرجعه؛ لا يصدر هذا الفحص شهادة بصحة الفريضة</p>
             </div>
           </div>
           <Link
@@ -101,15 +111,15 @@ function VerifyContent() {
         <div className="bg-slate-800/60 border border-slate-700/60 rounded-xl p-5 flex items-start space-x-4 space-x-reverse">
           <Lock className="w-6 h-6 text-emerald-400 shrink-0 mt-0.5" />
           <div className="text-sm text-slate-300 leading-relaxed">
-            <strong className="text-white block mb-1">خصوصية مطلقة معتمدة قضائياً (Zero-Knowledge Audit Ledger):</strong>
-            عملية التحقق تجري عبر مطابقة البصمة الرقمية للوثائق الصادرة. لا يحتوي السجل المحفوظ على أي أسماء للورثة أو بيانات شخصية للمتوفى، بل يقتصر على البصمة الرقمية المعماة (<code className="bg-slate-950 px-2 py-0.5 rounded text-emerald-400">SHA-256</code>) والمجاميع الإحصائية المجمعة لغرض التحقق الشرعي والقانوني فقط.
+            <strong className="text-white block mb-1">ما الذي يثبته هذا السجل؟</strong>
+            يحتفظ الخادم ببصمة مرسلة من المتصفح وبيانات وصفية ومجاميع إحصائية، دون أسماء الورثة أو تفاصيلهم. العثور على البصمة يثبت وجود سجل يحملها فقط؛ ولا يعيد هذا الفحص حساب البصمة من المدخلات والنتائج الأصلية، ولا يثبت صحة القسمة أو هوية من أنشأ السجل أو وجود توقيع رقمي.
           </div>
         </div>
 
         {/* Verification Query Input */}
         <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 shadow-xl space-y-4">
           <label className="block text-sm font-semibold text-slate-200">
-            أدخل البصمة الرقمية (SHA-256 Combined Hash) أو مرجع الفريضة:
+            أدخل البصمة الرقمية المركبة SHA-256 (64 خانة سداسية عشرية):
           </label>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -142,12 +152,12 @@ function VerifyContent() {
                   <div className="flex items-center space-x-3 space-x-reverse">
                     <CheckCircle2 className="w-8 h-8 text-emerald-400" />
                     <div>
-                      <h2 className="text-xl font-bold text-emerald-400">الوثيقة موثقة وسليمة 100%</h2>
-                      <p className="text-xs text-slate-400">تطابق تام في البيانات والحسابات التوثيقية</p>
+                      <h2 className="text-xl font-bold text-emerald-400">تم العثور على سجل بهذه البصمة</h2>
+                      <p className="text-xs text-slate-400">{recordSource === 'local' ? 'السجل موجود في ذاكرة هذا المتصفح' : 'السجل موجود في دفتر التدقيق الخادمي'}</p>
                     </div>
                   </div>
                   <span className="px-3 py-1 bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-xs font-mono rounded-full">
-                    MATCHED SHA-256
+                    RECORD FOUND
                   </span>
                 </div>
 
@@ -158,7 +168,7 @@ function VerifyContent() {
                   </div>
                   <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/50 space-y-2">
                     <span className="text-slate-400 text-xs block">رقم مرجع الفريضة (Case Ref):</span>
-                    <span className="font-mono text-white font-bold block">{record.caseRef}</span>
+                    <span className="font-mono text-white font-bold block">{record.caseRef || 'غير محفوظ في السجل الخادمي'}</span>
                   </div>
                   <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-700/50 space-y-2">
                     <span className="text-slate-400 text-xs block">تاريخ الإصدار والتسجيل:</span>
@@ -179,8 +189,8 @@ function VerifyContent() {
                   </div>
                 </div>
 
-                <div className="bg-emerald-950/40 border border-emerald-800/40 rounded-xl p-4 text-xs text-emerald-200 leading-relaxed">
-                  <strong>النتيجة القضائية:</strong> هذه الفريضة تطابق المسألة المحسوبة محلياً في سجلات مكتب التوثيق، وتخضع للمادتين 139 إلى 180 من قانون الأسرة الجزائري. لم يتم تعديل الأنصبة أو تغيير الورثة بعد صدور المستخرج.
+                <div className="bg-amber-950/40 border border-amber-800/40 rounded-xl p-4 text-xs text-amber-200 leading-relaxed">
+                  <strong>حدود التحقق:</strong> وجود هذا السجل لا يثبت وحده أن محتوى وثيقة معينة يطابق الحساب الأصلي، ولا يثبت عدم تغيير الأنصبة أو هوية المصدر. للتحقق من سلامة المحتوى يلزم توفر المدخلات والنتائج الأصلية وإعادة حساب البصمة، أما السجل الحالي فلا يحتفظ بهذه البيانات.
                 </div>
               </div>
             ) : (
