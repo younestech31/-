@@ -344,6 +344,20 @@ export function useMunasakhatStages(
     });
   }, [currentStageIndex]);
 
+  const updateStageDiyahExcludedConfirmation = useCallback((checked: boolean) => {
+    setMunasakhatStages(prev => {
+      const next = [...prev];
+      const stage = next[currentStageIndex];
+      if (stage) {
+        next[currentStageIndex] = {
+          ...stage,
+          confirmedDiyahExcluded: checked,
+        };
+      }
+      return next;
+    });
+  }, [currentStageIndex]);
+
   const acknowledgeStageExclusion = useCallback((heirId: string) => {
     setMunasakhatStages(prev => {
       const next = [...prev];
@@ -393,6 +407,7 @@ export function useMunasakhatStages(
     updateStagePregnancyDisputed,
     updateStageMinorHeirPresent,
     updateStageDeathOrderUncertain,
+    updateStageDiyahExcludedConfirmation,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
   };
