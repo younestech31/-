@@ -158,7 +158,7 @@ async function deriveBackupKey(passphraseBytes: Uint8Array, salt: Uint8Array): P
   const cryptoApi = getCrypto();
   const material = await cryptoApi.subtle.importKey(
     'raw',
-    passphraseBytes,
+    new Uint8Array(passphraseBytes).buffer as ArrayBuffer,
     'PBKDF2',
     false,
     ['deriveKey'],
@@ -166,7 +166,7 @@ async function deriveBackupKey(passphraseBytes: Uint8Array, salt: Uint8Array): P
   return cryptoApi.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: new Uint8Array(salt).buffer as ArrayBuffer,
       iterations: MAWARITH_BACKUP_ITERATIONS,
       hash: 'SHA-256',
     },
@@ -195,9 +195,14 @@ export async function encryptMawarithBackup(
   const iv = cryptoApi.getRandomValues(new Uint8Array(IV_BYTES));
   const key = await deriveBackupKey(passwordBytes, salt);
   const ciphertext = new Uint8Array(await cryptoApi.subtle.encrypt(
-    { name: 'AES-GCM', iv, additionalData: AAD, tagLength: TAG_BITS },
+    {
+      name: 'AES-GCM',
+      iv: new Uint8Array(iv).buffer as ArrayBuffer,
+      additionalData: new Uint8Array(AAD).buffer as ArrayBuffer,
+      tagLength: TAG_BITS,
+    },
     key,
-    plaintext,
+    plaintext.buffer as ArrayBuffer,
   ));
 
   const envelope: EncryptedBackupEnvelope = {
@@ -260,9 +265,14 @@ export async function decryptMawarithBackup(
   try {
     const key = await deriveBackupKey(passwordBytes, salt);
     plaintextBuffer = await getCrypto().subtle.decrypt(
-      { name: 'AES-GCM', iv, additionalData: AAD, tagLength: TAG_BITS },
+      {
+        name: 'AES-GCM',
+        iv: new Uint8Array(iv).buffer as ArrayBuffer,
+        additionalData: new Uint8Array(AAD).buffer as ArrayBuffer,
+        tagLength: TAG_BITS,
+      },
       key,
-      ciphertext,
+      ciphertext.buffer as ArrayBuffer,
     );
   } catch {
     throw new Error('تعذر فك التشفير. تحقق من كلمة المرور وسلامة ملف النسخة الاحتياطية.');
