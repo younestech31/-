@@ -178,7 +178,7 @@ export function validateMunasakhatStageExclusions(
   const hasPaternalSiblingLine = presentIds.has('paternal_brother') || presentIds.has('paternal_sister');
   if (hasGrandfather && hasFullSiblingLine && hasPaternalSiblingLine) {
     manualClassificationReasons.push(
-      'المادة 158 مع اجتماع الإخوة الأشقاء والإخوة لأب: هذه صورة المعاداة، وتحتاج معالجة مستقلة موثقة؛ لا يعتمد المحرك حالياً نتيجة آلية لها.'
+      'المادة 158 — مسألة المعادّة: عند اجتماع الجد الصحيح مع أشقاء وإخوة لأب، تتوقف القسمة الآلية. يلزم تدقيق عدد كل فئة وتكوينها، ولا سيما صورة الأخت الشقيقة الواحدة مقارنة بوجود أخ شقيق أو تعدد الأخوات؛ فقد يختلف ما يدخل في المقاسمة وما يستقر لكل مجموعة. لا يقسم المحرك الأشقاء والإخوة لأب على مرحلتين منفصلتين.'
     );
   }
 
