@@ -134,7 +134,7 @@ export function calculateInheritance(
     return {
       ...h,
       count: activeCount,
-      motherReductionCount: h.count,
+      motherReductionCount: h.motherReductionCount ?? h.count,
       isImpeded: false // Clear so calculations treat them as active
     };
   });
