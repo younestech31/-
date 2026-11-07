@@ -122,6 +122,18 @@ export function runInheritanceOrchestration(
 
     const minorHeirNeedsJudicialPartition = stage.hasMinorHeir === true;
     const deathOrderNeedsManualReview = stage.deathOrderUncertain === true;
+    const hasInvoluntaryKiller = presenceList.some(heir =>
+      heir.isPresent && heir.count > 0 && (
+        heir.impedimentReasonId === 'involuntary_killer' ||
+        heir.impedimentReasonIds?.some(reasonId => reasonId === 'involuntary_killer') ||
+        heir.impededIndexes?.some((isImpeded, index) =>
+          isImpeded &&
+          (heir.impedimentReasonIds?.[index] ?? heir.impedimentReasonId) === 'involuntary_killer'
+        )
+      )
+    );
+    const involuntaryKillerNeedsCompensationReview =
+      hasInvoluntaryKiller && stage.confirmedDiyahExcluded !== true;
     const pregnancyNeedsManualReview = Boolean(
       stage.pregnancyDisputed ||
       (stage.hasUnbornHeir &&
@@ -129,7 +141,7 @@ export function runInheritanceOrchestration(
           ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome)))
     );
 
-    const res = pregnancyNeedsManualReview || deathOrderNeedsManualReview
+    const res = pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview
       ? []
       : calculateInheritance(
           sanitizedPresence,
@@ -191,6 +203,7 @@ export function runInheritanceOrchestration(
       pregnancyNeedsManualReview,
       minorHeirNeedsJudicialPartition,
       deathOrderNeedsManualReview,
+      involuntaryKillerNeedsCompensationReview,
     });
   }
 
