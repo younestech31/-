@@ -28,6 +28,7 @@ export function useHeirPresence(
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
       stage.confirmedDiyahExcluded = false;
+      stage.confirmedSpouseEligibility = false;
 
       const heirs = stage.heirs || [];
       const heir = heirs.find(h => h.heirId === heirId);
@@ -81,6 +82,7 @@ export function useHeirPresence(
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
       stage.confirmedDiyahExcluded = false;
+      stage.confirmedSpouseEligibility = false;
 
       stage.heirs = (stage.heirs || []).map(h => {
         if (h.heirId === heirId) {
@@ -109,6 +111,7 @@ export function useHeirPresence(
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
       stage.confirmedDiyahExcluded = false;
+      stage.confirmedSpouseEligibility = false;
 
       stage.heirs = (stage.heirs || []).map(h => {
         if (h.heirId === heirId) {
@@ -138,6 +141,7 @@ export function useHeirPresence(
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
       stage.confirmedDiyahExcluded = false;
+      stage.confirmedSpouseEligibility = false;
 
       stage.heirs = (stage.heirs || []).map(h => {
         if (h.heirId === heirId) {
@@ -165,6 +169,7 @@ export function useHeirPresence(
       // attestation; the user must re-confirm after reviewing the new roster.
       stage.confirmedNoDistantKindred = false;
       stage.confirmedDiyahExcluded = false;
+      stage.confirmedSpouseEligibility = false;
 
       stage.heirs = (stage.heirs || []).map(h => {
         if (h.heirId === heirId) {
