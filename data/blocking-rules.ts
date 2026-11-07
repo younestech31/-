@@ -105,43 +105,43 @@ export const BLOCKING_RULES: BlockingRule[] = [
     blocker: 'grandfather',
     blocked: 'full_nephew',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب ابن الأخ الشقيق'
+    article: 162,
+    conditionAr: 'الجد الصحيح وإن علا يحجب ابن الأخ الشقيق وفق المادة 162'
   },
   {
     blocker: 'grandfather',
     blocked: 'paternal_nephew',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب ابن الأخ لأب'
+    article: 162,
+    conditionAr: 'الجد الصحيح وإن علا يحجب ابن الأخ لأب وفق المادة 162'
   },
   {
     blocker: 'grandfather',
     blocked: 'full_uncle',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب العم الشقيق'
+    article: 153,
+    conditionAr: 'جهة الأبوة (الجد الصحيح) مقدمة على جهة العمومة وفق ترتيب العصبات في المادة 153'
   },
   {
     blocker: 'grandfather',
     blocked: 'paternal_uncle',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب العم لأب'
+    article: 153,
+    conditionAr: 'جهة الأبوة (الجد الصحيح) مقدمة على جهة العمومة وفق ترتيب العصبات في المادة 153'
   },
   {
     blocker: 'grandfather',
     blocked: 'full_uncle_son',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب ابن العم الشقيق'
+    article: 153,
+    conditionAr: 'جهة الأبوة (الجد الصحيح) مقدمة على جهة العمومة وفق ترتيب العصبات في المادة 153'
   },
   {
     blocker: 'grandfather',
     blocked: 'paternal_uncle_son',
     type: 'full',
-    article: 165,
-    conditionAr: 'الجد الصحيح يحجب ابن العم لأب'
+    article: 153,
+    conditionAr: 'جهة الأبوة (الجد الصحيح) مقدمة على جهة العمومة وفق ترتيب العصبات في المادة 153'
   },
   {
     blocker: 'full_brother',
