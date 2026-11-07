@@ -31,6 +31,9 @@ export function runInheritanceOrchestration(
     const manualClassificationIds = new Set(['distant_kindred', 'maternal_grandfather']);
     const manualClassificationHeirs = heirsToCheck.filter(h => manualClassificationIds.has(h.heirId));
     const hasGrandfather = heirsToCheck.some(h => h.heirId === 'grandfather');
+    const grandmotherDegreeNeedsManualReview = heirsToCheck.some(h =>
+      ['maternal_grandmother', 'paternal_grandmother'].includes(h.heirId) && h.count > 1
+    );
     const hasFullSiblingLine = heirsToCheck.some(h => ['full_brother', 'full_sister'].includes(h.heirId));
     const hasPaternalSiblingLine = heirsToCheck.some(h => ['paternal_brother', 'paternal_sister'].includes(h.heirId));
     const hasUnresolvedGrandfatherMuadadah = hasGrandfather && hasFullSiblingLine && hasPaternalSiblingLine;
@@ -43,7 +46,17 @@ export function runInheritanceOrchestration(
     const requiresManualClassification =
       manualClassificationHeirs.length > 0 ||
       hasUnresolvedGrandfatherMuadadah ||
-      granddaughterCousinDegreeNeedsManualReview;
+      granddaughterCousinDegreeNeedsManualReview ||
+      grandmotherDegreeNeedsManualReview;
+
+    if (grandmotherDegreeNeedsManualReview) {
+      excludedHeirWarnings.push({
+        heirId: 'grandmother_degree',
+        heirNameAr: 'الجدة',
+        reason: 'المادتان 149(4) و161: يتوقف تقسيم السدس بين الجدات أو اختصاص الأقرب به على درجة كل جدة. النموذج الحالي لا يميز الجدة عن أم الجدة ولا يسجل درجة القرابة؛ لذلك أوقف الحساب الآلي عند إدخال أكثر من جدة في الجهة نفسها.',
+        source: 'المادتان 149(4) و161 من قانون الأسرة الجزائري — النص المرفق.',
+      });
+    }
 
     if (granddaughterCousinDegreeNeedsManualReview) {
       excludedHeirWarnings.push({
