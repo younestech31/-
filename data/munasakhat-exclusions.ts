@@ -123,11 +123,20 @@ export const isHeirExcludedInMunasakhat = (
   };
 };
 export function validateMunasakhatStageExclusions(
-  stage: { deceasedHeirId?: string; acknowledgedExclusions?: string[]; heirs?: { heirId: string; isPresent?: boolean; count?: number }[]; hasChildrenFromOtherUnion?: boolean },
+  stage: {
+    deceasedHeirId?: string;
+    parentHeirId?: string;
+    acknowledgedExclusions?: string[];
+    heirs?: { heirId: string; isPresent?: boolean; count?: number }[];
+    heirPresence?: Record<string, { heirId: string; isPresent?: boolean; count?: number }>;
+    hasChildrenFromOtherUnion?: boolean;
+    secondDeceasedHasChildrenFromOtherUnion?: boolean;
+  },
   _prevRes: unknown,
   stageIndex: number
 ) {
-  if (stageIndex === 0 || !stage.deceasedHeirId) {
+  const parentHeirId = stage.deceasedHeirId || stage.parentHeirId;
+  if (stageIndex === 0 || !parentHeirId) {
     return {
       unacknowledgedExclusions: [],
       acknowledgedExclusions: [],
@@ -135,31 +144,36 @@ export function validateMunasakhatStageExclusions(
     };
   }
 
-  const parentHeirId = stage.deceasedHeirId;
   const acknowledged = stage.acknowledgedExclusions || [];
+  const presenceList = stage.heirs || (stage.heirPresence ? Object.values(stage.heirPresence) : []);
+  const hasOtherUnion = stage.secondDeceasedHasChildrenFromOtherUnion
+    ?? stage.hasChildrenFromOtherUnion
+    ?? false;
 
   const unacknowledgedExclusions: { heirId: string; reason: string; source: string }[] = [];
   const acknowledgedExclusionsList: { heirId: string; reason: string; source: string }[] = [];
 
-  if (Array.isArray(stage.heirs)) {
-    stage.heirs.forEach((h) => {
-      if (h.isPresent && h.count && h.count > 0) {
-        const exclusion = isHeirExcludedInMunasakhat(
-          h.heirId,
-          parentHeirId,
-          stage.hasChildrenFromOtherUnion ?? false
-        );
-        if (exclusion.requiresReview) {
-          const item = { heirId: h.heirId, reason: exclusion.reason, source: exclusion.source };
-          if (acknowledged.includes(h.heirId)) {
-            acknowledgedExclusionsList.push(item);
-          } else {
-            unacknowledgedExclusions.push(item);
-          }
-        }
-      }
-    });
-  }
+  presenceList.forEach((heir) => {
+    if (!heir.isPresent || !heir.count || heir.count <= 0) return;
+
+    const assessment = isHeirExcludedInMunasakhat(
+      heir.heirId,
+      parentHeirId,
+      hasOtherUnion
+    );
+    if (!assessment.requiresReview) return;
+
+    const item = {
+      heirId: heir.heirId,
+      reason: assessment.reason,
+      source: assessment.source,
+    };
+    if (acknowledged.includes(heir.heirId)) {
+      acknowledgedExclusionsList.push(item);
+    } else {
+      unacknowledgedExclusions.push(item);
+    }
+  });
 
   return {
     unacknowledgedExclusions,

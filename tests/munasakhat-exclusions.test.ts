@@ -62,6 +62,20 @@ describe('Munasakhat relationship review rules', () => {
     expect(acknowledged.acknowledgedExclusions).toHaveLength(1);
   });
 
+  it('validates legacy heirPresence cases using parentHeirId when deceasedHeirId is absent', () => {
+    const legacyStage = {
+      parentHeirId: 'son',
+      heirPresence: {
+        mother: { heirId: 'mother', isPresent: true, count: 1 },
+      },
+    };
+    const validation = validateMunasakhatStageExclusions(legacyStage, null, 1);
+
+    expect(validation.hasUnacknowledgedExclusions).toBe(true);
+    expect(validation.unacknowledgedExclusions).toHaveLength(1);
+    expect(validation.unacknowledgedExclusions[0].heirId).toBe('mother');
+  });
+
   function buildStages(acknowledgedExclusions: string[] = []): MunasakhatStage[] {
     return [
       {
