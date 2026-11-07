@@ -37,7 +37,7 @@ interface HeirInputNodeData {
 
 // --- Custom Node Component ---
 const HeirInputNode = ({ data }: NodeProps<Node<HeirInputNodeData>>) => {
-  const { heir, isPresent, count, customNames, toggleHeir, updateCount, updateCustomName, updateMissingPersonStatus, missingPersonStatus, isDeceased, deceasedName, deceasedGender, exclusionReason } = data;
+  const { heir, isPresent, count, customNames, updateCount, updateCustomName, updateMissingPersonStatus, missingPersonStatus, isDeceased, deceasedName, deceasedGender, exclusionReason } = data;
 
   // وارث مستبعد في مسألة ثانوية
   if (exclusionReason) {

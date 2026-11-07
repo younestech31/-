@@ -64,7 +64,7 @@ interface ResultsTableProps {
   /** نتائج فحص استبعادات المناسخة غير المؤكدة في المرحلة الحالية */
   currentStageValidation?: {
     hasUnacknowledgedExclusions?: boolean;
-    unacknowledgedExclusions?: ExcludedHeirWarning[];
+    unacknowledgedExclusions?: Array<Pick<ExcludedHeirWarning, 'heirId' | 'reason' | 'source'> & { heirNameAr?: string }>;
   };
   isMunasakhatExportBlocked?: boolean;
   /** سياسة توزيع الحصة عند غياب الورثة في المسألة الثانوية */
@@ -299,7 +299,7 @@ const ResultsTable = memo(function ResultsTable({
             <ul className="mt-3 space-y-2">
               {(currentStageValidation.unacknowledgedExclusions || []).map(warning => (
                 <li key={warning.heirId} className="border-t border-rose-200 pt-2">
-                  <span className="font-bold">{warning.heirNameAr}</span>
+                  <span className="font-bold">{warning.heirNameAr || warning.heirId}</span>
                   <span className="block text-xs mt-0.5">{warning.reason}</span>
                   {warning.source && (
                     <span className="block text-[11px] text-rose-800/80 mt-0.5">المرجع المسجل: {warning.source}</span>
