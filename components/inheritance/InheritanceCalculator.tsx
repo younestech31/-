@@ -570,7 +570,7 @@ export default function InheritanceCalculator({
           importData={importData}
           exportData={exportData}
           isImporting={isImporting}
-          isPaid={state.isPaid}
+          hasEncryptedBackup={state.hasEncryptedBackup}
           exportEncryptedBackup={state.exportEncryptedBackup}
           importEncryptedBackup={state.importEncryptedBackup}
         />
