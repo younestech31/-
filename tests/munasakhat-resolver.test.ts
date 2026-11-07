@@ -614,6 +614,54 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(90000);
   });
 
+  it('blocks Article 137 calculation when diyah/compensation is not confirmed as excluded', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى',
+      hasMandatoryBequest: false,
+      heirs: [
+        present('wife'),
+        {
+          heirId: 'full_brother',
+          count: 1,
+          isPresent: true,
+          isImpeded: true,
+          impedimentReasonId: 'involuntary_killer',
+        },
+      ],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 100000, 0, 0, 0]);
+    expect(result.involuntaryKillerNeedsCompensationReview).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
+  it('keeps the accidental killer eligible for ordinary estate money after Article 137 compensation is excluded', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'root',
+      deceasedName: 'المتوفى',
+      hasMandatoryBequest: false,
+      confirmedDiyahExcluded: true,
+      heirs: [
+        present('wife'),
+        {
+          heirId: 'full_brother',
+          count: 1,
+          isPresent: true,
+          isImpeded: true,
+          impedimentReasonId: 'involuntary_killer',
+        },
+      ],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 100000, 0, 0, 0]);
+    expect(result.involuntaryKillerNeedsCompensationReview).toBe(false);
+    expect(amountFor(result.results, 'wife')).toBe(25000);
+    expect(amountFor(result.results, 'full_brother')).toBe(75000);
+  });
+
   it('blocks sequential inheritance when two deaths have no proven order under Article 129', async () => {
     const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
     const stages: MunasakhatStage[] = [{
