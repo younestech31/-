@@ -21,6 +21,8 @@ export interface HeirPresence {
   impededIndexes?: boolean[]; // State for individual impediments (index-based)
   impedimentReasonIds?: (string | undefined)[]; // State for individual impediment reasons
   missingPersonStatus?: 'none' | 'missing_presumed_alive';
+  /** Original headcount retained only for Article 148 mother-share reduction. */
+  motherReductionCount?: number;
 }
 
 export interface IndividualResult {
@@ -132,6 +134,7 @@ export function calculateInheritance(
     return {
       ...h,
       count: activeCount,
+      motherReductionCount: h.count,
       isImpeded: false // Clear so calculations treat them as active
     };
   });
@@ -685,7 +688,7 @@ export function resolveFixedShares(state: PipelineState): PipelineState {
     const activeCount = getCount(id);
     if (!includeImpededSibs) return activeCount;
     const rawEntry = state.ctx.heirs.find(h => h.heirId === id);
-    return rawEntry ? rawEntry.count : activeCount;
+    return rawEntry ? (rawEntry.motherReductionCount ?? rawEntry.count) : activeCount;
   };
   const siblingsCount = getSiblingCountForMother('full_brother') + getSiblingCountForMother('full_sister') + 
                         getSiblingCountForMother('paternal_brother') + getSiblingCountForMother('paternal_sister') + 
@@ -1002,7 +1005,7 @@ export function resolveResidue(state: PipelineState): PipelineState {
     const activeCount = getCount(id);
     if (!includeImpededSibs) return activeCount;
     const rawEntry = state.ctx.heirs.find(h => h.heirId === id);
-    return rawEntry ? rawEntry.count : activeCount;
+    return rawEntry ? (rawEntry.motherReductionCount ?? rawEntry.count) : activeCount;
   };
   const siblingsCount = getSiblingCountForMother('full_brother') + getSiblingCountForMother('full_sister') + 
                         getSiblingCountForMother('paternal_brother') + getSiblingCountForMother('paternal_sister') + 
@@ -1466,7 +1469,7 @@ export function applyRaddIfNeeded(state: PipelineState): PipelineState {
     const activeCount = getCountFromPresent(id);
     if (!includeImpededSibs) return activeCount;
     const rawEntry = state.ctx.heirs.find(h => h.heirId === id);
-    return rawEntry ? rawEntry.count : activeCount;
+    return rawEntry ? (rawEntry.motherReductionCount ?? rawEntry.count) : activeCount;
   };
   const siblingsCount = getSiblingCountForMother('full_brother') + getSiblingCountForMother('full_sister') + 
                         getSiblingCountForMother('paternal_brother') + getSiblingCountForMother('paternal_sister') + 
