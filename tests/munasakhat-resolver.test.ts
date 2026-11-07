@@ -3,6 +3,15 @@ import { validateAllStages, resolveNoHeirsPolicy } from '../lib/inheritance/muna
 import type { MunasakhatStage } from '../components/inheritance/InheritanceCalculator';
 import { createMunasakhatStage, getCurrentStageIndexAfterRemoval, inferDeceasedGender } from '../lib/hooks/useMunasakhatStages';
 
+const present = (heirId: string, count = 1) => ({
+  heirId,
+  count,
+  isPresent: true,
+});
+
+const amountFor = (results: Array<{ heirId: string; amount: number }>, heirId: string) =>
+  results.find(result => result.heirId === heirId)?.amount ?? 0;
+
 describe('Munasakhat Resolver Tests', () => {
   it('links each new stage to the correct parent stage and deceased heir index', () => {
     const stage = createMunasakhatStage({
@@ -419,15 +428,6 @@ describe('Munasakhat Resolver Tests', () => {
 
 
 describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', () => {
-  const present = (heirId: string, count = 1) => ({
-    heirId,
-    count,
-    isPresent: true,
-  });
-
-  const amountFor = (results: Array<{ heirId: string; amount: number }>, heirId: string) =>
-    results.find(result => result.heirId === heirId)?.amount ?? 0;
-
   it('applies Article 158 muqasama as two grandfather shares when only one full sister is present', async () => {
     const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
     const results = calculateInheritance([
