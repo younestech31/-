@@ -139,6 +139,15 @@ describe('Shared financial input validation at the inheritance orchestration bou
     expect(voluntaryBequest?.amount).toBeLessThanOrEqual((1_000 / 3) + 1e-9);
   });
 
+  it('rejects amounts that cannot be represented safely as integer centimes', () => {
+    const tooLargeForCentimes = (Number.MAX_SAFE_INTEGER / 100) + 100;
+    const [result] = calculate([stage('root')], tooLargeForCentimes, 0, 0, 0);
+
+    expect(result.financialInputNeedsManualReview).toBe(true);
+    expect(result.financialInputErrors?.some(issue => issue.includes('تتجاوز الحد الآمن للحساب بالسنتيم'))).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
   it('rejects non-finite numeric inputs before any share is calculated', () => {
     const [result] = calculate([stage('root')], Number.NaN, 0, 0, 0);
 
