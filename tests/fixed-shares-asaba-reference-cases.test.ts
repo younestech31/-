@@ -285,6 +285,23 @@ const referenceCases: ReferenceCase[] = [
     },
   },
   {
+    id: 'art144-156-two-daughters-and-two-full-sisters-asaba-with-other',
+    article: '147, 156',
+    estate: 240_000,
+    heirs: [present('daughter', 2), present('full_sister', 2)],
+    expected: {
+      daughter: { fraction: '2/3', amount: 160_000 },
+      full_sister: {
+        fraction: '1/3',
+        amount: 80_000,
+        individuals: [
+          { fraction: '1/6', amount: 40_000 },
+          { fraction: '1/6', amount: 40_000 },
+        ],
+      },
+    },
+  },
+  {
     id: 'art144-155-one-daughter-full-brother-and-full-sister-ratio',
     article: '144, 151, 155',
     estate: 240_000,
