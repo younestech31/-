@@ -81,7 +81,7 @@ export default function OfficeSettingsModal({
         <div className="flex justify-between items-center p-4 border-b border-[#e2e8f0] bg-slate-50">
           <div className="flex items-center gap-2 text-[#0a5d38]">
             <Settings size={20} className="animate-spin-slow text-[#c5a059]" />
-            <h3 className="font-bold text-lg text-[#1e293b]" id="settings-modal-title">إعدادات مكتب التوثيق والترويسة</h3>
+            <h3 className="font-bold text-lg text-[#1e293b]" id="settings-modal-title">إعدادات ترويسة المكتب والمستندات</h3>
           </div>
           <button onClick={onClose} className="text-[#64748b] hover:text-[#0f172a] transition-colors p-1 rounded-full hover:bg-slate-200" aria-label="إغلاق">
             <X size={20} />
@@ -91,7 +91,7 @@ export default function OfficeSettingsModal({
         {/* Content */}
         <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto no-scrollbar">
           <p className="text-xs text-[#64748b] leading-relaxed mb-4">
-            تتيح لك هذه الإعدادات تخصيص لغة التصدير (العربية/الفرنسية)، تنسيق الأرقام، وإسم الموثق والبيانات الرسمية على جميع المستندات المصدرة (PDF و Word و Excel).
+            تتيح لك هذه الإعدادات تخصيص لغة التصدير (العربية/الفرنسية)، وتنسيق الأرقام، وبيانات المكتب التي تدخلها بنفسك على المستندات المصدرة (PDF وWord وExcel).
           </p>
 
           <div className="grid grid-cols-1 gap-4">
@@ -143,12 +143,12 @@ export default function OfficeSettingsModal({
 
             {/* Official Designation */}
             <div>
-              <label className="block text-xs font-bold text-[#475569] mb-1.5">الصفة الرسمية للمكتب بالعربية</label>
+              <label className="block text-xs font-bold text-[#475569] mb-1.5">تسمية المكتب أو الترويسة بالعربية</label>
               <input
                 type="text"
                 value={officialDesignationAr}
                 onChange={e => setOfficialDesignationAr(e.target.value)}
-                placeholder="مثال: الديوان العمومي للتوثيق"
+                placeholder="مثال: اسم المكتب أو التسمية التي تريد إظهارها"
                 className="w-full p-2.5 border border-[#cbd5e1] rounded-lg text-sm focus:outline-none focus:border-[#0a5d38] focus:ring-1 focus:ring-[#0a5d38]"
               />
             </div>
