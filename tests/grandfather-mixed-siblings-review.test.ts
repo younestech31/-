@@ -74,12 +74,11 @@ describe('Article 158 — mixed full and paternal siblings with the grandfather'
     const validation = validateMunasakhatStageExclusions(stage, null, 0);
 
     expect(validation.requiresManualClassification).toBe(true);
-    expect(validation.manualClassificationReasons).toEqual(
-      expect.arrayContaining([
-        expect.stringContaining('المادة 158'),
-        expect.stringContaining('المعادّة'),
-      ]),
-    );
+    expect(
+      validation.manualClassificationReasons.some(reason =>
+        reason.includes('المادة 158') && reason.includes('المعادّة'),
+      ),
+    ).toBe(true);
 
     expect(result.requiresManualClassification).toBe(true);
     expect(result.results).toEqual([]);
