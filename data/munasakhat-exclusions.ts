@@ -127,8 +127,12 @@ export function validateMunasakhatStageExclusions(
     deceasedHeirId?: string;
     parentHeirId?: string;
     acknowledgedExclusions?: string[];
-    heirs?: { heirId: string; isPresent?: boolean; count?: number }[];
-    heirPresence?: Record<string, { heirId: string; isPresent?: boolean; count?: number }>;
+    heirs?: { heirId: string; isPresent?: boolean; count?: number; isImpeded?: boolean }[];
+    heirPresence?: Record<string, { heirId: string; isPresent?: boolean; count?: number; isImpeded?: boolean }>;
+    deceasedSonsCount?: number;
+    deceasedDaughtersCount?: number;
+    deceasedChildren?: { type: 'son' | 'daughter'; count: number }[];
+    hasMandatoryBequest?: boolean;
     hasChildrenFromOtherUnion?: boolean;
     secondDeceasedHasChildrenFromOtherUnion?: boolean;
   },
@@ -138,12 +142,38 @@ export function validateMunasakhatStageExclusions(
   const parentHeirId = stage.deceasedHeirId || stage.parentHeirId;
   const acknowledged = stage.acknowledgedExclusions || [];
   const presenceList = stage.heirs || (stage.heirPresence ? Object.values(stage.heirPresence) : []);
+  const presentIds = new Set(
+    presenceList
+      .filter(heir => heir.isPresent && Boolean(heir.count && heir.count > 0) && !heir.isImpeded)
+      .map(heir => heir.heirId)
+  );
   const hasOtherUnion = stage.secondDeceasedHasChildrenFromOtherUnion
     ?? stage.hasChildrenFromOtherUnion
     ?? false;
   const manualClassificationIds = new Set(['distant_kindred', 'maternal_grandfather']);
-  const requiresManualClassification = presenceList.some(
-    heir => heir.isPresent && Boolean(heir.count && heir.count > 0) && manualClassificationIds.has(heir.heirId)
+  const manualClassificationReasons: string[] = [];
+
+  if (presentIds.has('distant_kindred') || presentIds.has('maternal_grandfather')) {
+    manualClassificationReasons.push(
+      'المادة 168: لا يكفي اختيار فئة عامة لذوي الأرحام أو الجد لأم؛ يلزم تحديد صلة كل قريب ودرجة القرابة وجهة الإدلاء وترتيب الاستحقاق.'
+    );
+  }
+
+  const hasGrandfather = presentIds.has('grandfather');
+  const hasFullSiblingLine = presentIds.has('full_brother') || presentIds.has('full_sister');
+  const hasPaternalSiblingLine = presentIds.has('paternal_brother') || presentIds.has('paternal_sister');
+  if (hasGrandfather && hasFullSiblingLine && hasPaternalSiblingLine) {
+    manualClassificationReasons.push(
+      'المادة 158 مع اجتماع الإخوة الأشقاء والإخوة لأب: هذه صورة المعاداة، وتحتاج معالجة مستقلة موثقة؛ لا يعتمد المحرك حالياً نتيجة آلية لها.'
+    );
+  }
+
+  const deceasedSonsCount = stage.deceasedSonsCount
+    ?? (stage.deceasedChildren?.filter(child => child.type === 'son').reduce((sum, child) => sum + child.count, 0) || 0);
+  const deceasedDaughtersCount = stage.deceasedDaughtersCount
+    ?? (stage.deceasedChildren?.filter(child => child.type === 'daughter').reduce((sum, child) => sum + child.count, 0) || 0);
+  const tanzilNeedsManualReview = Boolean(
+    stage.hasMandatoryBequest && deceasedSonsCount + deceasedDaughtersCount > 0
   );
 
   const unacknowledgedExclusions: { heirId: string; reason: string; source: string }[] = [];
@@ -181,7 +211,8 @@ export function validateMunasakhatStageExclusions(
     unacknowledgedExclusions,
     acknowledgedExclusions: acknowledgedExclusionsList,
     hasUnacknowledgedExclusions: unacknowledgedExclusions.length > 0,
-    requiresManualClassification,
+    requiresManualClassification: manualClassificationReasons.length > 0,
+    manualClassificationReasons,
+    tanzilNeedsManualReview,
   };
 }
-
