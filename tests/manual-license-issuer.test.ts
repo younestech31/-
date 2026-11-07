@@ -101,14 +101,14 @@ describe('Offline license issuer integration', () => {
 
       const privateKey = await webcrypto.subtle.importKey(
         'pkcs8',
-        Buffer.from(privatePem.replace(/-----[^-]+-----|\\s/g, ''), 'base64'),
+        Buffer.from(privatePem.replace(/-----[^-]+-----|\s/g, ''), 'base64'),
         { name: 'ECDSA', namedCurve: 'P-256' },
         false,
         ['sign'],
       );
       const publicKey = await webcrypto.subtle.importKey(
         'spki',
-        Buffer.from(publicPem.replace(/-----[^-]+-----|\\s/g, ''), 'base64'),
+        Buffer.from(publicPem.replace(/-----[^-]+-----|\s/g, ''), 'base64'),
         { name: 'ECDSA', namedCurve: 'P-256' },
         false,
         ['verify'],
@@ -116,7 +116,7 @@ describe('Offline license issuer integration', () => {
       const message = new TextEncoder().encode('mawarith-key-pair-self-test');
       const signature = await webcrypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, privateKey, message);
       expect(await webcrypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, publicKey, signature, message)).toBe(true);
-      expect(Buffer.from(publicPem.replace(/-----[^-]+-----|\\s/g, ''), 'base64').toString('base64')).toBe(publicKeyMatch?.[1]);
+      expect(Buffer.from(publicPem.replace(/-----[^-]+-----|\s/g, ''), 'base64').toString('base64')).toBe(publicKeyMatch?.[1]);
 
       let overwriteRejected = false;
       try {
