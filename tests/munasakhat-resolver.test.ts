@@ -613,4 +613,77 @@ describe('Algerian Family Code inheritance regressions (Arts. 156, 158, 176)', (
     expect(amountFor(results, 'full_sister')).toBe(10000);
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(90000);
   });
+
+  it('blocks direct Article 173 calculation while pregnancy outcome is pending', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('wife'),
+      present('mother'),
+      present('father'),
+    ], 240000, 0, 0, 0, false, [], 'pending', true);
+
+    expect(results).toHaveLength(1);
+    expect(results[0].heirId).toBe('article_173_review');
+    expect(results[0].amount).toBe(0);
+    expect(results.some(result => result.heirId === 'wife' || result.heirId === 'mother' || result.heirId === 'father')).toBe(false);
+  });
+
+  it('adds a live-born male fetus to the heirs before calculating the estate under Article 173', async () => {
+    const { calculateInheritance } = await import('../lib/inheritance/inheritance-calculator');
+    const results = calculateInheritance([
+      present('wife'),
+      present('mother'),
+      present('father'),
+    ], 240000, 0, 0, 0, false, [], 'born_male', true);
+
+    expect(amountFor(results, 'wife')).toBe(30000);   // 1/8
+    expect(amountFor(results, 'mother')).toBe(40000); // 1/6
+    expect(amountFor(results, 'father')).toBe(40000); // 1/6
+    expect(amountFor(results, 'son')).toBe(130000);   // residue
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(240000);
+  });
+
+  it('withholds all automatic stage results for disputed or multiple pregnancies', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const cases: MunasakhatStage[] = [
+      {
+        id: 'disputed-pregnancy',
+        deceasedName: 'المتوفى مع حمل متنازع فيه',
+        hasMandatoryBequest: false,
+        hasUnbornHeir: true,
+        unbornOutcome: 'born_male',
+        pregnancyDisputed: true,
+        heirs: [present('wife'), present('mother'), present('father')],
+      },
+      {
+        id: 'multiple-pregnancy',
+        deceasedName: 'المتوفى مع حمل متعدد',
+        hasMandatoryBequest: false,
+        hasUnbornHeir: true,
+        unbornOutcome: 'twins_male_female',
+        heirs: [present('wife'), present('mother'), present('father')],
+      },
+    ];
+
+    const results = runInheritanceOrchestration([cases, 240000, 0, 0, 0]);
+    expect(results.every(stage => stage.pregnancyNeedsManualReview)).toBe(true);
+    expect(results.every(stage => stage.results.length === 0)).toBe(true);
+  });
+
+  it('flags an unresolved pregnancy stage and blocks its automatic result list under Article 173', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [{
+      id: 'pending-pregnancy',
+      deceasedName: 'المتوفى مع حمل قائم',
+      hasMandatoryBequest: false,
+      hasUnbornHeir: true,
+      unbornOutcome: 'pending',
+      heirs: [present('wife'), present('mother'), present('father')],
+    }];
+
+    const [result] = runInheritanceOrchestration([stages, 240000, 0, 0, 0]);
+    expect(result.pregnancyNeedsManualReview).toBe(true);
+    expect(result.results).toEqual([]);
+  });
+
 });
