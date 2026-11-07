@@ -152,6 +152,11 @@ export function runInheritanceOrchestration(
     }
 
     const minorHeirNeedsJudicialPartition = stage.hasMinorHeir === true;
+    const hasSpouseHeir = heirsToCheck.some(heir =>
+      heir.heirId === 'husband' || heir.heirId === 'wife'
+    );
+    const spouseEligibilityNeedsReview =
+      hasSpouseHeir && stage.confirmedSpouseEligibility !== true;
     const missingHeirNeedsManualReview = presenceList.some(heir =>
       heir.isPresent && heir.count > 1 && heir.missingPersonStatus === 'missing_presumed_alive'
     );
@@ -175,7 +180,7 @@ export function runInheritanceOrchestration(
           ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome)))
     );
 
-    const res = requiresManualClassification || tanzilNeedsManualReview || pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview || missingHeirNeedsManualReview
+    const res = requiresManualClassification || tanzilNeedsManualReview || pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview || missingHeirNeedsManualReview || spouseEligibilityNeedsReview
       ? []
       : calculateInheritance(
           sanitizedPresence,
@@ -239,6 +244,7 @@ export function runInheritanceOrchestration(
       deathOrderNeedsManualReview,
       involuntaryKillerNeedsCompensationReview,
       missingHeirNeedsManualReview,
+      spouseEligibilityNeedsReview,
     });
   }
 
