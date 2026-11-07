@@ -103,6 +103,7 @@ export function useInheritanceState() {
     updateStageAlreadyInherited,
     updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
+    updateStageNoDistantKindredConfirmation,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
   } = useMunasakhatStages(showToast);
@@ -465,6 +466,7 @@ export function useInheritanceState() {
     updateStageAlreadyInherited,
     updateStageFinancialField,
     updateStageChildrenFromOtherUnion,
+    updateStageNoDistantKindredConfirmation,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
     resetCalculator,
