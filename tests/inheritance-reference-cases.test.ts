@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   calculateInheritance,
+  calculateInheritanceInternal,
   type CalculationResult,
   type HeirPresence,
 } from '@/lib/inheritance/inheritance-calculator';
@@ -317,6 +318,45 @@ describe('Tanzil engine arithmetic — separate from production eligibility revi
     expect(resultFor(results, 'son').amount).toBe(500_000);
     expect(resultFor(results, 'son').individuals?.map(person => person.amount)).toEqual([250_000, 250_000]);
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(600_000);
+  });
+});
+
+describe('Internal pregnancy-reserve accounting — not enabled for production distribution', () => {
+  it('keeps the reserved greater child share separate from the residual heir distribution', () => {
+    // Reference arithmetic for a controlled test scenario:
+    // - Estate after debts/funeral: 1,200,000.
+    // - Wife + one daughter; compare the unborn as one son vs one daughter.
+    // - Son scenario: fetus share = 7/12 (700,000).
+    // - Daughter scenario gives a smaller individual share (7/16).
+    // - The helper therefore reserves 700,000 and distributes only the
+    //   remaining 500,000 among the currently recorded heirs.
+    //
+    // The public calculateInheritance API deliberately returns a review state
+    // while pregnancy is pending. This test protects the dormant internal
+    // helper from corrupting amounts if a future, legally reviewed workflow
+    // chooses to expose automatic Article 173 withholding.
+    const results = calculateInheritanceInternal(
+      [present('wife'), present('daughter')],
+      1_200_000,
+      0,
+      0,
+      0,
+      false,
+      [],
+      'pending',
+      true,
+    );
+
+    const withheld = resultFor(results, 'unborn_withholding');
+    const wife = resultFor(results, 'wife');
+    const daughter = resultFor(results, 'daughter');
+
+    expect(withheld.amount).toBe(700_000);
+    expect(withheld.shareFraction.toFraction()).toBe('7/12');
+    expect(withheld.problemBase).toBe(0);
+    expect(withheld.shares).toBe(0);
+    expect(wife.amount + daughter.amount).toBe(500_000);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(1_200_000);
   });
 });
 
