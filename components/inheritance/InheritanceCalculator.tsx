@@ -48,6 +48,7 @@ export interface MunasakhatStage {
   secondDeceasedHasChildrenFromOtherUnion?: boolean;
   hasChildrenFromOtherUnion?: boolean;
   confirmedNoDistantKindred?: boolean;
+  confirmedSpouseEligibility?: boolean;
   hasMinorHeir?: boolean;
   deathOrderUncertain?: boolean;
   confirmedDiyahExcluded?: boolean;
