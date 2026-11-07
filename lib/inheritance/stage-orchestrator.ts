@@ -62,20 +62,6 @@ export function runInheritanceOrchestration(
       granddaughterSonSonDegreeNeedsManualReview ||
       grandmotherDegreeNeedsManualReview;
 
-    // Mixed full/paternal sibling lines with the grandfather require the
-    // special mu'adadah accounting. Article 158 states the grandfather's
-    // alternatives, but the treatment of the paternal siblings alongside
-    // full siblings has an interpretive branch (including the one-full-sister
-    // exception). Never emit an automated distribution until this is reviewed.
-    if (hasUnresolvedGrandfatherMuadadah) {
-      excludedHeirWarnings.push({
-        heirId: 'grandfather_mixed_siblings',
-        heirNameAr: 'الجد مع الإخوة الأشقاء والإخوة لأب',
-        reason: 'اجتماع الجد الصحيح مع أشقاء وإخوة لأب من صور المعادّة في مسائل الجد. لا يجوز حساب حصة الجد على مجموعة الأشقاء وحدها ثم توزيع الإخوة لأب في مرور مستقل؛ فالتفصيل يختلف باختلاف وجود أخ شقيق أو أخت شقيقة واحدة أو أكثر، وقد يغيّر نصيب كل مجموعة. أُوقف التوزيع الآلي لهذه الصورة إلى حين مراجعة المعادّة وتوثيق وجه تطبيق المادة 158 على الحالة.',
-        source: 'المادة 158 من قانون الأسرة الجزائري؛ شرح الزرقاني على موطأ الإمام مالك، كتاب الفرائض، باب ميراث الجد (مسألة المعادّة).',
-      });
-    }
-
     if (grandmotherDegreeNeedsManualReview) {
       excludedHeirWarnings.push({
         heirId: 'grandmother_degree',
