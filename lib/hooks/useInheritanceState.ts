@@ -106,6 +106,7 @@ export function useInheritanceState() {
     updateStageNoDistantKindredConfirmation,
     updateStagePregnancy,
     updateStagePregnancyDisputed,
+    updateStageMinorHeirPresent,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
   } = useMunasakhatStages(showToast);
@@ -471,6 +472,7 @@ export function useInheritanceState() {
     updateStageNoDistantKindredConfirmation,
     updateStagePregnancy,
     updateStagePregnancyDisputed,
+    updateStageMinorHeirPresent,
     acknowledgeStageExclusion,
     removeStageExclusionAcknowledgment,
     resetCalculator,
