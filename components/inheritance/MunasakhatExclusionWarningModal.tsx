@@ -6,6 +6,7 @@ interface ExcludedHeirWarning {
   heirId: string;
   heirNameAr: string;
   reason: string;
+  source?: string;
 }
 
 interface MunasakhatExclusionWarningModalProps {
@@ -65,6 +66,11 @@ export default function MunasakhatExclusionWarningModal({
                     <span className="text-[11px] text-amber-700 leading-normal block mt-1">
                       {warning.reason}
                     </span>
+                    {warning.source && (
+                      <span className="text-[10px] text-slate-500 leading-normal block mt-1">
+                        المرجع المسجل: {warning.source}
+                      </span>
+                    )}
                   </div>
                 </div>
 
