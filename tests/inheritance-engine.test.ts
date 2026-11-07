@@ -511,7 +511,8 @@ describe('Centime-precision estate distribution', () => {
     expect(daughter?.amount).toBe(333.52);
     expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(estate);
     for (const result of [son, daughter]) {
-      expect(Number.isInteger(Math.round((result?.amount ?? 0) * 100))).toBe(true);
+      const amountInCentimes = (result?.amount ?? 0) * 100;
+      expect(Math.abs(amountInCentimes - Math.round(amountInCentimes))).toBeLessThan(1e-8);
     }
   });
 
