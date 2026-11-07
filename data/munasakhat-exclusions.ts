@@ -141,7 +141,7 @@ export function validateMunasakhatStageExclusions(
 ) {
   const parentHeirId = stage.deceasedHeirId || stage.parentHeirId;
   const acknowledged = stage.acknowledgedExclusions || [];
-  const presenceList = stage.heirs || (stage.heirPresence ? Object.values(stage.heirPresence) : []);
+  const presenceList = stage.heirs?.length ? stage.heirs : (stage.heirPresence ? Object.values(stage.heirPresence) : []);
   const presentIds = new Set(
     presenceList
       .filter(heir => heir.isPresent && Boolean(heir.count && heir.count > 0) && !heir.isImpeded)
