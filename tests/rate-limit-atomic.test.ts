@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 afterEach(() => {
   vi.doUnmock('@/lib/db/client');
+  vi.unstubAllEnvs();
   vi.resetModules();
 });
 
@@ -41,24 +42,18 @@ describe('Database rate limiter uses an atomic UPSERT', () => {
   });
 
   it('fails closed in production when the database is unavailable', async () => {
-    const originalNodeEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
     vi.doMock('@/lib/db/client', () => ({ getDb: () => null }));
 
-    try {
-      const { checkRateLimit } = await import('@/lib/auth/rate-limit');
-      await expect(checkRateLimit('login:production-ip')).resolves.toEqual({
-        success: false,
-        remaining: 0,
-      });
-    } finally {
-      process.env.NODE_ENV = originalNodeEnv;
-    }
+    const { checkRateLimit } = await import('@/lib/auth/rate-limit');
+    await expect(checkRateLimit('login:production-ip')).resolves.toEqual({
+      success: false,
+      remaining: 0,
+    });
   });
 
   it('fails closed in production when the rate-limit database write fails', async () => {
-    const originalNodeEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'production';
+    vi.stubEnv('NODE_ENV', 'production');
     const database = {
       insert: () => ({
         values: () => ({
@@ -70,14 +65,10 @@ describe('Database rate limiter uses an atomic UPSERT', () => {
     };
     vi.doMock('@/lib/db/client', () => ({ getDb: () => database }));
 
-    try {
-      const { checkRateLimit } = await import('@/lib/auth/rate-limit');
-      await expect(checkRateLimit('login:production-ip')).resolves.toEqual({
-        success: false,
-        remaining: 0,
-      });
-    } finally {
-      process.env.NODE_ENV = originalNodeEnv;
-    }
+    const { checkRateLimit } = await import('@/lib/auth/rate-limit');
+    await expect(checkRateLimit('login:production-ip')).resolves.toEqual({
+      success: false,
+      remaining: 0,
+    });
   });
 });

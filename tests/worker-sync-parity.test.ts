@@ -61,12 +61,12 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
 
   it('proves CalculationResult shareFraction values survive postMessage boundary and are correctly restored by hydrateStageResults', async () => {
     const originalSelf = globalThis.self;
-    let workerResponse: Record<string, unknown> | null = null;
+    const workerResponse: { value: Record<string, unknown> | null } = { value: null };
 
     const mockSelf = {
       postMessage: (msg: Record<string, unknown>) => {
         // Simulate postMessage structuredClone serialization across thread boundary
-        workerResponse = structuredClone(msg);
+        workerResponse.value = structuredClone(msg);
       },
       onmessage: null as unknown
     };
@@ -74,10 +74,10 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
 
     handleWorkerMessage({ data: payload } as MessageEvent);
 
-    expect(workerResponse).toBeDefined();
-    expect(workerResponse?.id).toBe(101);
+    expect(workerResponse.value).not.toBeNull();
+    expect(workerResponse.value?.id).toBe(101);
 
-    const rawWorkerOutput = workerResponse?.data as Parameters<typeof hydrateStageResults>[0];
+    const rawWorkerOutput = workerResponse.value?.data as Parameters<typeof hydrateStageResults>[0];
     expect(Array.isArray(rawWorkerOutput)).toBe(true);
 
     // Verify raw worker output lost prototype methods on postMessage boundary
@@ -103,7 +103,7 @@ describe('Worker & Main-Thread Synchronous Execution Parity Tests', () => {
       stage.results.forEach((res, rIdx) => {
         const expectedRes = hydratedDirect[sIdx].results[rIdx];
         expect(res.shareFraction.toFraction()).toEqual(expectedRes.shareFraction.toFraction());
-        expect(res.finalShareAmount).toEqual(expectedRes.finalShareAmount);
+        expect(res.amount).toEqual(expectedRes.amount);
       });
     });
 
