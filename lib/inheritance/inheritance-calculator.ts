@@ -1235,9 +1235,15 @@ export function resolveResidue(state: PipelineState): PipelineState {
         reason = "الأحظ للجد (ثلث الباقي بعد أصحاب الفروض) — م.158";
       }
 
+      // In the mixed case (full + paternal sibling lines), the paternal
+      // siblings are counted with the full siblings when comparing the
+      // grandfather's muqasama option. The full siblings then reclaim the
+      // paternal line's share according to the Zayd-method mu'adadah rules.
+      const muqasamaBrotherCount = broCount + (isFullPriority ? getCount('paternal_brother') : 0);
+      const muqasamaSisterCount = sisCount + (isFullPriority ? getCount('paternal_sister') : 0);
       const totalMuqasamaParts = new Fraction(2)
-        .add(new Fraction(broCount).mul(2))
-        .add(sisCount);
+        .add(new Fraction(muqasamaBrotherCount).mul(2))
+        .add(muqasamaSisterCount);
       const muqasamaShare = totalMuqasamaParts.compare(0) > 0
         ? remainderAfterOtherFurud.div(totalMuqasamaParts).mul(2)
         : new Fraction(0);
@@ -1277,7 +1283,69 @@ export function resolveResidue(state: PipelineState): PipelineState {
         addResult('grandfather', bestShare, bestShareLabel, reason, false, 158);
       }
 
-      if (sisCount > 0 && broCount === 0) {
+      if (isFullPriority && sisCount === 1 && broCount === 0 &&
+          (getCount('paternal_brother') > 0 || getCount('paternal_sister') > 0)) {
+        // Special mu'adadah rule for one full sister: after the grandfather's
+        // share is fixed, she takes up to her prescribed half from the combined
+        // pool. Any excess is left to the paternal siblings (2:1 if a paternal
+        // brother exists; equally if they are paternal sisters only).
+        const siblingPool = remainingFraction.compare(0) > 0
+          ? remainingFraction
+          : new Fraction(0);
+        const fullSisterShare = siblingPool.compare(new Fraction(1, 2)) > 0
+          ? new Fraction(1, 2)
+          : siblingPool;
+        addResult(
+          'full_sister',
+          fullSisterShare,
+          fullSisterShare.equals(new Fraction(1, 2)) ? '1/2 — استكمال فرض الشقيقة بعد المعادّة' : 'الباقي بعد نصيب الجد',
+          'الأخت الشقيقة الواحدة تستكمل فرض النصف من مجموع ما آل إليها وإلى الإخوة لأب بعد نصيب الجد — م.158',
+          false,
+          158
+        );
+
+        const paternalPool = siblingPool.sub(fullSisterShare);
+        const paternalBrotherCount = getCount('paternal_brother');
+        const paternalSisterCount = getCount('paternal_sister');
+        if (paternalBrotherCount > 0) {
+          const paternalParts = new Fraction(paternalBrotherCount).mul(2).add(paternalSisterCount);
+          const paternalPart = paternalParts.compare(0) > 0
+            ? paternalPool.div(paternalParts)
+            : new Fraction(0);
+          addResult(
+            'paternal_brother',
+            paternalPart.mul(2).mul(paternalBrotherCount),
+            'الباقي بعد استكمال فرض الشقيقة — م.158',
+            'ما بقي بعد استكمال فرض الأخت الشقيقة الواحدة للإخوة لأب للذكر مثل حظ الأنثيين',
+            false,
+            158
+          );
+          if (paternalSisterCount > 0) {
+            addResult(
+              'paternal_sister',
+              paternalPart.mul(paternalSisterCount),
+              'الباقي بعد استكمال فرض الشقيقة — م.158',
+              'ما بقي بعد استكمال فرض الأخت الشقيقة الواحدة للإخوة لأب للذكر مثل حظ الأنثيين',
+              false,
+              158
+            );
+          }
+        } else if (paternalSisterCount > 0) {
+          addResult(
+            'paternal_sister',
+            paternalPool,
+            paternalPool.compare(0) > 0 ? 'الباقي بعد فرض الشقيقة — م.158' : 'لا باقي بعد فرض الشقيقة',
+            'الفاضل بعد تمام فرض الأخت الشقيقة الواحدة للأخوات لأب، يتقاسمنه بالسوية',
+            false,
+            158
+          );
+        }
+
+        skipInSiblingSection.add('full_sister');
+        skipInSiblingSection.add('paternal_brother');
+        skipInSiblingSection.add('paternal_sister');
+        remainingFraction = new Fraction(0);
+      } else if (sisCount > 0 && broCount === 0) {
         const siblingPool = remainingFraction.compare(0) > 0 ? remainingFraction : new Fraction(0);
         if (!results.some(r => r.heirId === sisterId && !r.isBlocked)) {
           addResult(
@@ -1381,16 +1449,21 @@ export function resolveResidue(state: PipelineState): PipelineState {
             const totalParts = new Fraction(broCount).mul(2).add(sisCount);
             const partShare = remainingFraction.div(totalParts);
 
-            addResult('paternal_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
-            if (sisCount > 0) {
+            if (!pbBlocking.isBlocked && !skipInSiblingSection.has('paternal_brother')) {
+              addResult('paternal_brother', partShare.mul(2).mul(broCount), 'الباقي تعصيباً', 'عصبة بالنفس');
+            }
+            if (sisCount > 0 && !psBlocking.isBlocked && !skipInSiblingSection.has('paternal_sister')) {
               addResult('paternal_sister', partShare.mul(sisCount), 'الباقي تعصيباً', 'عصبة بالغير');
             }
             remainingFraction = new Fraction(0);
           } else {
             // Do not assign negative shares to residuary paternal siblings.
-            // Keep the negative balance intact for the Awl stage.
-            addResult('paternal_brother', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
-            if (sisCount > 0) {
+            // Preserve an already allocated mu'adadah award in the branch
+            // above; the later sibling pass must not overwrite it with zero.
+            if (!pbBlocking.isBlocked && !skipInSiblingSection.has('paternal_brother')) {
+              addResult('paternal_brother', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
+            }
+            if (sisCount > 0 && !psBlocking.isBlocked && !skipInSiblingSection.has('paternal_sister')) {
               addResult('paternal_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
             }
           }
