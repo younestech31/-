@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { webcrypto } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -55,6 +55,22 @@ describe('Offline license issuer integration', () => {
       expect(status.license?.licenseId).toBe('MW-ISSUER-INTEGRATION-TEST');
       expect(status.license?.customerName).toBe('مكتب اختبار الترخيص');
       expect(status.license?.features).toEqual(['professional-pdf-export']);
+      const invalidOutput = path.join(tempDirectory, 'invalid-plan.mwlicense');
+      let invalidPlanRejected = false;
+      try {
+        await execFileAsync(process.execPath, [
+          scriptPath,
+          '--installation-id', installationId,
+          '--customer', 'مكتب اختبار الترخيص',
+          '--days', '31',
+          '--private-key', privatePath,
+          '--output', invalidOutput,
+        ]);
+      } catch {
+        invalidPlanRejected = true;
+      }
+      expect(invalidPlanRejected).toBe(true);
+      await expect(readFile(invalidOutput, 'utf8')).rejects.toThrow();
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
