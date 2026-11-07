@@ -47,6 +47,7 @@ export interface StageResult {
   pregnancyNeedsManualReview?: boolean;
   minorHeirNeedsJudicialPartition?: boolean;
   deathOrderNeedsManualReview?: boolean;
+  involuntaryKillerNeedsCompensationReview?: boolean;
 }
 
 interface ResultsTableProps {
@@ -309,6 +310,19 @@ const ResultsTable = memo(function ResultsTable({
             </ul>
             <p className="text-xs mt-2">
               يعرض النظام نتائج استكشافية فقط، ويعطّل تصدير المستندات حتى تُعالج هذه الصورة في المحرك وتُراجع قانونياً.
+            </p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.involuntaryKillerNeedsCompensationReview && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-4 rounded-lg border-2 border-orange-300 bg-orange-50 p-4 text-sm text-orange-950"
+          >
+            <p className="font-bold">توقّف الحساب — يلزم فصل الدية أو التعويض (المادة 137)</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              القاتل خطأ يرث من المال دون الدية أو التعويض. لم يؤكد المستخدم أن قيمة التركة المدخلة تستبعد هذه المبالغ، لذلك لم تُحسب الأنصبة ولم تُصدّر التقارير. افصل المال عن الدية/التعويض، ثم أكد ذلك في بيانات التركة.
             </p>
           </div>
         )}
