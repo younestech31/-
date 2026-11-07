@@ -40,6 +40,14 @@ Illustrative gross revenue at the displayed annual price, before taxes, refunds,
 
 These are arithmetic scenarios only. The product has no automatic renewal, so none of this revenue is recurring unless customers voluntarily renew.
 
+### Publicly advertised local comparison points (not like-for-like)
+A limited scan of publicly indexed Algerian software offers found:
+- Notaire.Local lists a subscription renewal at **20,160 DZD** and a mini-server bundle at **200,000 DZD**. Its listing describes broader office-management functions such as indexing, accounting, registration, publication, and a knowledge base; the exact billing period and package inclusions must be reconfirmed with the seller before using it as a unit-price benchmark. https://shop.localnotaire.com/ and https://localnotaire.com/product-category/software/
+- JazairSoft lists **ALMOATHIK** (notarial management) at **85,000 DZD**. The public listing does not establish whether this is a perpetual license, a time-limited license, or a bundle with support, so it is not directly comparable to Mawarith's 30/90/365-day browser license. https://jazairsoft.com/logiciels?lang=fr
+- Mouhami markets an office subscription with bilingual document editing, PDF/DOCX export, backups, support, and DZD payment methods, but it is a legal-office workflow product rather than an inheritance calculator. https://mouhami.app/fr/pricing
+
+These listings show that Algerian legal-office software is a monetized category, but they do **not** prove Mawarith's target price. The closest product has a much broader scope. Validate Mawarith's prices with real notary offices and compare the value and support included, not just the sticker price.
+
 ## 2. Technical audit findings
 
 ### Blockers before the first paid license
