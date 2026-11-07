@@ -152,8 +152,9 @@ export function runInheritanceOrchestration(
     }
 
     const minorHeirNeedsJudicialPartition = stage.hasMinorHeir === true;
-    const hasSpouseHeir = heirsToCheck.some(heir =>
-      heir.heirId === 'husband' || heir.heirId === 'wife'
+    const hasSpouseHeir = presenceList.some(heir =>
+      heir.isPresent && heir.count > 0 &&
+      (heir.heirId === 'husband' || heir.heirId === 'wife')
     );
     const spouseEligibilityNeedsReview =
       hasSpouseHeir && stage.confirmedSpouseEligibility !== true;
