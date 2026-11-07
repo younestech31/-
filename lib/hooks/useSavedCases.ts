@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { SavedCase, MunasakhatStage } from '@/lib/inheritance/munasakhat-types';
-import { OfficeSettings, DEFAULT_OFFICE_SETTINGS } from '@/lib/inheritance/document-branding';
+import { OfficeSettings, DEFAULT_OFFICE_SETTINGS, getPersistedOfficeSettings } from '@/lib/inheritance/document-branding';
 import { encryptData, decryptData } from '@/lib/crypto';
 
 const STORAGE_KEY = 'mawarith_saved_cases_v2';
@@ -93,8 +93,20 @@ export function useSavedCases(
       const rawSettings = localStorage.getItem(OFFICE_SETTINGS_KEY);
       if (rawSettings) {
         const parsedSettings = JSON.parse(rawSettings);
-        if (parsedSettings && typeof parsedSettings === 'object') {
-          setOfficeSettings({ ...DEFAULT_OFFICE_SETTINGS, ...parsedSettings });
+        if (parsedSettings && typeof parsedSettings === 'object' && !Array.isArray(parsedSettings)) {
+          const hadStoredPassphrase = Object.prototype.hasOwnProperty.call(parsedSettings, 'cloudSyncPassphrase');
+          const safeSettings = getPersistedOfficeSettings(parsedSettings as OfficeSettings);
+          setOfficeSettings({ ...DEFAULT_OFFICE_SETTINGS, ...safeSettings });
+
+          // Migrate older settings that stored the cloud passphrase in plaintext.
+          if (hadStoredPassphrase) {
+            try {
+              localStorage.setItem(OFFICE_SETTINGS_KEY, JSON.stringify(safeSettings));
+            } catch (migrationError) {
+              console.error('Failed to remove the legacy plaintext cloud passphrase:', migrationError);
+              setStorageError('تعذر حذف عبارة مرور المزامنة القديمة من التخزين المحلي. افتح إعدادات المتصفح وامسح بيانات الموقع بعد حفظ نسخة آمنة من القضايا.');
+            }
+          }
         }
       }
     } catch (e) {
@@ -125,7 +137,7 @@ export function useSavedCases(
     setOfficeSettings(settings);
     if (typeof window === 'undefined') return;
     try {
-      localStorage.setItem(OFFICE_SETTINGS_KEY, JSON.stringify(settings));
+      localStorage.setItem(OFFICE_SETTINGS_KEY, JSON.stringify(getPersistedOfficeSettings(settings)));
       showToast('تم حفظ إعدادات المكتب والترويسة بنجاح ✓', 'success');
     } catch (e) {
       console.error('Failed to save office settings:', e);
