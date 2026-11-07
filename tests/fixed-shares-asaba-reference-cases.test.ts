@@ -523,6 +523,53 @@ describe('Independent fraction and individual-allocation invariants', () => {
     expect(sons.individuals?.map(person => person.amount)).toEqual([84_000, 84_000]);
   });
 
+  it('conserves fractional DZD at centime precision across fixed shares and residue', () => {
+    const results = calculateInheritance(
+      [present('wife'), present('son')],
+      1_000.01,
+      0,
+      0,
+      0,
+      false,
+      [],
+      'stillborn',
+      false,
+      true,
+    );
+
+    const wife = getResult(results, 'wife');
+    const son = getResult(results, 'son');
+
+    expect(wife.shareFraction.toFraction()).toBe('1/8');
+    expect(son.shareFraction.toFraction()).toBe('7/8');
+    expect(wife.amount).toBe(125);
+    expect(son.amount).toBe(875.01);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(1_000.01);
+  });
+
+  it('does not round a legally held spouse-only residue into the spouse allocation', () => {
+    const results = calculateInheritance(
+      [present('wife')],
+      1_000.01,
+      0,
+      0,
+      0,
+      false,
+      [],
+      'stillborn',
+      false,
+      false,
+    );
+
+    const wife = getResult(results, 'wife');
+    const review = getResult(results, 'article_180_review');
+
+    expect(wife.shareFraction.toFraction()).toBe('1/4');
+    expect(wife.amount).toBe(250);
+    expect(review.amount).toBe(0);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(250);
+  });
+
   it('distributes indivisible group amounts at centime precision without losing or creating value', () => {
     const results = calculateInheritance(
       [present('son', 3)],
