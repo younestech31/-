@@ -159,6 +159,16 @@ export function validateMunasakhatStageExclusions(
     );
   }
 
+  const grandmotherDegreeNeedsManualReview = presenceList.some(heir =>
+    heir.isPresent && heir.count > 1 &&
+    ['maternal_grandmother', 'paternal_grandmother'].includes(heir.heirId)
+  );
+  if (grandmotherDegreeNeedsManualReview) {
+    manualClassificationReasons.push(
+      'المادتان 149(4) و161: تقسيم السدس أو اختصاص الجدة الأقرب به يتطلب معرفة درجة كل جدة. لا يميز النموذج الحالي الجدات الأبعد عن الجدة المباشرة، لذلك تُراجع هذه الصورة يدوياً.'
+    );
+  }
+
   const hasGrandfather = presentIds.has('grandfather');
   const hasFullSiblingLine = presentIds.has('full_brother') || presentIds.has('full_sister');
   const hasPaternalSiblingLine = presentIds.has('paternal_brother') || presentIds.has('paternal_sister');
