@@ -110,6 +110,34 @@ export interface PipelineState {
 const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
 const lcm = (a: number, b: number): number => Math.abs((a / gcd(a, b)) * b);
 
+/**
+ * Split a grouped DZD amount into equal individual amounts at centime
+ * precision. The largest-remainder step keeps the displayed individual
+ * amounts additive: their sum is exactly the group's displayed amount.
+ */
+function splitAmountToCents(totalAmount: number, count: number): number[] {
+  if (!Number.isFinite(totalAmount) || count <= 0) return [];
+  const totalCents = Math.round(totalAmount * 100);
+  const baseCents = Math.floor(totalCents / count);
+  const remainderCents = totalCents - baseCents * count;
+  return Array.from(
+    { length: count },
+    (_, index) => (baseCents + (index < remainderCents ? 1 : 0)) / 100,
+  );
+}
+
+/** Split corrected integer shares without creating or losing a share unit. */
+function splitIntegerShares(totalShares: number, count: number): number[] {
+  if (!Number.isFinite(totalShares) || count <= 0) return [];
+  const wholeShares = Math.max(0, Math.round(totalShares));
+  const baseShares = Math.floor(wholeShares / count);
+  const remainderShares = wholeShares - baseShares * count;
+  return Array.from(
+    { length: count },
+    (_, index) => baseShares + (index < remainderShares ? 1 : 0),
+  );
+}
+
 export function calculateInheritance(
   heirs: HeirPresence[],
   estate: number,
@@ -235,6 +263,14 @@ export function calculateInheritance(
     }).filter(Boolean).length;
     const activeCount = h.count - impededCount;
 
+    const individualAmounts = activeRes
+      ? splitAmountToCents(activeRes.amount, activeCount)
+      : [];
+    const individualShares = activeRes
+      ? splitIntegerShares(activeRes.shares, activeCount)
+      : [];
+    let activeIndividualIndex = 0;
+
     const individuals: IndividualResult[] = [];
     let groupAmount = 0;
     let groupShare = 'محجوب';
@@ -269,10 +305,11 @@ export function calculateInheritance(
         groupShares = activeRes.shares;
         groupReason = activeRes.reason;
 
-        const indAmt = activeCount > 0 ? activeRes.amount / activeCount : 0;
+        const indAmt = individualAmounts[activeIndividualIndex] ?? 0;
         const indShareFrac = activeCount > 0 ? activeRes.shareFraction.div(activeCount) : new Fraction(0);
         const indSharesStr = activeCount > 1 ? indShareFrac.toFraction(true) : activeRes.share;
-        const indSharesCount = activeCount > 0 ? Math.round(activeRes.shares / activeCount) : 0;
+        const indSharesCount = individualShares[activeIndividualIndex] ?? 0;
+        activeIndividualIndex++;
 
         individuals.push({
           isBlocked: false,
@@ -1302,7 +1339,19 @@ export function resolveResidue(state: PipelineState): PipelineState {
               addResult('full_sister', new Fraction(0), 'لا باقي', 'لا باقي للتعصيب بعد استغراق الفروض — العول');
             }
           }
-        } else if (sisCount > 0 && !skipInSiblingSection.has('full_sister')) {
+        } else if (
+          sisCount > 0 &&
+          !skipInSiblingSection.has('full_sister') &&
+          !results.some(r =>
+            r.heirId === 'full_sister' &&
+            !r.isBlocked &&
+            r.reason.includes('عصبة مع الغير')
+          )
+        ) {
+          // A full sister may already have received the residue as asaba
+          // ma'a al-ghayr with a daughter/granddaughter under Article 156.
+          // Do not overwrite that residuary award with her standalone fard
+          // (1/2 or 2/3) in the later sibling pass.
           const share = sisCount === 1 ? new Fraction(1, 2) : new Fraction(2, 3);
           addResult('full_sister', share, sisCount === 1 ? '1/2' : '2/3', 'فرضاً لعدم وجود الفرع الوارث والأصل المذكر');
           remainingFraction = remainingFraction.sub(share);
@@ -1311,7 +1360,9 @@ export function resolveResidue(state: PipelineState): PipelineState {
     }
 
     const fullSisterAlreadyAsaba = results.some(
-      r => r.heirId === 'full_sister' && r.reason.includes('تعصيباً')
+      r => r.heirId === 'full_sister' &&
+        !r.isBlocked &&
+        (r.reason.includes('تعصيباً') || r.reason.includes('عصبة مع الغير'))
     );
 
     if ((has('paternal_brother') || has('paternal_sister')) && !isAnyAkdariya) {
