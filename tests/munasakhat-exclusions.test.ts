@@ -110,6 +110,17 @@ describe('Munasakhat relationship review rules', () => {
     const stageResults = runInheritanceOrchestration([buildStages(), 100000, 0, 0, 0]);
     const secondary = stageResults[1];
 
+    console.log('MUNASAKHAT_DEBUG', {
+      parentReasons: secondary.munasakhatParentReviewReasons,
+      parentRows: stageResults[0].results.map(result => ({
+        heirId: result.heirId,
+        amount: result.amount,
+        count: result.count,
+        blocked: result.isBlocked,
+        individuals: result.individuals?.map(individual => ({ amount: individual.amount, blocked: individual.isBlocked })),
+      })),
+      childInheritedAmount: buildStages()[1].inheritedAmount,
+    });
     expect(secondary.excludedHeirWarnings?.some(warning => warning.heirId === 'mother')).toBe(true);
     expect(secondary.results.some(result => result.heirId === 'mother')).toBe(true);
     expect(secondary.munasakhatParentNeedsManualReview).toBe(false);
