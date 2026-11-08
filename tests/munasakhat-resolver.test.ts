@@ -336,6 +336,51 @@ describe('Munasakhat Resolver Tests', () => {
     expect(child.munasakhatParentReviewReasons?.join(' ')).toContain('نتيجة المرحلة الأصلية غير مكتملة');
   });
 
+  it('does not chain a later estate from a parent stage with unresolved or acknowledged relationship warnings', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+
+    const buildStages = (acknowledgedExclusions: string[] = []): MunasakhatStage[] => [
+      {
+        id: 'root',
+        deceasedName: 'المتوفى الأصلي',
+        hasMandatoryBequest: false,
+        heirs: [present('son')],
+      },
+      {
+        id: 'second',
+        deceasedName: 'الابن المتوفى',
+        parentStageId: 'root',
+        parentHeirId: 'son',
+        parentHeirIndex: 0,
+        inheritedAmount: 100_000,
+        confirmedNoDistantKindred: true,
+        acknowledgedExclusions,
+        hasMandatoryBequest: false,
+        heirs: [present('mother')],
+      },
+      {
+        id: 'third',
+        deceasedName: 'المتوفى الثالث',
+        parentStageId: 'second',
+        parentHeirId: 'mother',
+        parentHeirIndex: 0,
+        inheritedAmount: 100_000,
+        hasMandatoryBequest: false,
+        heirs: [present('daughter')],
+      },
+    ];
+
+    const pending = runInheritanceOrchestration([buildStages(), 100_000, 0, 0, 0]);
+    expect(pending[1].excludedHeirWarnings?.some(warning => warning.heirId === 'mother')).toBe(true);
+    expect(pending[2].munasakhatParentNeedsManualReview).toBe(true);
+    expect(pending[2].results).toEqual([]);
+
+    const acknowledged = runInheritanceOrchestration([buildStages(['mother']), 100_000, 0, 0, 0]);
+    expect(acknowledged[1].hasUnverifiedOverride).toBe(true);
+    expect(acknowledged[2].munasakhatParentNeedsManualReview).toBe(true);
+    expect(acknowledged[2].results).toEqual([]);
+  });
+
   it('withholds shares when two grandmothers are present but their relative degree is not recorded (Art.149(4))', async () => {
     const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
     const stages: MunasakhatStage[] = [{
