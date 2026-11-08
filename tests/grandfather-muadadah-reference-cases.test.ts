@@ -366,6 +366,56 @@ describe('Article 158 — independent numerical reference matrix (low-level arit
   });
 });
 
+describe('Grandfather priority alongside descendants', () => {
+  it('assigns the grandfather one-sixth and the residue to a son', () => {
+    const results = calculateInheritance([
+      present('grandfather'),
+      present('son'),
+    ], 120_000, 0, 0, 0, false, [], 'stillborn', false, true);
+
+    expect(resultFor(results, 'grandfather').shareFraction.toFraction()).toBe('1/6');
+    expect(resultFor(results, 'grandfather').amount).toBe(20_000);
+    expect(resultFor(results, 'son').shareFraction.toFraction()).toBe('5/6');
+    expect(resultFor(results, 'son').amount).toBe(100_000);
+  });
+
+  it('assigns the grandfather one-sixth and the residue to a son\'s son when no son is present', () => {
+    const results = calculateInheritance([
+      present('grandfather'),
+      present('son_son'),
+    ], 120_000, 0, 0, 0, false, [], 'stillborn', false, true);
+
+    expect(resultFor(results, 'grandfather').shareFraction.toFraction()).toBe('1/6');
+    expect(resultFor(results, 'grandfather').amount).toBe(20_000);
+    expect(resultFor(results, 'son_son').shareFraction.toFraction()).toBe('5/6');
+    expect(resultFor(results, 'son_son').amount).toBe(100_000);
+  });
+
+  it('combines the grandfather one-sixth with the residue when there is one daughter and no sibling group', () => {
+    const results = calculateInheritance([
+      present('grandfather'),
+      present('daughter'),
+    ], 120_000, 0, 0, 0, false, [], 'stillborn', false, true);
+
+    expect(resultFor(results, 'daughter').shareFraction.toFraction()).toBe('1/2');
+    expect(resultFor(results, 'daughter').amount).toBe(60_000);
+    expect(resultFor(results, 'grandfather').shareFraction.toFraction()).toBe('1/2');
+    expect(resultFor(results, 'grandfather').amount).toBe(60_000);
+  });
+
+  it('combines the grandfather one-sixth with the residue when there are two daughters and no sibling group', () => {
+    const results = calculateInheritance([
+      present('grandfather'),
+      present('daughter', 2),
+    ], 120_000, 0, 0, 0, false, [], 'stillborn', false, true);
+
+    expect(resultFor(results, 'daughter').shareFraction.toFraction()).toBe('2/3');
+    expect(resultFor(results, 'daughter').amount).toBe(80_000);
+    expect(resultFor(results, 'grandfather').shareFraction.toFraction()).toBe('1/3');
+    expect(resultFor(results, 'grandfather').amount).toBe(40_000);
+  });
+});
+
 describe('Grandfather blocking boundaries around Article 158', () => {
   it('blocks the paternal grandfather when the father is present', () => {
     const results = calculateInheritance([
