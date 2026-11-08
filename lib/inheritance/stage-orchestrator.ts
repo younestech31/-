@@ -61,8 +61,7 @@ export function runInheritanceOrchestration(
         if (parentStageResult.results.length === 0 || parentHasBlockingLegalReview) {
           munasakhatParentReviewReasons.push('نتيجة المرحلة الأصلية غير مكتملة أو متوقفة للمراجعة القانونية؛ عالج التحذيرات أو القيود في المرحلة الأصلية قبل اشتقاق تركة المرحلة التابعة.');
         } else {
-      } else {
-        const parentHeirResult = parentStageResult.results.find(result => result.heirId === parentHeirId);
+          const parentHeirResult = parentStageResult.results.find(result => result.heirId === parentHeirId);
         if (!parentHeirResult) {
           munasakhatParentReviewReasons.push('الوارث المحدد لهذه المناسخة غير موجود في نتائج المرحلة الأصلية؛ راجع اختيار الوارث أو بيانات الحجب.');
         } else if (parentHeirResult.isBlocked) {
