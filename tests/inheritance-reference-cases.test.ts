@@ -296,6 +296,41 @@ describe('Statute-derived independent inheritance reference cases', () => {
   });
 });
 
+describe('Articles 175–176 — special cases through the production orchestrator', () => {
+  it.each(statutoryCases.filter(testCase => testCase.article === 175 || testCase.article === 176))(
+    '$id — preserves the statutory result without an unrelated manual-review hold',
+    testCase => {
+      const stage: MunasakhatStage = {
+        id: `production-${testCase.id}`,
+        deceasedName: 'مسألة خاصة مرجعية',
+        hasMandatoryBequest: false,
+        confirmedSpouseEligibility: true,
+        confirmedNoDistantKindred: testCase.confirmedNoDistantKindred,
+        heirs: testCase.heirs,
+      };
+
+      const [stageResult] = runInheritanceOrchestration([[
+        stage,
+      ], testCase.estate, 0, 0, 0]);
+
+      expect(stageResult.requiresManualClassification).not.toBe(true);
+      expect(stageResult.spouseEligibilityNeedsReview).not.toBe(true);
+      expect(stageResult.financialInputNeedsManualReview).not.toBe(true);
+
+      for (const [heirId, expected] of Object.entries(testCase.expected)) {
+        const actual = resultFor(stageResult.results, heirId);
+        expect(actual.shareFraction.toFraction(), heirId).toBe(expected.fraction);
+        expect(actual.amount, heirId).toBe(expected.amount);
+      }
+
+      expect(
+        stageResult.results.reduce((sum, result) => sum + result.amount, 0),
+        testCase.id,
+      ).toBe(testCase.estate);
+    },
+  );
+});
+
 describe('Legally guarded cases — a review result is not a computed distribution', () => {
   it('keeps spouse-only remainder unallocated before Article 167 conditions are confirmed', () => {
     const results = calculateInheritance([present('husband')], 240_000, 0, 0, 0);
