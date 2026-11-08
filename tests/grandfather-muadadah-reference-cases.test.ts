@@ -128,6 +128,140 @@ const referenceCases: ReferenceCase[] = [
       paternal_sister: { fraction: '1/54', amount: 10_000 },
     },
   },
+
+  {
+    id: 'art158-grandfather-one-full-sister-no-other-fixed-heirs',
+    basis: 'Article 158: muqasama gives the grandfather two of three shares against one full sister; this exceeds one-third of the estate',
+    estate: 300_000,
+    heirs: [present('grandfather'), present('full_sister')],
+    expected: {
+      grandfather: { fraction: '2/3', amount: 200_000 },
+      full_sister: { fraction: '1/3', amount: 100_000 },
+    },
+  },
+  {
+    id: 'art158-grandfather-two-full-sisters-no-other-fixed-heirs',
+    basis: 'Article 158: muqasama gives the grandfather two of four shares against two full sisters',
+    estate: 300_000,
+    heirs: [present('grandfather'), present('full_sister', 2)],
+    expected: {
+      grandfather: { fraction: '1/2', amount: 150_000 },
+      full_sister: {
+        fraction: '1/2',
+        amount: 150_000,
+        individualAmounts: [75_000, 75_000],
+      },
+    },
+  },
+  {
+    id: 'art158-grandfather-one-paternal-sister-no-other-fixed-heirs',
+    basis: 'Article 158: with paternal siblings only, muqasama gives the grandfather two of three shares against one paternal sister',
+    estate: 300_000,
+    heirs: [present('grandfather'), present('paternal_sister')],
+    expected: {
+      grandfather: { fraction: '2/3', amount: 200_000 },
+      paternal_sister: { fraction: '1/3', amount: 100_000 },
+    },
+  },
+  {
+    id: 'art158-grandfather-two-paternal-sisters-no-other-fixed-heirs',
+    basis: 'Article 158: muqasama gives the grandfather two of four shares against two paternal sisters',
+    estate: 300_000,
+    heirs: [present('grandfather'), present('paternal_sister', 2)],
+    expected: {
+      grandfather: { fraction: '1/2', amount: 150_000 },
+      paternal_sister: {
+        fraction: '1/2',
+        amount: 150_000,
+        individualAmounts: [75_000, 75_000],
+      },
+    },
+  },
+  {
+    id: 'art158-wife-grandfather-one-full-sister',
+    basis: 'Wife receives 1/4; among the 3/4 residue, muqasama gives the grandfather 2/3 and the full sister 1/3',
+    estate: 400_000,
+    heirs: [present('wife'), present('grandfather'), present('full_sister')],
+    expected: {
+      wife: { fraction: '1/4', amount: 100_000 },
+      grandfather: { fraction: '1/2', amount: 200_000 },
+      full_sister: { fraction: '1/4', amount: 100_000 },
+    },
+  },
+  {
+    id: 'art158-daughter-grandfather-one-full-sister',
+    basis: 'Daughter receives 1/2; muqasama gives the grandfather 1/3 of the estate and the sister receives the remaining 1/6',
+    estate: 360_000,
+    heirs: [present('daughter'), present('grandfather'), present('full_sister')],
+    expected: {
+      daughter: { fraction: '1/2', amount: 180_000 },
+      grandfather: { fraction: '1/3', amount: 120_000 },
+      full_sister: { fraction: '1/6', amount: 60_000 },
+    },
+  },
+  {
+    id: 'art158-mother-grandfather-one-full-sister',
+    basis: 'Mother receives 1/3; muqasama is the best option for the grandfather, two of three shares in the remaining 2/3',
+    estate: 360_000,
+    heirs: [present('mother'), present('grandfather'), present('full_sister')],
+    expected: {
+      mother: { fraction: '1/3', amount: 120_000 },
+      grandfather: { fraction: '4/9', amount: 160_000 },
+      full_sister: { fraction: '2/9', amount: 80_000 },
+    },
+  },
+  {
+    id: 'art158-mother-grandfather-two-full-sisters',
+    basis: 'Mother is reduced to 1/6 for the sibling group; muqasama gives the grandfather half of the remaining 5/6',
+    estate: 360_000,
+    heirs: [present('mother'), present('grandfather'), present('full_sister', 2)],
+    expected: {
+      mother: { fraction: '1/6', amount: 60_000 },
+      grandfather: { fraction: '5/12', amount: 150_000 },
+      full_sister: {
+        fraction: '5/12',
+        amount: 150_000,
+        individualAmounts: [75_000, 75_000],
+      },
+    },
+  },
+  {
+    id: 'art158-daughter-grandfather-full-brother',
+    basis: 'Daughter receives 1/2; muqasama between the grandfather and one full brother divides the residue equally',
+    estate: 360_000,
+    heirs: [present('daughter'), present('grandfather'), present('full_brother')],
+    expected: {
+      daughter: { fraction: '1/2', amount: 180_000 },
+      grandfather: { fraction: '1/4', amount: 90_000 },
+      full_brother: { fraction: '1/4', amount: 90_000 },
+    },
+  },
+  {
+    id: 'art158-two-daughters-grandfather-full-brother',
+    basis: 'Two daughters receive 2/3; the grandfather and full brother divide the remaining 1/3 equally',
+    estate: 360_000,
+    heirs: [present('daughter', 2), present('grandfather'), present('full_brother')],
+    expected: {
+      daughter: {
+        fraction: '2/3',
+        amount: 240_000,
+        individualAmounts: [120_000, 120_000],
+      },
+      grandfather: { fraction: '1/6', amount: 60_000 },
+      full_brother: { fraction: '1/6', amount: 60_000 },
+    },
+  },
+  {
+    id: 'art158-grandfather-paternal-brother-and-sister-no-other-fixed-heirs',
+    basis: 'Muqasama treats the grandfather as two shares, paternal brother as two, and paternal sister as one',
+    estate: 300_000,
+    heirs: [present('grandfather'), present('paternal_brother'), present('paternal_sister')],
+    expected: {
+      grandfather: { fraction: '2/5', amount: 120_000 },
+      paternal_brother: { fraction: '2/5', amount: 120_000 },
+      paternal_sister: { fraction: '1/5', amount: 60_000 },
+    },
+  },
 ];
 
 function resultFor(results: CalculationResult[], heirId: string): CalculationResult {
