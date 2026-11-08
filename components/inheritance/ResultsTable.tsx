@@ -53,6 +53,8 @@ export interface StageResult {
   spouseEligibilityNeedsReview?: boolean;
   financialInputNeedsManualReview?: boolean;
   financialInputErrors?: string[];
+  munasakhatParentNeedsManualReview?: boolean;
+  munasakhatParentReviewReasons?: string[];
 }
 
 interface ResultsTableProps {
@@ -276,6 +278,20 @@ const ResultsTable = memo(function ResultsTable({
         {currentStageIndex > 0 && currentNetEstate === 0 && !isPureSharesMode && (
           <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-800 text-xs rounded">
             <p><strong>تنبيه:</strong> صافي التركة لهذه المرحلة هو صفر. لن يتم حساب أي أنصبة.</p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.munasakhatParentNeedsManualReview && (
+          <div role="alert" aria-live="assertive" className="mb-4 rounded-lg border-2 border-rose-300 bg-rose-50 p-4 text-sm text-rose-950">
+            <p className="font-bold">توقّف حساب المناسخة — لم يثبت تطابق النصيب الموروث</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لم يصدر النظام أنصبة لهذه المرحلة؛ يجب أن يطابق مبلغها الموروث الحصة الفردية الحالية للوارث المتوفى في المرحلة الأصلية، وأن يكون رابط المرحلة والفرد صحيحاً. راجع المرحلة الأصلية ثم أعد إنشاء المناسخة من نتيجة النصيب الحالية.
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pr-5 text-xs leading-relaxed">
+              {(allStagesResults[currentStageIndex]?.munasakhatParentReviewReasons || []).map((issue, index) => (
+                <li key={`${index}-${issue}`}>{issue}</li>
+              ))}
+            </ul>
           </div>
         )}
 

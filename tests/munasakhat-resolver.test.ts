@@ -252,6 +252,7 @@ describe('Munasakhat Resolver Tests', () => {
         deceasedName: 'الابن المتوفى ثانيا',
         inheritedAmount: 100000,
         ownSeparateAssets: 50000,
+        confirmedSpouseEligibility: true,
         parentHeirId: 'son',
         parentStageId: 'root',
         heirPresence: {
@@ -267,6 +268,72 @@ describe('Munasakhat Resolver Tests', () => {
     expect(results.length).toBe(2);
     // Stage 2 net estate must equal inherited (100000) + ownSeparateAssets (50000) = 150000
     expect(results[1].netEstate).toBe(150000);
+    expect(results[1].munasakhatParentNeedsManualReview).toBe(false);
+    expect(results[1].results.length).toBeGreaterThan(0);
+  });
+
+  it('blocks a downstream stage when its inherited amount no longer matches the current parent individual share', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      { id: 'root', deceasedName: 'المتوفى الأصلي', hasMandatoryBequest: false, heirs: [present('son')] },
+      {
+        id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'root', parentHeirId: 'son',
+        parentHeirIndex: 0, inheritedAmount: 100_000, hasMandatoryBequest: false,
+        confirmedSpouseEligibility: true, heirs: [present('wife')],
+      },
+    ];
+    const [, child] = runInheritanceOrchestration([stages, 90_000, 0, 0, 0]);
+    expect(child.munasakhatParentNeedsManualReview).toBe(true);
+    expect(child.results).toEqual([]);
+    expect(child.munasakhatParentReviewReasons?.join(' ')).toContain('تغير نصيب الفرد');
+  });
+
+  it('blocks a downstream stage if its parent stage link cannot be resolved', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      { id: 'root', deceasedName: 'المتوفى الأصلي', hasMandatoryBequest: false, heirs: [present('son')] },
+      {
+        id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'missing-parent', parentHeirId: 'son',
+        inheritedAmount: 100_000, hasMandatoryBequest: false, heirs: [present('daughter')],
+      },
+    ];
+    const [, child] = runInheritanceOrchestration([stages, 100_000, 0, 0, 0]);
+    expect(child.munasakhatParentNeedsManualReview).toBe(true);
+    expect(child.results).toEqual([]);
+    expect(child.munasakhatParentReviewReasons?.join(' ')).toContain('تعذر العثور على المرحلة الأصلية');
+  });
+
+  it('blocks a parent individual index outside a multi-heir group', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      { id: 'root', deceasedName: 'المتوفى الأصلي', hasMandatoryBequest: false, heirs: [present('son', 2)] },
+      {
+        id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'root', parentHeirId: 'son',
+        parentHeirIndex: 2, inheritedAmount: 50_000, hasMandatoryBequest: false, heirs: [present('daughter')],
+      },
+    ];
+    const [, child] = runInheritanceOrchestration([stages, 100_000, 0, 0, 0]);
+    expect(child.munasakhatParentNeedsManualReview).toBe(true);
+    expect(child.results).toEqual([]);
+    expect(child.munasakhatParentReviewReasons?.join(' ')).toContain('خارج عدد أفراد فئة الوارث');
+  });
+
+  it('blocks a downstream stage when the parent calculation is on legal review hold', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      {
+        id: 'root', deceasedName: 'المتوفى الأصلي مع حمل قائم', hasMandatoryBequest: false,
+        hasUnbornHeir: true, unbornOutcome: 'pending', heirs: [present('son')],
+      },
+      {
+        id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'root', parentHeirId: 'son',
+        parentHeirIndex: 0, inheritedAmount: 100_000, hasMandatoryBequest: false, heirs: [present('daughter')],
+      },
+    ];
+    const [, child] = runInheritanceOrchestration([stages, 100_000, 0, 0, 0]);
+    expect(child.munasakhatParentNeedsManualReview).toBe(true);
+    expect(child.results).toEqual([]);
+    expect(child.munasakhatParentReviewReasons?.join(' ')).toContain('نتيجة المرحلة الأصلية غير مكتملة');
   });
 
   it('withholds shares when two grandmothers are present but their relative degree is not recorded (Art.149(4))', async () => {
