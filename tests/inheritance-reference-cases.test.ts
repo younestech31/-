@@ -297,7 +297,7 @@ describe('Statute-derived independent inheritance reference cases', () => {
 });
 
 describe('Articles 175–176 — special cases through the production orchestrator', () => {
-  it.each(statutoryCases.filter(testCase => testCase.article === 175 || testCase.article === 176))(
+  it.each(statutoryCases.filter(testCase => testCase.article >= 175 && testCase.article <= 179))(
     '$id — preserves the statutory result without an unrelated manual-review hold',
     testCase => {
       const stage: MunasakhatStage = {
