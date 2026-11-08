@@ -36,12 +36,31 @@ export function runInheritanceOrchestration(
         munasakhatParentReviewReasons.push('لا يوجد معرّف للوارث المتوفى الذي انتقل نصيبه إلى هذه المرحلة؛ اربط المرحلة بالوارث الصحيح في المرحلة الأصلية.');
       } else if (!parentStageResult) {
         munasakhatParentReviewReasons.push('تعذر العثور على المرحلة الأصلية المرتبطة بهذه المناسخة؛ قد يكون رابط المرحلة مفقوداً أو يشير إلى مرحلة غير محسوبة.');
-      } else if (
-        parentStageResult.results.length === 0 ||
-        parentStageResult.financialInputNeedsManualReview ||
-        parentStageResult.munasakhatParentNeedsManualReview
-      ) {
-        munasakhatParentReviewReasons.push('نتيجة المرحلة الأصلية غير مكتملة أو متوقفة للمراجعة؛ لا يجوز اشتقاق تركة المرحلة التابعة منها.');
+      } else {
+        const parentAcknowledgedExclusions = new Set(
+          parentStageResult.stage.acknowledgedExclusions ?? []
+        );
+        const parentHasPendingExclusionWarnings = (parentStageResult.excludedHeirWarnings ?? [])
+          .some(warning => !parentAcknowledgedExclusions.has(warning.heirId));
+        const parentHasBlockingLegalReview = [
+          parentStageResult.hasUnverifiedOverride,
+          parentStageResult.requiresManualClassification,
+          parentStageResult.tanzilNeedsManualReview,
+          parentStageResult.noHeirsNeedsManualReview,
+          parentStageResult.pregnancyNeedsManualReview,
+          parentStageResult.minorHeirNeedsJudicialPartition,
+          parentStageResult.deathOrderNeedsManualReview,
+          parentStageResult.involuntaryKillerNeedsCompensationReview,
+          parentStageResult.missingHeirNeedsManualReview,
+          parentStageResult.spouseEligibilityNeedsReview,
+          parentStageResult.financialInputNeedsManualReview,
+          parentStageResult.munasakhatParentNeedsManualReview,
+          parentHasPendingExclusionWarnings,
+        ].some(Boolean);
+
+        if (parentStageResult.results.length === 0 || parentHasBlockingLegalReview) {
+          munasakhatParentReviewReasons.push('نتيجة المرحلة الأصلية غير مكتملة أو متوقفة للمراجعة القانونية؛ عالج التحذيرات أو القيود في المرحلة الأصلية قبل اشتقاق تركة المرحلة التابعة.');
+        } else {
       } else {
         const parentHeirResult = parentStageResult.results.find(result => result.heirId === parentHeirId);
         if (!parentHeirResult) {
@@ -84,6 +103,7 @@ export function runInheritanceOrchestration(
               );
             }
           }
+        }
         }
       }
     }
