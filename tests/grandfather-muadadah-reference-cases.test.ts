@@ -294,7 +294,7 @@ const referenceCases: ReferenceCase[] = [
   },
   {
     id: 'art158-one-sixth-of-whole-estate-prevails-with-wife-two-daughters-and-four-full-brothers',
-    basis: 'With wife and daughters, the grandfather's 1/6 of the whole estate exceeds both one-third of the remaining 5/24 and muqasama against four brothers',
+    basis: "With wife and daughters, the grandfather's 1/6 of the whole estate exceeds both one-third of the remaining 5/24 and muqasama against four brothers",
     estate: 360_000,
     heirs: [
       present('wife'),
