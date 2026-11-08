@@ -509,6 +509,7 @@ describe('Munasakhat stage hand-off reference', () => {
         deceasedName: 'الابن المتوفى لاحقاً',
         parentHeirId: 'son',
         parentStageId: 'root',
+        parentHeirCount: 1,
         hasMandatoryBequest: false,
         confirmedSpouseEligibility: true,
         inheritedFromParentAmount: 105_000,
