@@ -9,6 +9,7 @@ import { CalculationResult } from '@/lib/inheritance-calculator';
 import { INHERITANCE_BARS } from '@/data/inheritance-bars';
 import { MunasakhatStage } from './InheritanceCalculator';
 import { formatDZDAmount } from '@/lib/inheritance/document-branding';
+import { buildResultsClipboardText } from '@/lib/inheritance/results-clipboard';
 
 const FamilyTree = dynamic(() => import('./FamilyTree/FamilyTree'), {
   ssr: false,
@@ -52,6 +53,8 @@ export interface StageResult {
   spouseEligibilityNeedsReview?: boolean;
   financialInputNeedsManualReview?: boolean;
   financialInputErrors?: string[];
+  munasakhatParentNeedsManualReview?: boolean;
+  munasakhatParentReviewReasons?: string[];
 }
 
 interface ResultsTableProps {
@@ -68,7 +71,7 @@ interface ResultsTableProps {
   results: CalculationResult[];
   problemBase: number | null;
   allStagesResults: StageResult[];
-  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number) => void;
+  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number, parentHeirCount: number) => void;
   removeStage: (index: number) => void;
   setSelectedHeirExplanation: (r: CalculationResult | null) => void;
   updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
@@ -202,42 +205,20 @@ const ResultsTable = memo(function ResultsTable({
             <button
               disabled={Boolean(currentStageValidation?.hasUnacknowledgedExclusions || isMunasakhatExportBlocked)}
               onClick={async () => {
-                const lines = [
-                  `نتائج التقسيم - ${currentStageIndex === 0 ? 'المسألة الأصلية' : `وفاة: ${currentStage.deceasedName}`}`
-                ];
-                if (problemBase) lines.push(`أصل المسألة: ${problemBase}`);
-                lines.push('--------------------------------------------------');
-                results.forEach(r => {
-                  const presence = currentStage?.heirPresence?.[r.heirId];
-                  const getPct = (frac: Fraction) => {
-                    const v = frac.valueOf() * 100;
-                    return v % 1 === 0 ? `${v}%` : `${v.toFixed(2)}%`;
-                  };
-                  if (r.count > 1) {
-                    for (let i=0; i<r.count; i++) {
-                      const customName = presence?.customNames?.[i];
-                      const baseName = `${r.nameAr} ${i + 1}`;
-                      const displayName = customName ? `${customName} (${r.nameAr})` : baseName;
-                      const individualAmt = r.amount / r.count;
-                      const indShareFrac = r.shareFraction.div(r.count);
-                      const pctStr = r.isBlocked ? '0%' : getPct(indShareFrac);
-                      if (isPureSharesMode) {
-                        lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - النسبة: ${pctStr}`);
-                      } else {
-                        lines.push(`${displayName}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${formatDZDAmount(individualAmt, 'western', true)} (${pctStr})`);
-                      }
-                    }
-                  } else {
-                    const pctStr = r.isBlocked ? '0%' : getPct(r.shareFraction);
-                    if (isPureSharesMode) {
-                      lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - النسبة: ${pctStr}`);
-                    } else {
-                      lines.push(`${r.nameAr}: ${r.isBlocked ? 'محجوب' : r.share} - المبلغ: ${formatDZDAmount(r.amount, 'western', true)} (${pctStr})`);
-                    }
-                  }
+                const clipboardText = buildResultsClipboardText({
+                  title: `نتائج التقسيم - ${currentStageIndex === 0 ? 'المسألة الأصلية' : `وفاة: ${currentStage.deceasedName}`}`,
+                  problemBase,
+                  results,
+                  customNamesByHeir: Object.fromEntries(
+                    results.map(result => [
+                      result.heirId,
+                      currentStage?.heirPresence?.[result.heirId]?.customNames,
+                    ])
+                  ),
+                  isPureSharesMode,
                 });
                 try {
-                  await navigator.clipboard.writeText(lines.join('\n'));
+                  await navigator.clipboard.writeText(clipboardText);
                   alert('تم نسخ النتائج كنص بنجاح');
                 } catch {
                   alert('فشل نسخ النتائج');
@@ -297,6 +278,20 @@ const ResultsTable = memo(function ResultsTable({
         {currentStageIndex > 0 && currentNetEstate === 0 && !isPureSharesMode && (
           <div className="p-3 mb-4 bg-red-50 border border-red-200 text-red-800 text-xs rounded">
             <p><strong>تنبيه:</strong> صافي التركة لهذه المرحلة هو صفر. لن يتم حساب أي أنصبة.</p>
+          </div>
+        )}
+
+        {allStagesResults[currentStageIndex]?.munasakhatParentNeedsManualReview && (
+          <div role="alert" aria-live="assertive" className="mb-4 rounded-lg border-2 border-rose-300 bg-rose-50 p-4 text-sm text-rose-950">
+            <p className="font-bold">توقّف حساب المناسخة — لم يثبت تطابق النصيب الموروث</p>
+            <p className="mt-1 text-xs leading-relaxed">
+              لم يصدر النظام أنصبة لهذه المرحلة؛ يجب أن يطابق مبلغها الموروث الحصة الفردية الحالية للوارث المتوفى في المرحلة الأصلية، وأن يكون رابط المرحلة والفرد صحيحاً. راجع المرحلة الأصلية ثم أعد إنشاء المناسخة من نتيجة النصيب الحالية.
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pr-5 text-xs leading-relaxed">
+              {(allStagesResults[currentStageIndex]?.munasakhatParentReviewReasons || []).map((issue, index) => (
+                <li key={`${index}-${issue}`}>{issue}</li>
+              ))}
+            </ul>
           </div>
         )}
 
@@ -563,7 +558,7 @@ interface TableViewProps {
   results: CalculationResult[];
   problemBase: number | null;
   currentStage: MunasakhatStage;
-  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number) => void;
+  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number, parentHeirCount: number) => void;
   setSelectedHeirExplanation: (r: CalculationResult | null) => void;
   updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
   isPureSharesMode: boolean;
@@ -864,7 +859,7 @@ const TableView = memo(function TableView({
                     <div className="flex flex-col gap-1 items-center">
                       {!indIsBlocked && (
                         <button
-                          onClick={() => addMunasakhatStage(displayName, individualAmt, r.heirId, i)}
+                          onClick={() => addMunasakhatStage(displayName, individualAmt, r.heirId, i, r.count)}
                           className="text-[10px] bg-[#0a5d38]/10 text-[#0a5d38] px-2 py-1 rounded hover:bg-[#0a5d38] hover:text-white transition-colors"
                           title="إضافة مناسخة (وفاة هذا الوارث)"
                           aria-label={`مناسخة: وفاة ${displayName}`}

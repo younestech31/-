@@ -164,6 +164,7 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
         parentHeirId: 'son',
         parentStageId: 'root-1',
         parentHeirIndex: 0,
+        parentHeirCount: 2,
         heirPresence: {
           wife: { heirId: 'wife', count: 1, isPresent: true },
           son: { heirId: 'son', count: 1, isPresent: true },
@@ -178,11 +179,17 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
       },
     ];
 
+    const [rootResult] = runInheritanceOrchestration([[stages[0]], 1000000, 50000, 10000, 20000]);
+    const sourceSon = rootResult.results.find(result => result.heirId === 'son');
+    const inheritedAmount = sourceSon?.individuals?.[0]?.amount ?? 0;
+    expect(inheritedAmount).toBeGreaterThan(0);
+    stages[1].inheritedAmount = inheritedAmount;
+
     const orchestratorResult = runInheritanceOrchestration([stages, 1000000, 50000, 10000, 20000]);
 
     expect(orchestratorResult.length).toBe(2);
     expect(orchestratorResult[0].netEstate).toBe(920000);
-    expect(orchestratorResult[1].netEstate).toBe(200000);
+    expect(orchestratorResult[1].netEstate).toBe(inheritedAmount);
   });
 
   it('Test 7: Article 133 Missing Heir withholding and effect on co-heirs', () => {
@@ -472,5 +479,59 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
 
       expect(mbResWithOffset?.amount).toBeLessThan(mbResWithoutOffset?.amount || 0);
     });
+  });
+});
+
+describe('Centime-precision estate distribution', () => {
+  it('preserves every centime when one heir receives the whole distributable estate', () => {
+    const estate = 1_000.55;
+    const results = calculateInheritance(
+      [{ heirId: 'son', count: 1, isPresent: true }],
+      estate,
+      0,
+      0,
+      0,
+    );
+    const son = results.find(result => result.heirId === 'son');
+
+    expect(son?.amount).toBe(estate);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(estate);
+  });
+
+  it('uses largest remainders in centimes for a two-to-one residue split', () => {
+    const estate = 1_000.55;
+    const results = calculateInheritance(
+      [
+        { heirId: 'son', count: 1, isPresent: true },
+        { heirId: 'daughter', count: 1, isPresent: true },
+      ],
+      estate,
+      0,
+      0,
+      0,
+    );
+    const son = results.find(result => result.heirId === 'son');
+    const daughter = results.find(result => result.heirId === 'daughter');
+
+    // 100,055 centimes at 2:1: the extra centime goes to the larger remainder.
+    expect(son?.amount).toBe(667.03);
+    expect(daughter?.amount).toBe(333.52);
+    expect(results.reduce((sum, result) => sum + result.amount, 0)).toBe(estate);
+    for (const result of [son, daughter]) {
+      const amountInCentimes = (result?.amount ?? 0) * 100;
+      expect(Math.abs(amountInCentimes - Math.round(amountInCentimes))).toBeLessThan(1e-8);
+    }
+  });
+
+  it('does not round a one-centime estate down to zero', () => {
+    const results = calculateInheritance(
+      [{ heirId: 'son', count: 1, isPresent: true }],
+      0.01,
+      0,
+      0,
+      0,
+    );
+
+    expect(results.find(result => result.heirId === 'son')?.amount).toBe(0.01);
   });
 });

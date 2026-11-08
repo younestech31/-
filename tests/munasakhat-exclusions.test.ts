@@ -83,6 +83,7 @@ describe('Munasakhat relationship review rules', () => {
         deceasedName: 'المتوفى الأصلي',
         deceasedNameAr: 'المتوفى الأصلي',
         deceasedGender: 'male',
+        confirmedSpouseEligibility: true,
         hasMandatoryBequest: false,
         heirs: [
           { heirId: 'wife', count: 1, isPresent: true },
@@ -98,7 +99,8 @@ describe('Munasakhat relationship review rules', () => {
         parentHeirId: 'son',
         parentStageId: 'root',
         parentHeirIndex: 0,
-        inheritedAmount: 120000,
+        parentHeirCount: 1,
+        inheritedAmount: 87500,
         hasMandatoryBequest: false,
         acknowledgedExclusions,
         heirs: [{ heirId: 'mother', count: 1, isPresent: true }],
@@ -112,6 +114,7 @@ describe('Munasakhat relationship review rules', () => {
 
     expect(secondary.excludedHeirWarnings?.some(warning => warning.heirId === 'mother')).toBe(true);
     expect(secondary.results.some(result => result.heirId === 'mother')).toBe(true);
+    expect(secondary.munasakhatParentNeedsManualReview).toBe(false);
     expect(secondary.hasUnverifiedOverride).toBe(false);
   });
 

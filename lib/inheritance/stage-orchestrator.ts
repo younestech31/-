@@ -28,6 +28,99 @@ export function runInheritanceOrchestration(
     const parentStageResult = stage.parentStageId
       ? stagesData.find(result => result.stage.id === stage.parentStageId)
       : (index > 0 && parentHeirId ? stagesData[index - 1] : undefined);
+
+    // Revalidate the inherited-share snapshot whenever the parent is recalculated.
+    const munasakhatParentReviewReasons: string[] = [];
+    if (index > 0) {
+      if (!parentHeirId) {
+        munasakhatParentReviewReasons.push('لا يوجد معرّف للوارث المتوفى الذي انتقل نصيبه إلى هذه المرحلة؛ اربط المرحلة بالوارث الصحيح في المرحلة الأصلية.');
+      } else if (!parentStageResult) {
+        munasakhatParentReviewReasons.push('تعذر العثور على المرحلة الأصلية المرتبطة بهذه المناسخة؛ قد يكون رابط المرحلة مفقوداً أو يشير إلى مرحلة غير محسوبة.');
+      } else {
+        const parentAcknowledgedExclusions = new Set(
+          parentStageResult.stage.acknowledgedExclusions ?? []
+        );
+        const parentHasPendingExclusionWarnings = (parentStageResult.excludedHeirWarnings ?? [])
+          .some(warning => !parentAcknowledgedExclusions.has(warning.heirId));
+        const parentHasBlockingLegalReview = [
+          parentStageResult.hasUnverifiedOverride,
+          parentStageResult.requiresManualClassification,
+          parentStageResult.tanzilNeedsManualReview,
+          parentStageResult.noHeirsNeedsManualReview,
+          parentStageResult.pregnancyNeedsManualReview,
+          parentStageResult.minorHeirNeedsJudicialPartition,
+          parentStageResult.deathOrderNeedsManualReview,
+          parentStageResult.involuntaryKillerNeedsCompensationReview,
+          parentStageResult.missingHeirNeedsManualReview,
+          parentStageResult.spouseEligibilityNeedsReview,
+          parentStageResult.financialInputNeedsManualReview,
+          parentStageResult.munasakhatParentNeedsManualReview,
+          parentHasPendingExclusionWarnings,
+        ].some(Boolean);
+
+        if (parentStageResult.results.length === 0 || parentHasBlockingLegalReview) {
+          munasakhatParentReviewReasons.push('نتيجة المرحلة الأصلية غير مكتملة أو متوقفة للمراجعة القانونية؛ عالج التحذيرات أو القيود في المرحلة الأصلية قبل اشتقاق تركة المرحلة التابعة.');
+        } else {
+          const parentHeirResult = parentStageResult.results.find(
+            result => result.heirId === parentHeirId
+          );
+
+          if (!parentHeirResult) {
+            munasakhatParentReviewReasons.push('الوارث المحدد لهذه المناسخة غير موجود في نتائج المرحلة الأصلية؛ راجع اختيار الوارث أو بيانات الحجب.');
+          } else if (parentHeirResult.isBlocked) {
+            munasakhatParentReviewReasons.push('الوارث المحدد محجوب في المرحلة الأصلية، لذلك لا يمكن اعتماد مبلغ موروث منه.');
+          } else if (
+            !Number.isSafeInteger(stage.parentHeirCount) ||
+            (stage.parentHeirCount ?? 0) <= 0
+          ) {
+            munasakhatParentReviewReasons.push(
+              'عدد أفراد مجموعة الوارث وقت إنشاء المناسخة غير محفوظ؛ أعد إنشاء المرحلة من الحصة الفردية الحالية حتى يمكن التحقق من هوية الفرد ومجموعته.'
+            );
+          } else if (stage.parentHeirCount !== parentHeirResult.count) {
+            munasakhatParentReviewReasons.push(
+              `تغير عدد أفراد فئة الوارث في المرحلة الأصلية: كان العدد عند إنشاء المناسخة ${stage.parentHeirCount} وأصبح حالياً ${parentHeirResult.count}. أعد إنشاء المرحلة بعد مراجعة هوية الفرد والحصة الفردية.`
+            );
+          } else {
+            const parentIndividualIndex = stage.parentHeirIndex ?? 0;
+            let currentInheritedAmount: number | null = null;
+
+            if (parentHeirResult.count > 1 && stage.parentHeirIndex === undefined) {
+              munasakhatParentReviewReasons.push('الوارث المتوفى ضمن مجموعة متعددة، لكن رقم الفرد الذي توفي غير محفوظ؛ لا يمكن تحديد حصته الفردية.');
+            } else if (parentHeirResult.individuals) {
+              const individual = parentHeirResult.individuals[parentIndividualIndex];
+              if (!individual) {
+                munasakhatParentReviewReasons.push('رقم الفرد المحدد للمناسخة خارج عدد أفراد فئة الوارث في المرحلة الأصلية.');
+              } else if (individual.isBlocked) {
+                munasakhatParentReviewReasons.push('الفرد المحدد محجوب في المرحلة الأصلية ولا يملك حصة قابلة للانتقال إلى هذه المناسخة.');
+              } else {
+                currentInheritedAmount = individual.amount;
+              }
+            } else if (parentHeirResult.count === 1 && parentIndividualIndex === 0) {
+              currentInheritedAmount = parentHeirResult.amount;
+            } else {
+              munasakhatParentReviewReasons.push('لا تتوفر بيانات الحصة الفردية للوارث المتوفى؛ لا يمكن استخدام مبلغ المجموعة بديلاً عن حصة الفرد.');
+            }
+
+            if (currentInheritedAmount !== null) {
+              const declaredInheritedCents = Math.round(inheritedAmount * 100);
+              const currentInheritedCents = Math.round(currentInheritedAmount * 100);
+              if (
+                !Number.isFinite(inheritedAmount) ||
+                !Number.isFinite(currentInheritedAmount) ||
+                !Number.isSafeInteger(declaredInheritedCents) ||
+                !Number.isSafeInteger(currentInheritedCents)
+              ) {
+                munasakhatParentReviewReasons.push('تعذر التحقق من المبلغ الموروث بالسنتيم بسبب قيمة غير صالحة أو خارج النطاق الحسابي الآمن.');
+              } else if (declaredInheritedCents !== currentInheritedCents) {
+                munasakhatParentReviewReasons.push(
+                  `تغير نصيب الفرد في المرحلة الأصلية: المبلغ المسجل لهذه المرحلة ${(declaredInheritedCents / 100).toFixed(2)} دج، بينما الحصة الفردية الحالية ${(currentInheritedCents / 100).toFixed(2)} دج. أعد إنشاء مرحلة المناسخة من الحصة الحالية أو راجع بياناتها قبل المتابعة.`
+                );
+              }
+            }
+          }
+        }
+      }
+    }
     const financialInputErrors = validateFinancialInputs({
       estate: stageEstate,
       inheritedAmount: index === 0 ? 0 : inheritedAmount,
@@ -54,6 +147,8 @@ export function runInheritanceOrchestration(
         excludedHeirWarnings: [],
         financialInputNeedsManualReview: true,
         financialInputErrors: [...new Set(financialInputErrors)],
+        munasakhatParentNeedsManualReview: munasakhatParentReviewReasons.length > 0,
+        munasakhatParentReviewReasons,
       });
       continue;
     }
@@ -237,7 +332,7 @@ export function runInheritanceOrchestration(
           ['twins_male_female', 'twins_males', 'twins_females'].includes(stage.unbornOutcome)))
     );
 
-    const res = requiresManualClassification || tanzilNeedsManualReview || pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview || missingHeirNeedsManualReview || spouseEligibilityNeedsReview
+    const res = munasakhatParentReviewReasons.length > 0 || requiresManualClassification || tanzilNeedsManualReview || pregnancyNeedsManualReview || deathOrderNeedsManualReview || involuntaryKillerNeedsCompensationReview || missingHeirNeedsManualReview || spouseEligibilityNeedsReview
       ? []
       : calculateInheritance(
           sanitizedPresence,
@@ -302,6 +397,8 @@ export function runInheritanceOrchestration(
       involuntaryKillerNeedsCompensationReview,
       missingHeirNeedsManualReview,
       spouseEligibilityNeedsReview,
+      munasakhatParentNeedsManualReview: munasakhatParentReviewReasons.length > 0,
+      munasakhatParentReviewReasons,
     });
   }
 
