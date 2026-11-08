@@ -85,6 +85,48 @@ describe('Article 158 — mixed full and paternal siblings with the grandfather'
   });
 });
 
+describe('Article 158 — production orchestration does not over-block descendant cases', () => {
+  const descendantCases = [
+    {
+      id: 'grandfather-with-son',
+      heirs: [present('grandfather'), present('son')],
+      expected: { grandfather: '1/6', son: '5/6' },
+    },
+    {
+      id: 'grandfather-with-son-son',
+      heirs: [present('grandfather'), present('son_son')],
+      expected: { grandfather: '1/6', son_son: '5/6' },
+    },
+    {
+      id: 'grandfather-with-one-daughter',
+      heirs: [present('grandfather'), present('daughter')],
+      expected: { grandfather: '1/2', daughter: '1/2' },
+    },
+    {
+      id: 'grandfather-with-two-daughters',
+      heirs: [present('grandfather'), present('daughter', 2)],
+      expected: { grandfather: '1/3', daughter: '2/3' },
+    },
+  ];
+
+  it.each(descendantCases)('$id — calculates through the production orchestrator without Article 158 mixed-line hold', testCase => {
+    const { stage, result } = runSingleStage(testCase.heirs);
+    const validation = validateMunasakhatStageExclusions(stage, null, 0);
+
+    expect(validation.requiresManualClassification).toBe(false);
+    expect(result.requiresManualClassification).not.toBe(true);
+    expect(result.results.length).toBeGreaterThan(0);
+
+    for (const [heirId, fraction] of Object.entries(testCase.expected)) {
+      const row = result.results.find(item => item.heirId === heirId);
+      expect(row, `${testCase.id}: missing ${heirId}`).toBeDefined();
+      expect(row!.shareFraction.toFraction()).toBe(fraction);
+    }
+
+    expect(result.results.reduce((sum, row) => sum + row.amount, 0)).toBe(900_000);
+  });
+});
+
 describe('Article 158 — review guard is limited to mixed sibling lines', () => {
   it('continues to calculate when the grandfather meets full siblings only', () => {
     const heirs = [
