@@ -262,6 +262,61 @@ const referenceCases: ReferenceCase[] = [
       paternal_sister: { fraction: '1/5', amount: 60_000 },
     },
   },
+
+  {
+    id: 'art158-grandfather-one-third-of-whole-estate-prevails-with-four-full-brothers',
+    basis: 'Without other fixed-share heirs, one-third of the whole estate is better for the grandfather than muqasama with four full brothers',
+    estate: 360_000,
+    heirs: [present('grandfather'), present('full_brother', 4)],
+    expected: {
+      grandfather: { fraction: '1/3', amount: 120_000 },
+      full_brother: {
+        fraction: '2/3',
+        amount: 240_000,
+        individualAmounts: [60_000, 60_000, 60_000, 60_000],
+      },
+    },
+  },
+  {
+    id: 'art158-one-third-of-remainder-prevails-with-wife-and-three-full-brothers',
+    basis: 'After the wife receives 1/4, one-third of the 3/4 residue gives the grandfather 1/4, more than muqasama',
+    estate: 360_000,
+    heirs: [present('wife'), present('grandfather'), present('full_brother', 3)],
+    expected: {
+      wife: { fraction: '1/4', amount: 90_000 },
+      grandfather: { fraction: '1/4', amount: 90_000 },
+      full_brother: {
+        fraction: '1/2',
+        amount: 180_000,
+        individualAmounts: [60_000, 60_000, 60_000],
+      },
+    },
+  },
+  {
+    id: 'art158-one-sixth-of-whole-estate-prevails-with-wife-two-daughters-and-four-full-brothers',
+    basis: 'With wife and daughters, the grandfather's 1/6 of the whole estate exceeds both one-third of the remaining 5/24 and muqasama against four brothers',
+    estate: 360_000,
+    heirs: [
+      present('wife'),
+      present('daughter', 2),
+      present('grandfather'),
+      present('full_brother', 4),
+    ],
+    expected: {
+      wife: { fraction: '1/8', amount: 45_000 },
+      daughter: {
+        fraction: '2/3',
+        amount: 240_000,
+        individualAmounts: [120_000, 120_000],
+      },
+      grandfather: { fraction: '1/6', amount: 60_000 },
+      full_brother: {
+        fraction: '1/24',
+        amount: 15_000,
+        individualAmounts: [3_750, 3_750, 3_750, 3_750],
+      },
+    },
+  },
 ];
 
 function resultFor(results: CalculationResult[], heirId: string): CalculationResult {
@@ -308,6 +363,33 @@ describe('Article 158 — independent numerical reference matrix (low-level arit
       results.reduce((sum, row) => sum + row.amount, 0),
       `${testCase.id}: estate conservation`,
     ).toBe(testCase.estate);
+  });
+});
+
+describe('Grandfather blocking boundaries around Article 158', () => {
+  it('blocks the paternal grandfather when the father is present', () => {
+    const results = calculateInheritance([
+      present('father'),
+      present('grandfather'),
+      present('maternal_siblings'),
+    ], 120_000, 0, 0, 0, false, [], 'stillborn', false, true);
+
+    expect(resultFor(results, 'father').shareFraction.toFraction()).toBe('1');
+    expect(resultFor(results, 'father').amount).toBe(120_000);
+    expect(resultFor(results, 'grandfather').isBlocked).toBe(true);
+    expect(resultFor(results, 'maternal_siblings').isBlocked).toBe(true);
+  });
+
+  it('blocks maternal siblings when the grandfather is the nearest male ascendant', () => {
+    const results = calculateInheritance([
+      present('grandfather'),
+      present('maternal_siblings', 2),
+    ], 120_000, 0, 0, 0, false, [], 'stillborn', false, true);
+
+    expect(resultFor(results, 'grandfather').shareFraction.toFraction()).toBe('1');
+    expect(resultFor(results, 'grandfather').amount).toBe(120_000);
+    expect(resultFor(results, 'maternal_siblings').isBlocked).toBe(true);
+    expect(resultFor(results, 'maternal_siblings').amount).toBe(0);
   });
 });
 
