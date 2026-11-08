@@ -207,6 +207,30 @@ const statutoryCases: ReferenceCase[] = [
     },
     calculationType: 'radd',
   },
+  {
+    id: 'art167-wife-only-after-confirming-no-distant-kindred',
+    article: 167,
+    facts: 'زوجة فقط بعد التأكد من عدم وجود عصبة نسبية أو أصحاب فروض نسبية أو ذوي أرحام: يرد الباقي إلى الزوجة',
+    estate: 240_000,
+    heirs: [present('wife')],
+    confirmedNoDistantKindred: true,
+    expected: {
+      wife: { fraction: '1', amount: 240_000 },
+    },
+    calculationType: 'radd',
+  },
+  {
+    id: 'art167-husband-only-after-confirming-no-distant-kindred',
+    article: 167,
+    facts: 'زوج فقط بعد التأكد من عدم وجود عصبة نسبية أو أصحاب فروض نسبية أو ذوي أرحام: يرد الباقي إلى الزوج',
+    estate: 240_000,
+    heirs: [present('husband')],
+    confirmedNoDistantKindred: true,
+    expected: {
+      husband: { fraction: '1', amount: 240_000 },
+    },
+    calculationType: 'radd',
+  },
 ];
 
 describe('Statute-derived independent inheritance reference cases', () => {
@@ -235,6 +259,28 @@ describe('Statute-derived independent inheritance reference cases', () => {
     if (testCase.calculationType) {
       expect(results.some(result => result.calculationType === testCase.calculationType)).toBe(true);
     }
+  });
+
+  it('withholds a spouse residue under Article 167 until absence of distant kindred is confirmed', () => {
+    const results = calculateInheritance(
+      [present('wife')],
+      240_000,
+      0,
+      0,
+      0,
+      false,
+      [],
+      'stillborn',
+      false,
+      false,
+    );
+
+    const wife = resultFor(results, 'wife');
+    const review = resultFor(results, 'article_180_review');
+    expect(wife.shareFraction.toFraction()).toBe('1/4');
+    expect(wife.amount).toBe(60_000);
+    expect(review.article).toBe(167);
+    expect(review.reason).toContain('لا يُرد باقي التركة');
   });
 
   it('splits a plural brother group per head in the Article 158 muqasama example', () => {
