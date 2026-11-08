@@ -99,6 +99,7 @@ describe('Munasakhat relationship review rules', () => {
         parentHeirId: 'son',
         parentStageId: 'root',
         parentHeirIndex: 0,
+        parentHeirCount: 1,
         inheritedAmount: 87500,
         hasMandatoryBequest: false,
         acknowledgedExclusions,

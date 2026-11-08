@@ -164,6 +164,7 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
         parentHeirId: 'son',
         parentStageId: 'root-1',
         parentHeirIndex: 0,
+        parentHeirCount: 2,
         heirPresence: {
           wife: { heirId: 'wife', count: 1, isPresent: true },
           son: { heirId: 'son', count: 1, isPresent: true },
@@ -178,11 +179,17 @@ describe('Islamic Inheritance Calculation Legal Engine', () => {
       },
     ];
 
+    const [rootResult] = runInheritanceOrchestration([[stages[0]], 1000000, 50000, 10000, 20000]);
+    const sourceSon = rootResult.results.find(result => result.heirId === 'son');
+    const inheritedAmount = sourceSon?.individuals?.[0]?.amount ?? 0;
+    expect(inheritedAmount).toBeGreaterThan(0);
+    stages[1].inheritedAmount = inheritedAmount;
+
     const orchestratorResult = runInheritanceOrchestration([stages, 1000000, 50000, 10000, 20000]);
 
     expect(orchestratorResult.length).toBe(2);
     expect(orchestratorResult[0].netEstate).toBe(920000);
-    expect(orchestratorResult[1].netEstate).toBe(200000);
+    expect(orchestratorResult[1].netEstate).toBe(inheritedAmount);
   });
 
   it('Test 7: Article 133 Missing Heir withholding and effect on co-heirs', () => {

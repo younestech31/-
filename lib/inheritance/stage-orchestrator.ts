@@ -69,6 +69,17 @@ export function runInheritanceOrchestration(
             munasakhatParentReviewReasons.push('الوارث المحدد لهذه المناسخة غير موجود في نتائج المرحلة الأصلية؛ راجع اختيار الوارث أو بيانات الحجب.');
           } else if (parentHeirResult.isBlocked) {
             munasakhatParentReviewReasons.push('الوارث المحدد محجوب في المرحلة الأصلية، لذلك لا يمكن اعتماد مبلغ موروث منه.');
+          } else if (
+            !Number.isSafeInteger(stage.parentHeirCount) ||
+            (stage.parentHeirCount ?? 0) <= 0
+          ) {
+            munasakhatParentReviewReasons.push(
+              'عدد أفراد مجموعة الوارث وقت إنشاء المناسخة غير محفوظ؛ أعد إنشاء المرحلة من الحصة الفردية الحالية حتى يمكن التحقق من هوية الفرد ومجموعته.'
+            );
+          } else if (stage.parentHeirCount !== parentHeirResult.count) {
+            munasakhatParentReviewReasons.push(
+              `تغير عدد أفراد فئة الوارث في المرحلة الأصلية: كان العدد عند إنشاء المناسخة ${stage.parentHeirCount} وأصبح حالياً ${parentHeirResult.count}. أعد إنشاء المرحلة بعد مراجعة هوية الفرد والحصة الفردية.`
+            );
           } else {
             const parentIndividualIndex = stage.parentHeirIndex ?? 0;
             let currentInheritedAmount: number | null = null;

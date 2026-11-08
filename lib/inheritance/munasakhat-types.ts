@@ -12,6 +12,8 @@ export interface MunasakhatStage {
   parentHeirId?: string;
   parentStageId?: string;
   parentHeirIndex?: number;
+  /** Snapshot of the parent heir group size when this secondary estate was created. */
+  parentHeirCount?: number;
   estate?: number;
   inheritedAmount?: number;
   inheritedFromParentAmount?: number;

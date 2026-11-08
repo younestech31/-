@@ -44,6 +44,7 @@ export function createMunasakhatStage(args: {
   amount: number;
   heirId: string;
   parentHeirIndex: number;
+  parentHeirCount: number;
 }): MunasakhatStage {
   const defaultHeirs: HeirPresence[] = HEIRS.map(h => {
     if (h.id === 'father' || h.id === 'mother' || h.id === 'husband' || h.id === 'wife') {
@@ -61,6 +62,7 @@ export function createMunasakhatStage(args: {
     parentHeirId: args.heirId,
     parentStageId: args.parentStageId,
     parentHeirIndex: Math.max(0, Math.trunc(args.parentHeirIndex)),
+    parentHeirCount: args.parentHeirCount,
     deceasedGender: inferDeceasedGender(args.heirId) ?? undefined,
     inheritedAmount: Math.max(0, args.amount),
     heirs: defaultHeirs,
@@ -99,7 +101,8 @@ export function useMunasakhatStages(
     heirName: string,
     amount: number,
     heirId: string,
-    parentHeirIndex: number
+    parentHeirIndex: number,
+    parentHeirCount: number
   ) => {
     const parentStage = munasakhatStages[currentStageIndex];
     const newStage = createMunasakhatStage({
@@ -109,6 +112,7 @@ export function useMunasakhatStages(
       amount,
       heirId,
       parentHeirIndex,
+      parentHeirCount,
     });
 
     setMunasakhatStages(prev => [...prev, newStage]);

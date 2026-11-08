@@ -31,6 +31,8 @@ export interface MunasakhatStage {
   deceasedHeirId?: string;
   parentStageId?: string;
   parentHeirIndex?: number;
+  /** Number of people in the parent heir group when this death was linked. */
+  parentHeirCount?: number;
   heirPresence?: Record<string, import('@/lib/inheritance/inheritance-calculator').HeirPresence>;
   deceasedSonsCount?: number;
   deceasedDaughtersCount?: number;

@@ -21,12 +21,14 @@ describe('Munasakhat Resolver Tests', () => {
       amount: 85000,
       heirId: 'son',
       parentHeirIndex: 2,
+      parentHeirCount: 3,
     });
 
     expect(stage.parentStageId).toBe('stage-root');
     expect(stage.parentHeirId).toBe('son');
     expect(stage.deceasedHeirId).toBe('son');
     expect(stage.parentHeirIndex).toBe(2);
+    expect(stage.parentHeirCount).toBe(3);
     expect(stage.inheritedAmount).toBe(85000);
     expect(stage.deceasedGender).toBe('male');
   });
@@ -62,6 +64,7 @@ describe('Munasakhat Resolver Tests', () => {
       estate: -100,
       parentHeirId: 'son',
       parentStageId: 'root',
+        parentHeirCount: 1,
       heirPresence: {},
       deceasedSonsCount: 0,
       deceasedDaughtersCount: 0,
@@ -103,6 +106,7 @@ describe('Munasakhat Resolver Tests', () => {
         estate: 100000,
         parentHeirId: 'son',
         parentStageId: 'root',
+        parentHeirCount: 1,
         heirPresence: {
           wife: { heirId: 'wife', count: 1, isPresent: true },
         },
@@ -128,6 +132,7 @@ describe('Munasakhat Resolver Tests', () => {
       estate: 150000,
       parentHeirId: 'son',
       parentStageId: 'root',
+        parentHeirCount: 1,
       heirPresence: {},
       deceasedSonsCount: 0,
       deceasedDaughtersCount: 0,
@@ -220,6 +225,7 @@ describe('Munasakhat Resolver Tests', () => {
         deceasedName: 'المتوفى الثاني',
         parentHeirId: 'son',
         parentStageId: 'root',
+        parentHeirCount: 1,
         hasMandatoryBequest: false,
         inheritedAmount: 150000,
         heirs: [],
@@ -255,6 +261,7 @@ describe('Munasakhat Resolver Tests', () => {
         confirmedSpouseEligibility: true,
         parentHeirId: 'son',
         parentStageId: 'root',
+        parentHeirCount: 1,
         heirPresence: {
           wife: { heirId: 'wife', count: 1, isPresent: true },
         },
@@ -278,6 +285,7 @@ describe('Munasakhat Resolver Tests', () => {
       { id: 'root', deceasedName: 'المتوفى الأصلي', hasMandatoryBequest: false, heirs: [present('son')] },
       {
         id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'root', parentHeirId: 'son',
+        parentHeirCount: 1,
         parentHeirIndex: 0, inheritedAmount: 100_000, hasMandatoryBequest: false,
         confirmedSpouseEligibility: true, heirs: [present('wife')],
       },
@@ -293,7 +301,7 @@ describe('Munasakhat Resolver Tests', () => {
     const stages: MunasakhatStage[] = [
       { id: 'root', deceasedName: 'المتوفى الأصلي', hasMandatoryBequest: false, heirs: [present('son')] },
       {
-        id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'missing-parent', parentHeirId: 'son',
+        id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'missing-parent', parentHeirId: 'son', parentHeirCount: 1,
         inheritedAmount: 100_000, hasMandatoryBequest: false, heirs: [present('daughter')],
       },
     ];
@@ -309,6 +317,7 @@ describe('Munasakhat Resolver Tests', () => {
       { id: 'root', deceasedName: 'المتوفى الأصلي', hasMandatoryBequest: false, heirs: [present('son', 2)] },
       {
         id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'root', parentHeirId: 'son',
+        parentHeirCount: 2,
         parentHeirIndex: 2, inheritedAmount: 50_000, hasMandatoryBequest: false, heirs: [present('daughter')],
       },
     ];
@@ -316,6 +325,39 @@ describe('Munasakhat Resolver Tests', () => {
     expect(child.munasakhatParentNeedsManualReview).toBe(true);
     expect(child.results).toEqual([]);
     expect(child.munasakhatParentReviewReasons?.join(' ')).toContain('خارج عدد أفراد فئة الوارث');
+  });
+
+  it('blocks a downstream stage when the parent heir group size changes even if the individual amount stays the same', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      { id: 'root', deceasedName: 'المتوفى الأصلي', hasMandatoryBequest: false, heirs: [present('son')] },
+      {
+        id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'root', parentHeirId: 'son',
+        parentHeirIndex: 0, parentHeirCount: 2, inheritedAmount: 50_000,
+        hasMandatoryBequest: false, heirs: [present('daughter')],
+      },
+    ];
+    // The source group had two sons sharing 100,000 DZD. It is later corrected
+    // to one son inheriting 50,000 DZD: same individual amount, changed group identity.
+    const [, child] = runInheritanceOrchestration([stages, 50_000, 0, 0, 0]);
+    expect(child.munasakhatParentNeedsManualReview).toBe(true);
+    expect(child.results).toEqual([]);
+    expect(child.munasakhatParentReviewReasons?.join(' ')).toContain('تغير عدد أفراد فئة الوارث');
+  });
+
+  it('blocks legacy secondary stages that do not contain a parent group-size snapshot', async () => {
+    const { runInheritanceOrchestration } = await import('../lib/inheritance/stage-orchestrator');
+    const stages: MunasakhatStage[] = [
+      { id: 'root', deceasedName: 'المتوفى الأصلي', hasMandatoryBequest: false, heirs: [present('son')] },
+      {
+        id: 'legacy-child', deceasedName: 'الابن المتوفى', parentStageId: 'root', parentHeirId: 'son',
+        parentHeirIndex: 0, inheritedAmount: 100_000, hasMandatoryBequest: false, heirs: [present('daughter')],
+      },
+    ];
+    const [, child] = runInheritanceOrchestration([stages, 100_000, 0, 0, 0]);
+    expect(child.munasakhatParentNeedsManualReview).toBe(true);
+    expect(child.results).toEqual([]);
+    expect(child.munasakhatParentReviewReasons?.join(' ')).toContain('عدد أفراد مجموعة الوارث وقت إنشاء المناسخة غير محفوظ');
   });
 
   it('blocks a downstream stage when the parent calculation is on legal review hold', async () => {
@@ -327,6 +369,7 @@ describe('Munasakhat Resolver Tests', () => {
       },
       {
         id: 'child-stage', deceasedName: 'الابن المتوفى', parentStageId: 'root', parentHeirId: 'son',
+        parentHeirCount: 1,
         parentHeirIndex: 0, inheritedAmount: 100_000, hasMandatoryBequest: false, heirs: [present('daughter')],
       },
     ];
@@ -350,6 +393,7 @@ describe('Munasakhat Resolver Tests', () => {
         id: 'second',
         deceasedName: 'الابن المتوفى',
         parentStageId: 'root',
+        parentHeirCount: 1,
         parentHeirId: 'son',
         parentHeirIndex: 0,
         inheritedAmount: 100_000,
@@ -363,6 +407,7 @@ describe('Munasakhat Resolver Tests', () => {
         deceasedName: 'المتوفى الثالث',
         parentStageId: 'second',
         parentHeirId: 'mother',
+        parentHeirCount: 1,
         parentHeirIndex: 0,
         inheritedAmount: 100_000,
         hasMandatoryBequest: false,

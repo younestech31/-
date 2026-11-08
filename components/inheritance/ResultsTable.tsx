@@ -71,7 +71,7 @@ interface ResultsTableProps {
   results: CalculationResult[];
   problemBase: number | null;
   allStagesResults: StageResult[];
-  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number) => void;
+  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number, parentHeirCount: number) => void;
   removeStage: (index: number) => void;
   setSelectedHeirExplanation: (r: CalculationResult | null) => void;
   updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
@@ -558,7 +558,7 @@ interface TableViewProps {
   results: CalculationResult[];
   problemBase: number | null;
   currentStage: MunasakhatStage;
-  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number) => void;
+  addMunasakhatStage: (name: string, amount: number, heirId: string, index: number, parentHeirCount: number) => void;
   setSelectedHeirExplanation: (r: CalculationResult | null) => void;
   updateImpediment: (heirId: string, index: number, isImpeded: boolean, reasonId?: string) => void;
   isPureSharesMode: boolean;
@@ -859,7 +859,7 @@ const TableView = memo(function TableView({
                     <div className="flex flex-col gap-1 items-center">
                       {!indIsBlocked && (
                         <button
-                          onClick={() => addMunasakhatStage(displayName, individualAmt, r.heirId, i)}
+                          onClick={() => addMunasakhatStage(displayName, individualAmt, r.heirId, i, r.count)}
                           className="text-[10px] bg-[#0a5d38]/10 text-[#0a5d38] px-2 py-1 rounded hover:bg-[#0a5d38] hover:text-white transition-colors"
                           title="إضافة مناسخة (وفاة هذا الوارث)"
                           aria-label={`مناسخة: وفاة ${displayName}`}
